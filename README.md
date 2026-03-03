@@ -2,6 +2,10 @@
 
 Painel web para importar relatórios do MetaTrader 5 (MT5) em XLSX, consolidar histórico e acompanhar metas mensais em BRL com deduplicação forte.
 
+## Licença e uso
+
+Este software é **comercial e proprietário**. O código não é open-source e seu uso, cópia, modificação ou redistribuição sem autorização é proibido.
+
 ## Estrutura
 
 - `backend/`: FastAPI + SQLAlchemy async + Alembic (SQLite local)
@@ -45,7 +49,7 @@ npm run dev
 
 O app desktop abre o painel em uma janela nativa.
 
-1. Instale as dependências (se ainda nao fez):
+1. Instale as dependências (se ainda não fez):
 
 ```bash
 cd C:\Users\ciler\Documents\TradeTrackerMT5
@@ -58,13 +62,13 @@ cd C:\Users\ciler\Documents\TradeTrackerMT5
 .\build_desktop.ps1
 ```
 
-3. Instale no Windows (cria atalho na area de trabalho):
+3. Instale no Windows (cria atalho na área de trabalho):
 
 ```bash
 .\install_desktop.bat
 ```
 
-Depois, abra o atalho "TradeTrackerMT5" criado na area de trabalho.
+Depois, abra o atalho "TradeTrackerMT5" criado na área de trabalho.
 
 ## Banco MySQL (Hostinger)
 
@@ -74,7 +78,7 @@ Configure o banco em `TradeTrackerMT5.env` (na raiz do projeto). Exemplo:
 DATABASE_URL=mysql+aiomysql://dados:TradeTracker1411@localhost:3306/TradeTrackerMT5?charset=utf8mb4
 ```
 
-Observacao: `localhost` significa o mesmo computador onde o app roda. Se o MySQL estiver em outro servidor, troque pelo host/IP correto.
+Observação: `localhost` significa o mesmo computador onde o app roda. Se o MySQL estiver em outro servidor, troque pelo host/IP correto.
 
 ## Rotas da API
 
@@ -105,7 +109,7 @@ O parser procura a seção `Positions`, identifica cabeçalhos e lê linhas até
 
 ## Instalador Setup.exe (Inno Setup)
 
-1. Instale o Inno Setup (versao 6).
+1. Instale o Inno Setup (versão 6).
 2. Gere o app desktop:
 
 ```
