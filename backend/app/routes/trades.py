@@ -5,8 +5,9 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..auth import get_current_user
 from ..db import get_session
-from ..models import FXRate, Trade
+from ..models import FXRate, Trade, User
 from ..schemas import TradeListResponse, TradeMetaResponse, TradeOut
 
 router = APIRouter()
@@ -39,8 +40,9 @@ async def list_trades(
     symbol: Optional[str] = Query(None),
     account: Optional[str] = Query(None),
     session: AsyncSession = Depends(get_session),
+    user: User = Depends(get_current_user),
 ):
-    stmt = select(Trade)
+    stmt = select(Trade).where(Trade.user_id == user.id)
     if from_:
         stmt = stmt.where(Trade.close_date >= from_)
     if to:
@@ -64,8 +66,13 @@ async def list_trades(
     results: List[TradeOut] = []
     for trade in trades:
         net_profit = float(trade.profit) + float(trade.commission) + float(trade.swap)
-        fx_rate = rate_map.get(trade.close_date) or latest_rate
-        net_profit_brl = net_profit * fx_rate if fx_rate else None
+        currency = (trade.currency or "USD").upper()
+        if currency == "BRL":
+            fx_rate = 1.0
+            net_profit_brl = net_profit
+        else:
+            fx_rate = rate_map.get(trade.close_date) or latest_rate
+            net_profit_brl = net_profit * fx_rate if fx_rate else None
         results.append(
             TradeOut(
                 id=trade.id,
@@ -96,9 +103,20 @@ async def list_trade_meta(
     from_: Optional[dt.date] = Query(None, alias="from"),
     to: Optional[dt.date] = Query(None),
     session: AsyncSession = Depends(get_session),
+    user: User = Depends(get_current_user),
 ):
-    symbol_stmt = select(Trade.symbol).distinct().order_by(Trade.symbol)
-    account_stmt = select(Trade.account).distinct().order_by(Trade.account)
+    symbol_stmt = (
+        select(Trade.symbol)
+        .where(Trade.user_id == user.id)
+        .distinct()
+        .order_by(Trade.symbol)
+    )
+    account_stmt = (
+        select(Trade.account)
+        .where(Trade.user_id == user.id)
+        .distinct()
+        .order_by(Trade.account)
+    )
 
     if from_:
         symbol_stmt = symbol_stmt.where(Trade.close_date >= from_)

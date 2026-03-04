@@ -163,35 +163,40 @@ function computeMetrics(
     Array.from({ length: 24 }, () => 0)
   );
 
-  const getNetValue = (trade: Trade) => {
-    if (currency === "USD") return trade.net_profit;
-    if (trade.net_profit_brl != null) return trade.net_profit_brl;
-    if (trade.fx_rate != null) return trade.net_profit * trade.fx_rate;
-    if (fxFallback != null) return trade.net_profit * fxFallback;
-    return trade.net_profit;
-  };
-
-  const getCostValue = (trade: Trade) => {
-    const base = trade.commission + trade.swap;
+  const getProfitValue = (trade: Trade) => {
+    const base = trade.profit;
     if (currency === "USD") return base;
+    if (trade.currency?.toUpperCase() === "BRL") return base;
     if (trade.fx_rate != null) return base * trade.fx_rate;
     if (fxFallback != null) return base * fxFallback;
     return base;
   };
 
+  const getCostValue = (trade: Trade) => {
+    const base = trade.commission + trade.swap;
+    if (currency === "USD") return base;
+    if (trade.currency?.toUpperCase() === "BRL") return base;
+    if (trade.fx_rate != null) return base * trade.fx_rate;
+    if (fxFallback != null) return base * fxFallback;
+    return base;
+  };
+
+  const getNetValue = (trade: Trade) => getProfitValue(trade) + getCostValue(trade);
+
   for (const trade of trades) {
-    const netValue = getNetValue(trade);
+    const profitValue = getProfitValue(trade);
     const costValue = getCostValue(trade);
+    const netValue = profitValue + costValue;
     net += netValue;
     costs += costValue;
-    if (netValue >= 0) {
-      grossProfit += netValue;
+    if (profitValue >= 0) {
+      grossProfit += profitValue;
       wins += 1;
-      maxWin = Math.max(maxWin, netValue);
+      maxWin = Math.max(maxWin, profitValue);
     } else {
-      grossLoss += netValue;
+      grossLoss += profitValue;
       losses += 1;
-      maxLoss = Math.min(maxLoss, netValue);
+      maxLoss = Math.min(maxLoss, profitValue);
     }
 
     const closeDate = new Date(trade.close_time);
@@ -204,8 +209,8 @@ function computeMetrics(
     };
     daily.net += netValue;
     daily.trades += 1;
-    if (netValue > 0) daily.wins += 1;
-    if (netValue < 0) daily.losses += 1;
+    if (profitValue > 0) daily.wins += 1;
+    if (profitValue < 0) daily.losses += 1;
     dailyMap.set(dateKey, daily);
 
     const dow = closeDate.getDay();
@@ -264,7 +269,7 @@ function computeMetrics(
     }
   }
 
-  const streaks = calculateStreaks(trades, getNetValue);
+  const streaks = calculateStreaks(trades, getProfitValue);
 
   return {
     net,
@@ -663,7 +668,10 @@ export default function Dashboard() {
 
           {error ? <div className="panel">Erro: {error}</div> : null}
           <div className="cards kpi-grid">
-            <div className="card kpi-card">
+            <div
+              className="card kpi-card highlight"
+              title="Resultado líquido = lucro + comissão + swap. É o valor final real do período."
+            >
               <div className="card-title">Resultado líquido</div>
               <div
                 className={`card-value ${metrics.net >= 0 ? "text-success" : "text-danger"}`}
@@ -672,14 +680,20 @@ export default function Dashboard() {
               </div>
               <div className="card-sub">{metrics.totalTrades} operacoes</div>
             </div>
-            <div className="card kpi-card">
+            <div
+              className="card kpi-card"
+              title="Resultado bruto = soma dos lucros das operações vencedoras (sem descontar custos)."
+            >
               <div className="card-title">Resultado bruto</div>
               <div className="card-value text-success">
                 {formatCurrency(metrics.grossProfit, currency)}
               </div>
               <div className="card-sub">Ganho total</div>
             </div>
-            <div className="card kpi-card">
+            <div
+              className="card kpi-card"
+              title="Prejuízo bruto = soma das perdas das operações perdedoras (sem custos). Pode ser maior que o capital investido."
+            >
               <div className="card-title">Prejuízo bruto</div>
               <div className="card-value text-danger">
                 {formatCurrency(Math.abs(metrics.grossLoss), currency)}

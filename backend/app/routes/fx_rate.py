@@ -1,4 +1,4 @@
-﻿import datetime as dt
+import datetime as dt
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select

@@ -53,6 +53,20 @@ def parse_float(value, default: float = 0.0) -> float:
     return default
 
 
+def normalize_deal_id(value) -> Optional[str]:
+    if value in (None, ""):
+        return None
+    if isinstance(value, bool):
+        return str(int(value))
+    if isinstance(value, int):
+        return str(value)
+    if isinstance(value, float):
+        if value.is_integer():
+            return str(int(value))
+        return str(value).strip()
+    return str(value).strip()
+
+
 def parse_datetime(value) -> Optional[dt.datetime]:
     if value is None:
         return None
@@ -348,7 +362,7 @@ def parse_mt5_xlsx(file_bytes: bytes) -> Tuple[Dict, List[Dict]]:
             "profit": parse_float(profit),
             "commission": parse_float(commission),
             "swap": parse_float(swap),
-            "deal_id": str(deal_id).strip() if deal_id not in (None, "") else None,
+            "deal_id": normalize_deal_id(deal_id),
         }
         trades.append(trade)
 

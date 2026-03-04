@@ -7,6 +7,15 @@ $inno = Join-Path ${env:ProgramFiles(x86)} "Inno Setup 6\\ISCC.exe"
 if (-Not (Test-Path $inno)) {
     $inno = Join-Path $env:ProgramFiles "Inno Setup 6\\ISCC.exe"
 }
+if (-Not (Test-Path $inno)) {
+    $inno = Join-Path $env:LOCALAPPDATA "Programs\\Inno Setup 6\\ISCC.exe"
+}
+if (-Not (Test-Path $inno)) {
+    $cmd = Get-Command ISCC.exe -ErrorAction SilentlyContinue
+    if ($cmd) {
+        $inno = $cmd.Path
+    }
+}
 
 if (-Not (Test-Path $inno)) {
     Write-Host "Inno Setup nao encontrado. Instale e tente novamente." -ForegroundColor Red

@@ -6,9 +6,10 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..auth import get_current_user
 from ..db import get_session
 from ..fx_provider import FxProviderError, fetch_usd_brl_rate
-from ..models import FXRate, Trade
+from ..models import FXRate, Trade, User
 from ..schemas import DailySummary, SummaryResponse
 
 router = APIRouter()
@@ -19,7 +20,7 @@ def _parse_month(month: str) -> dt.date:
         year, month_num = month.split("-")
         return dt.date(int(year), int(month_num), 1)
     except Exception as exc:
-        raise HTTPException(status_code=400, detail="Formato do mês inválido") from exc
+        raise HTTPException(status_code=400, detail="Formato do m?s inv?lido") from exc
 
 
 def _compute_rate_map(
@@ -51,7 +52,7 @@ async def _ensure_fx_rate(session: AsyncSession) -> None:
         session.add(FXRate(date=today, usd_brl_rate=rate_value))
         await session.commit()
     except (FxProviderError, Exception):
-        # Falha silenciosa: mantém comportamento sem BRL
+        # Falha silenciosa: mant?m comportamento sem BRL
         return
 
 
@@ -59,24 +60,44 @@ async def _ensure_fx_rate(session: AsyncSession) -> None:
 async def get_summary(
     month: str = Query(..., description="YYYY-MM"),
     session: AsyncSession = Depends(get_session),
+    user: User = Depends(get_current_user),
 ):
     month_start = _parse_month(month)
     last_day = calendar.monthrange(month_start.year, month_start.month)[1]
     month_end = dt.date(month_start.year, month_start.month, last_day)
 
+    currency_rows = (
+        await session.execute(
+            select(Trade.currency)
+            .where(
+                Trade.user_id == user.id,
+                Trade.close_date >= month_start,
+                Trade.close_date <= month_end,
+            )
+            .distinct()
+        )
+    ).scalars().all()
+    currencies = {(c or "USD").upper() for c in currency_rows if c}
+    brl_only = currencies == {"BRL"}
+
+    profit_expr = Trade.profit
     net_expr = Trade.profit + Trade.commission + Trade.swap
 
     stmt = (
         select(
             Trade.close_date.label("day"),
             func.count(Trade.id).label("trades"),
-            func.sum(case((net_expr > 0, 1), else_=0)).label("wins"),
-            func.sum(case((net_expr < 0, 1), else_=0)).label("losses"),
-            func.sum(case((net_expr > 0, net_expr), else_=0)).label("gross_profit"),
-            func.sum(case((net_expr < 0, net_expr), else_=0)).label("gross_loss"),
+            func.sum(case((profit_expr > 0, 1), else_=0)).label("wins"),
+            func.sum(case((profit_expr < 0, 1), else_=0)).label("losses"),
+            func.sum(case((profit_expr > 0, profit_expr), else_=0)).label("gross_profit"),
+            func.sum(case((profit_expr < 0, profit_expr), else_=0)).label("gross_loss"),
             func.sum(net_expr).label("net_profit"),
         )
-        .where(Trade.close_date >= month_start, Trade.close_date <= month_end)
+        .where(
+            Trade.user_id == user.id,
+            Trade.close_date >= month_start,
+            Trade.close_date <= month_end,
+        )
         .group_by(Trade.close_date)
         .order_by(Trade.close_date)
     )
@@ -110,7 +131,7 @@ async def get_summary(
         if gross_loss != 0:
             profit_factor = round(gross_profit / abs(gross_loss), 4)
 
-        fx_rate = rate_map.get(day)
+        fx_rate = 1.0 if brl_only else rate_map.get(day)
         net_profit_brl = net_profit * fx_rate if fx_rate else None
 
         daily.append(

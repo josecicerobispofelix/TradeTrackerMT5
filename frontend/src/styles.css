@@ -280,6 +280,23 @@ body::after {
   animation: float-in 0.6s ease both;
 }
 
+.card.highlight {
+  border-color: rgba(34, 211, 238, 0.7);
+  box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.25), 0 12px 28px rgba(34, 211, 238, 0.18);
+}
+
+.card.highlight::after {
+  content: "";
+  position: absolute;
+  inset: -20% 40% 60% -20%;
+  background: radial-gradient(
+    circle,
+    rgba(34, 211, 238, 0.25),
+    rgba(34, 211, 238, 0)
+  );
+  pointer-events: none;
+}
+
 .card::before {
   content: "";
   position: absolute;
@@ -342,6 +359,11 @@ body::after {
   backdrop-filter: blur(12px);
   animation: fade-up 0.6s ease both;
   overflow: hidden;
+}
+
+.activation-card {
+  max-width: 720px;
+  margin: 0 auto;
 }
 
 .panel::after {
@@ -680,4 +702,38 @@ button:hover:not(:disabled) {
   .heatmap-row {
     grid-template-columns: 32px 1fr;
   }
+}
+
+
+.auth-tabs {
+  display: flex;
+  gap: 8px;
+  margin: 12px 0 16px;
+  flex-wrap: wrap;
+}
+
+.auth-tabs button {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #d8e2ff;
+  padding: 8px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.auth-tabs button.active {
+  background: linear-gradient(135deg, #00d4ff, #2f89ff);
+  border-color: transparent;
+  color: #0b1220;
+  font-weight: 700;
+}
+
+.logout-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #e5ecff;
+  padding: 6px 12px;
+  border-radius: 999px;
+  margin-left: 8px;
+  cursor: pointer;
 }

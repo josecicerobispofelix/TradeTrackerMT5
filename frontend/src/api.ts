@@ -1,4 +1,6 @@
-﻿const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+﻿const API_URL =
+  import.meta.env.VITE_API_URL ||
+  (import.meta.env.PROD ? window.location.origin : "http://localhost:8000");
 
 export type UploadResponse = {
   file_already_imported: boolean;
@@ -70,20 +72,81 @@ export type FxRateListResponse = {
   rates: FxRate[];
 };
 
+export type LicenseStatus = {
+  activated: boolean;
+  machine_code: string;
+};
+
+function normalizeErrorMessage(payload: unknown): string {
+  if (payload == null) return "";
+  if (typeof payload === "string") return payload;
+  if (typeof payload === "number" || typeof payload === "boolean") {
+    return String(payload);
+  }
+  if (Array.isArray(payload)) {
+    const parts = payload
+      .map((item) => normalizeErrorMessage(item))
+      .filter((item) => item.trim().length > 0);
+    if (parts.length > 0) {
+      return parts.join(" | ");
+    }
+    return "";
+  }
+  if (typeof payload === "object") {
+    const obj = payload as Record<string, unknown>;
+    if (obj.detail !== undefined) {
+      return normalizeErrorMessage(obj.detail);
+    }
+    if (obj.message !== undefined) {
+      return normalizeErrorMessage(obj.message);
+    }
+    if (obj.msg !== undefined) {
+      return normalizeErrorMessage(obj.msg);
+    }
+    try {
+      return JSON.stringify(obj);
+    } catch {
+      return String(obj);
+    }
+  }
+  return String(payload);
+}
+
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_URL}${path}`, options);
+  const response = await fetch(`${API_URL}${path}`, {
+    credentials: "include",
+    ...options
+  });
   if (!response.ok) {
     let message = "Erro na API";
-    try {
-      const data = await response.json();
-      message = data.detail || JSON.stringify(data);
-    } catch {
-      message = await response.text();
+    const text = await response.text();
+    if (text) {
+      try {
+        const data = JSON.parse(text);
+        const normalized = normalizeErrorMessage(data);
+        if (normalized) {
+          message = normalized;
+        } else {
+          message = text;
+        }
+      } catch {
+        message = text;
+      }
     }
     throw new Error(message);
   }
   return response.json() as Promise<T>;
 }
+
+export type User = {
+  id: number;
+  email: string;
+};
+
+export type AuthMessage = {
+  message: string;
+  reset_token?: string;
+};
 
 export async function uploadReport(file: File): Promise<UploadResponse> {
   const formData = new FormData();
@@ -156,4 +219,69 @@ export async function setFxRate(payload: FxRate): Promise<FxRate> {
 export async function fetchFxRateAuto(date?: string): Promise<FxRate> {
   const search = date ? `?date=${date}` : "";
   return apiFetch<FxRate>(`/api/fx-rate/auto${search}`);
+}
+
+export async function getLicenseStatus(): Promise<LicenseStatus> {
+  return apiFetch<LicenseStatus>("/api/license/status");
+}
+
+export async function activateLicense(key: string): Promise<LicenseStatus> {
+  return apiFetch<LicenseStatus>("/api/license/activate", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ key })
+  });
+}
+
+export async function registerUser(payload: {
+  email: string;
+  password: string;
+}): Promise<User> {
+  return apiFetch<User>("/api/auth/register", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+}
+
+export async function loginUser(payload: {
+  email: string;
+  password: string;
+}): Promise<User> {
+  return apiFetch<User>("/api/auth/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+}
+
+export async function logoutUser(): Promise<{ ok: boolean }> {
+  return apiFetch<{ ok: boolean }>("/api/auth/logout", {
+    method: "POST"
+  });
+}
+
+export async function fetchMe(): Promise<User> {
+  return apiFetch<User>("/api/auth/me");
+}
+
+export async function requestPasswordReset(email: string): Promise<AuthMessage> {
+  return apiFetch<AuthMessage>("/api/auth/request-reset", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email })
+  });
+}
+
+export async function resetPassword(payload: {
+  token: string;
+  new_password: string;
+}): Promise<{ ok: boolean }> {
+  return apiFetch<{ ok: boolean }>("/api/auth/reset", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
 }

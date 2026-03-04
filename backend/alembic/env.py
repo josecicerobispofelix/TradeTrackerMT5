@@ -1,10 +1,22 @@
 ﻿import asyncio
 import os
+import sys
+from pathlib import Path
 from logging.config import fileConfig
 
 from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.ext.asyncio import async_engine_from_config
+
+# Ensure app package is importable both in dev and PyInstaller bundle
+if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+    bundled_backend = Path(sys._MEIPASS) / "backend"
+    if bundled_backend.exists():
+        sys.path.insert(0, str(bundled_backend))
+else:
+    backend_dir = Path(__file__).resolve().parents[1]
+    if backend_dir.exists():
+        sys.path.insert(0, str(backend_dir))
 
 from app.db import Base
 from app import models  # noqa: F401
