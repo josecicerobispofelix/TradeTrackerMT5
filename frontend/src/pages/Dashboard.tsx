@@ -44,6 +44,38 @@ function toDateKey(date: Date) {
   return `${year}-${month}-${day}`;
 }
 
+function toMonthKey(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  return `${year}-${month}`;
+}
+
+function formatMonthLabel(monthKey: string) {
+  if (!monthKey) return "";
+  const [year, month] = monthKey.split("-");
+  const parsedYear = Number(year);
+  const parsedMonth = Number(month);
+  if (!Number.isFinite(parsedYear) || !Number.isFinite(parsedMonth)) return monthKey;
+  const date = new Date(parsedYear, parsedMonth - 1, 1);
+  return new Intl.DateTimeFormat("pt-BR", {
+    month: "long",
+    year: "numeric"
+  }).format(date);
+}
+
+function getMonthRange(monthKey: string) {
+  if (!monthKey) return { from: "", to: "" };
+  const [year, month] = monthKey.split("-");
+  const parsedYear = Number(year);
+  const parsedMonth = Number(month);
+  if (!Number.isFinite(parsedYear) || !Number.isFinite(parsedMonth)) {
+    return { from: "", to: "" };
+  }
+  const start = new Date(parsedYear, parsedMonth - 1, 1);
+  const end = new Date(parsedYear, parsedMonth, 0);
+  return { from: toDateInput(start), to: toDateInput(end) };
+}
+
 function buildDateRange(from: string, to: string) {
   if (!from || !to) return [] as string[];
   const start = new Date(`${from}T00:00:00`);
@@ -299,6 +331,7 @@ function computeMetrics(
 
 export default function Dashboard() {
   const now = new Date();
+  const initialGoalMonth = toMonthKey(now);
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const [from, setFrom] = useState(toDateInput(startOfMonth));
   const [to, setTo] = useState(toDateInput(now));
@@ -313,8 +346,9 @@ export default function Dashboard() {
   const [selectedDays, setSelectedDays] = useState<number[]>([0, 1, 2, 3, 4, 5, 6]);
   const [selectedHours, setSelectedHours] = useState<number[]>(HOURS);
   const [useBrl, setUseBrl] = useState(true);
+  const [goalMonth, setGoalMonth] = useState(initialGoalMonth);
   const [goalNet, setGoalNet] = useState<number>(() => {
-    const stored = localStorage.getItem("ttmt5_goal_net_brl");
+    const stored = localStorage.getItem(`ttmt5_goal_net_brl_${initialGoalMonth}`);
     return stored ? Number(stored) : 3000;
   });
   const [fxDate, setFxDate] = useState(toDateInput(now));
@@ -324,8 +358,27 @@ export default function Dashboard() {
   const [fxLoading, setFxLoading] = useState(false);
 
   useEffect(() => {
-    localStorage.setItem("ttmt5_goal_net_brl", String(goalNet));
-  }, [goalNet]);
+    const legacy = localStorage.getItem("ttmt5_goal_net_brl");
+    if (legacy && !localStorage.getItem(`ttmt5_goal_net_brl_${initialGoalMonth}`)) {
+      localStorage.setItem(`ttmt5_goal_net_brl_${initialGoalMonth}`, legacy);
+    }
+  }, [initialGoalMonth]);
+
+  useEffect(() => {
+    const stored = localStorage.getItem(`ttmt5_goal_net_brl_${goalMonth}`);
+    if (stored != null && stored !== "") {
+      const value = Number(stored);
+      if (Number.isFinite(value)) {
+        setGoalNet(value);
+        return;
+      }
+    }
+    setGoalNet(3000);
+  }, [goalMonth]);
+
+  useEffect(() => {
+    localStorage.setItem(`ttmt5_goal_net_brl_${goalMonth}`, String(goalNet));
+  }, [goalNet, goalMonth]);
 
   const loadMeta = useCallback(async () => {
     setMetaLoading(true);
@@ -488,12 +541,33 @@ export default function Dashboard() {
   const remainingGross = Math.max(goalGross - metricsBrl.grossProfit, 0);
 
   const daysRemaining = useMemo(() => {
-    if (!to) return 0;
-    const base = new Date(`${to}T00:00:00`);
-    const monthEnd = new Date(base.getFullYear(), base.getMonth() + 1, 0);
+    if (!goalMonth) return 0;
+    const range = getMonthRange(goalMonth);
+    if (!range.from || !range.to) return 0;
+    const monthStart = new Date(`${range.from}T00:00:00`);
+    const monthEnd = new Date(`${range.to}T00:00:00`);
+    const today = new Date();
+    if (today > monthEnd) return 0;
+    const base = today < monthStart ? monthStart : today;
     const diff = Math.ceil((monthEnd.getTime() - base.getTime()) / MS_DAY);
     return Math.max(diff + 1, 1);
-  }, [to]);
+  }, [goalMonth]);
+
+  const goalMonthLabel = useMemo(() => formatMonthLabel(goalMonth), [goalMonth]);
+
+  const handleGoalMonthChange = (value: string) => {
+    if (!value) return;
+    setGoalMonth(value);
+    const range = getMonthRange(value);
+    if (!range.from || !range.to) return;
+    if (toMonthKey(now) === value) {
+      setFrom(range.from);
+      setTo(toDateInput(now));
+    } else {
+      setFrom(range.from);
+      setTo(range.to);
+    }
+  };
 
   const needPerDayBrl = remainingNet / (daysRemaining || 1);
   const needPerDayUsd = fxRate ? needPerDayBrl / fxRate : null;
@@ -773,9 +847,20 @@ export default function Dashboard() {
             <div className="panel">
               <div className="panel-header">
                 <h4>Meta mensal</h4>
-                <span>Atualize a meta e o painel recalcula automaticamente.</span>
+                <span>
+                  Meta de {goalMonthLabel || "mês selecionado"}. Atualize a meta e o painel
+                  recalcula automaticamente.
+                </span>
               </div>
               <div className="form-row">
+                <label>
+                  Mês da meta
+                  <input
+                    type="month"
+                    value={goalMonth}
+                    onChange={(event) => handleGoalMonthChange(event.target.value)}
+                  />
+                </label>
                 <label>
                   Meta líquida (BRL)
                   <input
