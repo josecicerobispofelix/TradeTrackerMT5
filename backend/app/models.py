@@ -8,6 +8,7 @@ from sqlalchemy import (
     JSON,
     Numeric,
     String,
+    UniqueConstraint,
     func,
 )
 from sqlalchemy.orm import Mapped, mapped_column
@@ -87,6 +88,59 @@ class User(Base):
     password_hash: Mapped[str] = mapped_column(String(255))
     created_at: Mapped[dt.datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
+    )
+
+
+class FiscalProfile(Base):
+    __tablename__ = "fiscal_profiles"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), unique=True)
+    full_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    cpf: Mapped[str | None] = mapped_column(String(14), nullable=True)
+    birth_date: Mapped[dt.date | None] = mapped_column(Date, nullable=True)
+    cep: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    street: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    number: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    complement: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    neighborhood: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    city: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    state: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    broker: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    trading_account: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    account_currency: Mapped[str] = mapped_column(String(8), default="USD")
+    tax_rate: Mapped[float] = mapped_column(Numeric(6, 4), default=0.15)
+    fx_source: Mapped[str | None] = mapped_column(String(16), default="manual")
+    created_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+
+class DarfReport(Base):
+    __tablename__ = "darf_reports"
+    __table_args__ = (
+        UniqueConstraint("user_id", "year", "month", name="uq_darf_user_month"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), index=True)
+    year: Mapped[int] = mapped_column(Integer, nullable=False)
+    month: Mapped[int] = mapped_column(Integer, nullable=False)
+    trades_count: Mapped[int] = mapped_column(Integer, default=0)
+    profit_usd: Mapped[float] = mapped_column(Numeric(18, 6), default=0)
+    profit_brl: Mapped[float] = mapped_column(Numeric(18, 6), default=0)
+    fx_rate: Mapped[float] = mapped_column(Numeric(18, 6), default=0)
+    tax_rate: Mapped[float] = mapped_column(Numeric(6, 4), default=0.15)
+    tax_due: Mapped[float] = mapped_column(Numeric(18, 6), default=0)
+    currency: Mapped[str] = mapped_column(String(8), default="USD")
+    created_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
 
 

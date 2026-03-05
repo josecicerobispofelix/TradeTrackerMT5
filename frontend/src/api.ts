@@ -72,6 +72,62 @@ export type FxRateListResponse = {
   rates: FxRate[];
 };
 
+export type FiscalProfile = {
+  id?: number;
+  user_id?: number;
+  full_name?: string | null;
+  cpf?: string | null;
+  birth_date?: string | null;
+  cep?: string | null;
+  street?: string | null;
+  number?: string | null;
+  complement?: string | null;
+  neighborhood?: string | null;
+  city?: string | null;
+  state?: string | null;
+  broker?: string | null;
+  trading_account?: string | null;
+  account_currency?: string | null;
+  tax_rate?: number | null;
+  fx_source?: string | null;
+};
+
+export type DarfCalcRequest = {
+  month: number;
+  year: number;
+  fx_rate?: number | null;
+  tax_rate?: number | null;
+};
+
+export type DarfCalcResponse = {
+  month: number;
+  year: number;
+  trades_count: number;
+  profit_usd: number;
+  profit_brl: number;
+  fx_rate: number;
+  tax_rate: number;
+  tax_due: number;
+  currency: string;
+  message?: string | null;
+};
+
+export type DarfHistoryItem = {
+  month: number;
+  year: number;
+  trades_count: number;
+  profit_usd: number;
+  profit_brl: number;
+  fx_rate: number;
+  tax_rate: number;
+  tax_due: number;
+  currency: string;
+};
+
+export type DarfHistoryResponse = {
+  items: DarfHistoryItem[];
+};
+
 export type LicenseStatus = {
   activated: boolean;
   machine_code: string;
@@ -219,6 +275,70 @@ export async function setFxRate(payload: FxRate): Promise<FxRate> {
 export async function fetchFxRateAuto(date?: string): Promise<FxRate> {
   const search = date ? `?date=${date}` : "";
   return apiFetch<FxRate>(`/api/fx-rate/auto${search}`);
+}
+
+export async function fetchFiscalProfile(): Promise<FiscalProfile> {
+  return apiFetch<FiscalProfile>("/api/fiscal-profile");
+}
+
+export async function saveFiscalProfile(
+  payload: FiscalProfile
+): Promise<FiscalProfile> {
+  return apiFetch<FiscalProfile>("/api/fiscal-profile", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload)
+  });
+}
+
+export async function calculateDarf(
+  payload: DarfCalcRequest
+): Promise<DarfCalcResponse> {
+  return apiFetch<DarfCalcResponse>("/api/darf/calculate", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload)
+  });
+}
+
+export async function fetchDarfHistory(): Promise<DarfHistoryResponse> {
+  return apiFetch<DarfHistoryResponse>("/api/darf/history");
+}
+
+export async function downloadDarfPdf(
+  payload: DarfCalcRequest
+): Promise<Blob> {
+  const response = await fetch(`${API_URL}/api/darf/pdf`, {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload)
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    let message = "Erro ao gerar PDF";
+    if (text) {
+      try {
+        const data = JSON.parse(text);
+        const normalized = normalizeErrorMessage(data);
+        if (normalized) {
+          message = normalized;
+        } else {
+          message = text;
+        }
+      } catch {
+        message = text;
+      }
+    }
+    throw new Error(message);
+  }
+  return response.blob();
 }
 
 export async function getLicenseStatus(): Promise<LicenseStatus> {

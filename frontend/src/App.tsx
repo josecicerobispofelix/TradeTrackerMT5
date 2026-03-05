@@ -15,6 +15,7 @@ import {
 import Dashboard from "./pages/Dashboard";
 import Upload from "./pages/Upload";
 import History from "./pages/History";
+import Profile from "./pages/Profile";
 import TopNav from "./components/TopNav";
 
 export default function App() {
@@ -30,20 +31,32 @@ export default function App() {
   const [authMode, setAuthMode] = useState<"login" | "register" | "reset">(
     "login"
   );
-  const [authEmail, setAuthEmail] = useState("");
+  const [authEmail, setAuthEmail] = useState(
+    () => localStorage.getItem(AUTH_EMAIL_KEY) ?? ""
+  );
   const [authPassword, setAuthPassword] = useState("");
   const [authPassword2, setAuthPassword2] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showPassword2, setShowPassword2] = useState(false);
+  const [showResetPassword, setShowResetPassword] = useState(false);
   const [authToken, setAuthToken] = useState("");
   const [authMessage, setAuthMessage] = useState<string | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
   const [resetTokenHint, setResetTokenHint] = useState<string | null>(null);
 
   useEffect(() => {
-    const savedEmail = localStorage.getItem(AUTH_EMAIL_KEY);
-    if (savedEmail) {
-      setAuthEmail(savedEmail);
+    const trimmed = authEmail.trim();
+    if (trimmed) {
+      localStorage.setItem(AUTH_EMAIL_KEY, trimmed);
     }
-  }, []);
+  }, [authEmail]);
+
+  useEffect(() => {
+    if (user?.email) {
+      setAuthEmail(user.email);
+      localStorage.setItem(AUTH_EMAIL_KEY, user.email);
+    }
+  }, [user?.email]);
 
   useEffect(() => {
     const loadLicense = async () => {
@@ -68,6 +81,10 @@ export default function App() {
       try {
         const me = await fetchMe();
         setUser(me);
+        if (me?.email) {
+          setAuthEmail(me.email);
+          localStorage.setItem(AUTH_EMAIL_KEY, me.email);
+        }
       } catch {
         setUser(null);
       } finally {
@@ -101,6 +118,9 @@ export default function App() {
         localStorage.setItem(AUTH_EMAIL_KEY, authEmail.trim());
       }
       setUser(me);
+      if (me?.email) {
+        setAuthEmail(me.email);
+      }
     } catch (err) {
       setAuthError((err as Error).message);
     }
@@ -130,6 +150,9 @@ export default function App() {
         localStorage.setItem(AUTH_EMAIL_KEY, authEmail.trim());
       }
       setUser(me);
+      if (me?.email) {
+        setAuthEmail(me.email);
+      }
     } catch (err) {
       setAuthError((err as Error).message);
     }
@@ -174,6 +197,10 @@ export default function App() {
     setAuthPassword("");
     setAuthPassword2("");
     setAuthToken("");
+    const savedEmail = localStorage.getItem(AUTH_EMAIL_KEY);
+    if (savedEmail) {
+      setAuthEmail(savedEmail);
+    }
   };
 
   if (!license) {
@@ -270,39 +297,57 @@ export default function App() {
               </button>
             </div>
 
-            <div className="form-row">
-              <label>
-                E-mail
-                <input
-                  type="email"
-                  value={authEmail}
-                  onChange={(event) => setAuthEmail(event.target.value)}
-                  placeholder="seu@email.com"
-                />
-              </label>
-              {authMode !== "reset" ? (
+              <div className="form-row">
                 <label>
-                  Senha
+                  E-mail
                   <input
-                    type="password"
-                    value={authPassword}
-                    onChange={(event) => setAuthPassword(event.target.value)}
+                    type="email"
+                    value={authEmail}
+                    onChange={(event) => setAuthEmail(event.target.value)}
+                    placeholder="seu@email.com"
                   />
                 </label>
-              ) : null}
-              {authMode === "register" ? (
-                <label>
-                  Confirmar senha
-                  <input
-                    type="password"
-                    value={authPassword2}
-                    onChange={(event) => setAuthPassword2(event.target.value)}
-                  />
-                </label>
-              ) : null}
-              {authMode === "reset" ? (
-                <>
+                {authMode !== "reset" ? (
                   <label>
+                    Senha
+                    <div className="input-with-toggle">
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        value={authPassword}
+                        onChange={(event) => setAuthPassword(event.target.value)}
+                      />
+                      <button
+                        type="button"
+                        className="toggle-eye"
+                        onClick={() => setShowPassword((v) => !v)}
+                      >
+                        {showPassword ? "Ocultar" : "Mostrar"}
+                      </button>
+                    </div>
+                  </label>
+                ) : null}
+                {authMode === "register" ? (
+                  <label>
+                    Confirmar senha
+                    <div className="input-with-toggle">
+                      <input
+                        type={showPassword2 ? "text" : "password"}
+                        value={authPassword2}
+                        onChange={(event) => setAuthPassword2(event.target.value)}
+                      />
+                      <button
+                        type="button"
+                        className="toggle-eye"
+                        onClick={() => setShowPassword2((v) => !v)}
+                      >
+                        {showPassword2 ? "Ocultar" : "Mostrar"}
+                      </button>
+                    </div>
+                  </label>
+                ) : null}
+                {authMode === "reset" ? (
+                  <>
+                    <label>
                     Token de recuperação
                     <input
                       type="text"
@@ -310,17 +355,26 @@ export default function App() {
                       onChange={(event) => setAuthToken(event.target.value)}
                       placeholder="TOKEN"
                     />
-                  </label>
-                  <label>
-                    Nova senha
-                    <input
-                      type="password"
-                      value={authPassword}
-                      onChange={(event) => setAuthPassword(event.target.value)}
-                    />
-                  </label>
-                </>
-              ) : null}
+                    </label>
+                    <label>
+                      Nova senha
+                      <div className="input-with-toggle">
+                        <input
+                          type={showResetPassword ? "text" : "password"}
+                          value={authPassword}
+                          onChange={(event) => setAuthPassword(event.target.value)}
+                        />
+                        <button
+                          type="button"
+                          className="toggle-eye"
+                          onClick={() => setShowResetPassword((v) => !v)}
+                        >
+                          {showResetPassword ? "Ocultar" : "Mostrar"}
+                        </button>
+                      </div>
+                    </label>
+                  </>
+                ) : null}
               {authMode === "login" ? (
                 <button type="button" onClick={handleLogin}>
                   Entrar
@@ -367,6 +421,7 @@ export default function App() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/upload" element={<Upload />} />
           <Route path="/history" element={<History />} />
+          <Route path="/profile" element={<Profile />} />
         </Routes>
       </main>
     </div>

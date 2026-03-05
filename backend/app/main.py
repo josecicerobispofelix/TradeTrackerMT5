@@ -12,7 +12,16 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
 
 from .license import is_activated
-from .routes import auth, fx_rate, license as license_routes, summary, trades, upload
+from .routes import (
+    auth,
+    darf,
+    fx_rate,
+    license as license_routes,
+    summary,
+    trades,
+    upload,
+    diag,
+)
 
 logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
 
@@ -71,8 +80,10 @@ app.include_router(upload.router, prefix="/api", tags=["upload"])
 app.include_router(summary.router, prefix="/api", tags=["summary"])
 app.include_router(trades.router, prefix="/api", tags=["trades"])
 app.include_router(fx_rate.router, prefix="/api", tags=["fx-rate"])
+app.include_router(darf.router, prefix="/api", tags=["darf"])
 app.include_router(auth.router, prefix="/api", tags=["auth"])
 app.include_router(license_routes.router, prefix="/api", tags=["license"])
+app.include_router(diag.router, prefix="/api", tags=["diag"])
 
 
 @app.middleware("http")
@@ -86,26 +97,14 @@ async def license_guard(request, call_next):
 static_dir = os.getenv("STATIC_DIR")
 if static_dir:
     static_path = Path(static_dir)
+    _log(f"STATIC_DIR={static_path}")
     index_file = static_path / "index.html"
     assets_dir = static_path / "assets"
+    _log(f"INDEX_EXISTS={index_file.exists()} ASSETS_EXISTS={assets_dir.exists()}")
 
-    if assets_dir.exists():
-        app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
+    # Serve SPA at root with index.html fallback
+    app.mount("/", StaticFiles(directory=static_path, html=True), name="frontend")
 
-    @app.get("/")
-    async def serve_index():
-        if index_file.exists():
-            return FileResponse(index_file)
-        return {"detail": "Frontend não encontrado"}
-
-    @app.get("/{full_path:path}")
-    async def serve_spa(full_path: str):
-        candidate = static_path / full_path
-        if candidate.is_file():
-            return FileResponse(candidate)
-        if index_file.exists():
-            return FileResponse(index_file)
-        return {"detail": "Frontend não encontrado"}
 
 
 @app.get("/health")

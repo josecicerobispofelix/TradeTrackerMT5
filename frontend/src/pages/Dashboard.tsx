@@ -1,4 +1,5 @@
-﻿import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Area,
   AreaChart,
@@ -18,11 +19,21 @@ import {
 } from "recharts";
 import {
   fetchFxRateAuto,
+  listFxRates,
   fetchTradeMeta,
   fetchTrades,
+  fetchFiscalProfile,
+  saveFiscalProfile,
   getFxRate,
   setFxRate,
-  Trade
+  calculateDarf,
+  fetchDarfHistory,
+  downloadDarfPdf,
+  Trade,
+  FiscalProfile,
+  FxRate,
+  DarfCalcResponse,
+  DarfHistoryItem
 } from "../api";
 
 const DAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sab"];
@@ -74,6 +85,36 @@ function getMonthRange(monthKey: string) {
   const start = new Date(parsedYear, parsedMonth - 1, 1);
   const end = new Date(parsedYear, parsedMonth, 0);
   return { from: toDateInput(start), to: toDateInput(end) };
+}
+
+function onlyDigits(value: string) {
+  return value.replace(/\D/g, "");
+}
+
+function formatCep(value: string) {
+  const digits = onlyDigits(value).slice(0, 8);
+  if (digits.length <= 5) return digits;
+  return `${digits.slice(0, 5)}-${digits.slice(5)}`;
+}
+
+function normalizeProfile(data?: FiscalProfile | null): FiscalProfile {
+  return {
+    full_name: data?.full_name ?? "",
+    cpf: data?.cpf ?? "",
+    birth_date: data?.birth_date ?? "",
+    cep: data?.cep ?? "",
+    street: data?.street ?? "",
+    number: data?.number ?? "",
+    complement: data?.complement ?? "",
+    neighborhood: data?.neighborhood ?? "",
+    city: data?.city ?? "",
+    state: data?.state ?? "",
+    broker: data?.broker ?? "",
+    trading_account: data?.trading_account ?? "",
+    account_currency: data?.account_currency ?? "USD",
+    tax_rate: data?.tax_rate ?? 0.15,
+    fx_source: data?.fx_source ?? "manual"
+  };
 }
 
 function buildDateRange(from: string, to: string) {
@@ -332,6 +373,7 @@ function computeMetrics(
 export default function Dashboard() {
   const now = new Date();
   const initialGoalMonth = toMonthKey(now);
+  const navigate = useNavigate();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const [from, setFrom] = useState(toDateInput(startOfMonth));
   const [to, setTo] = useState(toDateInput(now));
@@ -356,6 +398,30 @@ export default function Dashboard() {
   const [fxRate, setFxRateValue] = useState<number | null>(null);
   const [fxStatus, setFxStatus] = useState<string | null>(null);
   const [fxLoading, setFxLoading] = useState(false);
+  const [fxHistory, setFxHistory] = useState<FxRate[]>([]);
+  const [fxHistoryLoading, setFxHistoryLoading] = useState(false);
+  const fxLineDot = useMemo(
+    () =>
+      fxHistory.length <= 1
+        ? { r: 3, strokeWidth: 2, fill: "#38bdf8" }
+        : false,
+    [fxHistory.length]
+  );
+
+  const [darfMonth, setDarfMonth] = useState(now.getMonth() + 1);
+  const [darfYear, setDarfYear] = useState(now.getFullYear());
+  const [darfFx, setDarfFx] = useState("");
+  const [darfTax, setDarfTax] = useState("");
+  const [darfResult, setDarfResult] = useState<DarfCalcResponse | null>(null);
+  const [darfHistory, setDarfHistory] = useState<DarfHistoryItem[]>([]);
+  const [darfStatus, setDarfStatus] = useState<string | null>(null);
+  const [darfLoading, setDarfLoading] = useState(false);
+
+  const [profileCollapsed, setProfileCollapsed] = useState(false);
+  const [profile, setProfile] = useState<FiscalProfile>(() => normalizeProfile());
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [profileStatus, setProfileStatus] = useState<string | null>(null);
+  const [cepStatus, setCepStatus] = useState<string | null>(null);
 
   useEffect(() => {
     const legacy = localStorage.getItem("ttmt5_goal_net_brl");
@@ -421,6 +487,139 @@ export default function Dashboard() {
     }
   }, [from, to, symbol, account]);
 
+  const loadProfile = useCallback(async () => {
+    setProfileLoading(true);
+    setProfileStatus(null);
+    try {
+      const response = await fetchFiscalProfile();
+      const normalized = normalizeProfile(response);
+      setProfile(normalized);
+      if (normalized.full_name && normalized.cpf) {
+        setProfileCollapsed(true);
+      }
+    } catch (err) {
+      const message = (err as Error).message;
+      if (message.toLowerCase().includes("perfil fiscal")) {
+        setProfileStatus("Perfil fiscal ainda n�o cadastrado.");
+      } else {
+        setProfileStatus(message);
+      }
+    } finally {
+      setProfileLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadProfile();
+  }, [loadProfile]);
+
+  const loadDarfHistory = useCallback(async () => {
+    try {
+      const response = await fetchDarfHistory();
+      setDarfHistory(response.items);
+    } catch {
+      setDarfHistory([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadDarfHistory();
+  }, [loadDarfHistory]);
+
+  const buildDarfPayload = () => {
+    const fx = Number(darfFx);
+    const tax = Number(darfTax);
+    return {
+      month: Number(darfMonth),
+      year: Number(darfYear),
+      fx_rate: Number.isFinite(fx) && fx > 0 ? fx : undefined,
+      tax_rate: Number.isFinite(tax) && tax > 0 ? tax / 100 : undefined
+    };
+  };
+
+  const handleCalcDarf = async () => {
+    setDarfLoading(true);
+    setDarfStatus(null);
+    try {
+      const payload = buildDarfPayload();
+      const result = await calculateDarf(payload);
+      setDarfResult(result);
+      setDarfStatus(result.message || "C�lculo conclu�do.");
+      loadDarfHistory();
+    } catch (err) {
+      setDarfResult(null);
+      setDarfStatus((err as Error).message);
+    } finally {
+      setDarfLoading(false);
+    }
+  };
+
+  const handlePdfDarf = async () => {
+    setDarfLoading(true);
+    setDarfStatus(null);
+    try {
+      const payload = buildDarfPayload();
+      const blob = await downloadDarfPdf(payload);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `DARF_${String(payload.month).padStart(2, "0")}_${payload.year}.pdf`;
+      link.click();
+      URL.revokeObjectURL(url);
+      setDarfStatus("PDF gerado.");
+    } catch (err) {
+      setDarfStatus((err as Error).message);
+    } finally {
+      setDarfLoading(false);
+    }
+  };
+
+  const lookupCep = useCallback(async (rawCep: string) => {
+    const cep = onlyDigits(rawCep);
+    if (cep.length !== 8) {
+      setCepStatus("Informe 8 d�gitos do CEP.");
+      return;
+    }
+    setCepStatus("Buscando CEP...");
+    try {
+      const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`, {
+        cache: "no-store",
+        mode: "cors"
+      });
+      const data = await response.json();
+      if (data.erro) {
+        setCepStatus("CEP n�o encontrado.");
+        return;
+      }
+      setProfile((prev) => ({
+        ...prev,
+        cep: cep,
+        street: data.logradouro || prev.street,
+        neighborhood: data.bairro || prev.neighborhood,
+        city: data.localidade || prev.city,
+        state: data.uf || prev.state
+      }));
+      setCepStatus("Endere�o preenchido pelo CEP.");
+    } catch (err) {
+      setCepStatus((err as Error).message);
+    }
+  }, []);
+
+  const handleSaveProfile = async () => {
+    setProfileLoading(true);
+    setProfileStatus(null);
+    try {
+      const response = await saveFiscalProfile(profile);
+      const normalized = normalizeProfile(response);
+      setProfile(normalized);
+      setProfileStatus("Perfil fiscal salvo.");
+    } catch (err) {
+      setProfileStatus((err as Error).message);
+    } finally {
+      setProfileLoading(false);
+    }
+  };
+
   useEffect(() => {
     loadMeta();
   }, [loadMeta]);
@@ -454,10 +653,58 @@ export default function Dashboard() {
     loadFxRate(fxDate);
   }, [fxDate, loadFxRate]);
 
+  const loadFxHistory = useCallback(async () => {
+    setFxHistoryLoading(true);
+    try {
+      const to = new Date();
+      const from = new Date(to);
+      from.setDate(from.getDate() - 30);
+      const response = await listFxRates({
+        from: toDateInput(from),
+        to: toDateInput(to)
+      });
+      if (response.rates.length === 0 && fxRate != null) {
+        setFxHistory([{ date: fxDate, usd_brl_rate: fxRate }]);
+      } else {
+        setFxHistory(response.rates);
+      }
+    } catch {
+      if (fxRate != null) {
+        setFxHistory([{ date: fxDate, usd_brl_rate: fxRate }]);
+      } else {
+        setFxHistory([]);
+      }
+    } finally {
+      setFxHistoryLoading(false);
+    }
+  }, [fxDate, fxRate]);
+
+  useEffect(() => {
+    loadFxHistory();
+  }, [loadFxHistory]);
+
+  useEffect(() => {
+    if (fxRate != null) {
+      setDarfFx(fxRate.toFixed(4));
+    }
+  }, [fxRate]);
+
+  useEffect(() => {
+    if (profile?.tax_rate != null) {
+      setDarfTax(String(Number(profile.tax_rate) * 100));
+    }
+  }, [profile?.tax_rate]);
+
+  const currentDarf = useMemo(() => {
+    if (darfResult) return darfResult;
+    if (darfHistory.length) return darfHistory[0];
+    return null;
+  }, [darfResult, darfHistory]);
+
   const handleSaveFx = async () => {
     const value = Number(fxRateInput);
     if (!Number.isFinite(value) || value <= 0) {
-      setFxStatus("Informe uma taxa válida.");
+      setFxStatus("Informe uma taxa v�lida.");
       return;
     }
     setFxLoading(true);
@@ -480,7 +727,7 @@ export default function Dashboard() {
       const response = await fetchFxRateAuto(fxDate);
       setFxRateValue(response.usd_brl_rate);
       setFxRateInput(String(response.usd_brl_rate));
-      setFxStatus("Cotação atualizada automaticamente.");
+      setFxStatus("Cota��o atualizada automaticamente.");
     } catch (err) {
       setFxStatus((err as Error).message);
     } finally {
@@ -581,7 +828,7 @@ export default function Dashboard() {
 
   const profitLossData = [
     { label: "Lucro bruto", value: metrics.grossProfit },
-    { label: "Prejuízo bruto", value: Math.abs(metrics.grossLoss) }
+    { label: "Preju�zo bruto", value: Math.abs(metrics.grossLoss) }
   ];
 
   const winRateData = [
@@ -602,7 +849,7 @@ export default function Dashboard() {
         <aside className="filter-panel">
           <h4>Painel de filtros</h4>
           <div className="filter-section">
-            <label>Período</label>
+            <label>Per�odo</label>
             <div className="filter-grid">
               <input
                 type="date"
@@ -671,7 +918,7 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="filter-section">
-            <label>Horário</label>
+            <label>Hor�rio</label>
             <div className="chip-group">
               <button
                 type="button"
@@ -736,17 +983,22 @@ export default function Dashboard() {
             <h2>Sua performance</h2>
             <p>
               Analise seus resultados do MetaTrader 5 com filtros completos,
-              indicadores-chave e gráficos animados.
+              indicadores-chave e gr�ficos animados.
             </p>
+            <div className="filter-actions" style={{ marginTop: 12 }}>
+              <button type="button" className="secondary" onClick={() => navigate('/profile')}>
+                Abrir perfil fiscal
+              </button>
+            </div>
           </div>
 
           {error ? <div className="panel">Erro: {error}</div> : null}
           <div className="cards kpi-grid">
             <div
               className="card kpi-card highlight"
-              title="Resultado líquido = lucro + comissão + swap. É o valor final real do período."
+              title="Resultado l�quido = lucro + comiss�o + swap. � o valor final real do per�odo."
             >
-              <div className="card-title">Resultado líquido</div>
+              <div className="card-title">Resultado l�quido</div>
               <div
                 className={`card-value ${metrics.net >= 0 ? "text-success" : "text-danger"}`}
               >
@@ -756,7 +1008,7 @@ export default function Dashboard() {
             </div>
             <div
               className="card kpi-card"
-              title="Resultado bruto = soma dos lucros das operações vencedoras (sem descontar custos)."
+              title="Resultado bruto = soma dos lucros das opera��es vencedoras (sem descontar custos)."
             >
               <div className="card-title">Resultado bruto</div>
               <div className="card-value text-success">
@@ -766,9 +1018,9 @@ export default function Dashboard() {
             </div>
             <div
               className="card kpi-card"
-              title="Prejuízo bruto = soma das perdas das operações perdedoras (sem custos). Pode ser maior que o capital investido."
+              title="Preju�zo bruto = soma das perdas das opera��es perdedoras (sem custos). Pode ser maior que o capital investido."
             >
-              <div className="card-title">Prejuízo bruto</div>
+              <div className="card-title">Preju�zo bruto</div>
               <div className="card-value text-danger">
                 {formatCurrency(Math.abs(metrics.grossLoss), currency)}
               </div>
@@ -779,7 +1031,7 @@ export default function Dashboard() {
               <div className="card-value">
                 {formatCurrency(metrics.costs, currency)}
               </div>
-              <div className="card-sub">Comissão + swap</div>
+              <div className="card-sub">Comiss�o + swap</div>
             </div>
           </div>
 
@@ -801,13 +1053,13 @@ export default function Dashboard() {
               <div className="card-value">{formatNumber(metrics.profitFactor, 2)}</div>
             </div>
             <div className="card small">
-              <div className="card-title">Ganho médio</div>
+              <div className="card-title">Ganho m�dio</div>
               <div className="card-value text-success">
                 {formatCurrency(metrics.avgWin, currency)}
               </div>
             </div>
             <div className="card small">
-              <div className="card-title">Perda média</div>
+              <div className="card-title">Perda m�dia</div>
               <div className="card-value text-danger">
                 {formatCurrency(metrics.avgLoss, currency)}
               </div>
@@ -819,7 +1071,7 @@ export default function Dashboard() {
               </div>
             </div>
             <div className="card small">
-              <div className="card-title">Maior prejuízo</div>
+              <div className="card-title">Maior preju�zo</div>
               <div className="card-value text-danger">
                 {formatCurrency(Math.abs(metrics.maxLoss), currency)}
               </div>
@@ -837,7 +1089,7 @@ export default function Dashboard() {
               <div className="card-value text-danger">{metrics.streakLoss}</div>
             </div>
             <div className="card small">
-              <div className="card-title">Máx. drawdown</div>
+              <div className="card-title">M�x. drawdown</div>
               <div className="card-value text-danger">
                 {formatCurrency(metrics.drawdown, currency)}
               </div>
@@ -848,13 +1100,13 @@ export default function Dashboard() {
               <div className="panel-header">
                 <h4>Meta mensal</h4>
                 <span>
-                  Meta de {goalMonthLabel || "mês selecionado"}. Atualize a meta e o painel
+                  Meta de {goalMonthLabel || "m�s selecionado"}. Atualize a meta e o painel
                   recalcula automaticamente.
                 </span>
               </div>
               <div className="form-row">
                 <label>
-                  Mês da meta
+                  M�s da meta
                   <input
                     type="month"
                     value={goalMonth}
@@ -862,7 +1114,7 @@ export default function Dashboard() {
                   />
                 </label>
                 <label>
-                  Meta líquida (BRL)
+                  Meta l�quida (BRL)
                   <input
                     type="number"
                     min={0}
@@ -879,13 +1131,13 @@ export default function Dashboard() {
                   />
                 </label>
                 <label>
-                  Dias restantes no mês
+                  Dias restantes no m�s
                   <input type="text" value={`${daysRemaining}`} readOnly />
                 </label>
               </div>
               <div className="progress-row">
                 <div>
-                  <strong>Progresso líquido:</strong>{" "}
+                  <strong>Progresso l�quido:</strong>{" "}
                   {formatCurrency(metricsBrl.net, "BRL")} / {formatCurrency(goalNet, "BRL")}
                 </div>
                 <div className="progress-bar">
@@ -899,7 +1151,7 @@ export default function Dashboard() {
                   <span style={{ width: `${progressGross * 100}%` }} />
                 </div>
                 <div>
-                  <strong>Falta líquido:</strong> {formatCurrency(remainingNet, "BRL")}
+                  <strong>Falta l�quido:</strong> {formatCurrency(remainingNet, "BRL")}
                 </div>
                 <div>
                   <strong>Falta bruto:</strong> {formatCurrency(remainingGross, "BRL")}
@@ -917,7 +1169,7 @@ export default function Dashboard() {
             <div className="panel">
               <div className="panel-header">
                 <h4>Taxa USD/BRL</h4>
-                <span>Use a taxa diária para converter resultados em BRL.</span>
+                <span>Use a taxa di�ria para converter resultados em BRL.</span>
               </div>
               <div className="form-row">
                 <label>
@@ -946,7 +1198,7 @@ export default function Dashboard() {
                   onClick={handleAutoFx}
                   disabled={fxLoading}
                 >
-                  Buscar automático
+                  Buscar autom�tico
                 </button>
               </div>
               <div className="helper">
@@ -956,13 +1208,180 @@ export default function Dashboard() {
                     ? `Taxa atual: ${fxRate.toFixed(4)}`
                     : "Sem taxa definida"}
               </div>
+              <div className="chart-body" style={{ height: 180, marginTop: 12 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={fxHistory}>
+                    <CartesianGrid stroke="rgba(148, 163, 184, 0.12)" />
+                    <XAxis
+                      dataKey="date"
+                      tick={{ fill: "#9aa4b2", fontSize: 11 }}
+                      tickFormatter={(value) => value.slice(5)}
+                    />
+                    <YAxis
+                      tick={{ fill: "#9aa4b2", fontSize: 11 }}
+                      tickFormatter={(value) => value.toFixed(2)}
+                    />
+                    <Tooltip
+                      contentStyle={chartTooltipStyle}
+                      formatter={(value: number) => value.toFixed(4)}
+                      labelFormatter={(label) => `Dia ${label}`}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="usd_brl_rate"
+                      stroke="#38bdf8"
+                      strokeWidth={2}
+                      dot={fxLineDot}
+                      isAnimationActive
+                      animationDuration={700}
+                      name="USD/BRL"
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+              {fxHistoryLoading ? (
+                <div className="helper">Carregando hist&oacute;rico...</div>
+              ) : fxHistory.length === 0 ? (
+                <div className="helper">
+                  Sem hist&oacute;rico recente. Salve uma taxa ou use &ldquo;Buscar autom&aacute;tico&rdquo; para preencher o gr&aacute;fico.
+                </div>
+              ) : null}
+            </div>
+            <div className="panel darf-panel">
+              <div className="panel-header">
+                <h4>DARF / Imposto</h4>
+                <span>Calcule o imposto do mês e gere o PDF da DARF.</span>
+              </div>
+
+              <div
+                className={`darf-highlight ${currentDarf && currentDarf.tax_due > 0 ? "due" : "clear"}`}
+              >
+                {currentDarf ? (
+                  currentDarf.tax_due > 0 ? (
+                    <>
+                      <strong>Imposto a pagar:</strong>{" "}
+                      {formatCurrency(currentDarf.tax_due, "BRL")} — Alíquota {(
+                        currentDarf.tax_rate * 100
+                      ).toFixed(2)}%
+                    </>
+                  ) : (
+                    <>
+                      <strong>Sem imposto a pagar</strong>{" "}
+                      {`(${currentDarf.month.toString().padStart(2, "0")}/${currentDarf.year})`}
+                    </>
+                  )
+                ) : (
+                  <>Calcule para ver se há imposto.</>
+                )}
+              </div>
+
+              <div className="form-row">
+                <label>
+                  Mês
+                  <select
+                    value={darfMonth}
+                    onChange={(event) => setDarfMonth(Number(event.target.value))}
+                  >
+                    {Array.from({ length: 12 }, (_, idx) => idx + 1).map((month) => (
+                      <option key={month} value={month}>
+                        {month.toString().padStart(2, "0")}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  Ano
+                  <input
+                    type="number"
+                    min="2000"
+                    max="2100"
+                    value={darfYear}
+                    onChange={(event) => setDarfYear(Number(event.target.value))}
+                  />
+                </label>
+                <label>
+                  USD/BRL (opcional)
+                  <input
+                    type="number"
+                    step="0.0001"
+                    value={darfFx}
+                    onChange={(event) => setDarfFx(event.target.value)}
+                  />
+                </label>
+                <label>
+                  Alíquota % (opcional)
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={darfTax}
+                    onChange={(event) => setDarfTax(event.target.value)}
+                  />
+                </label>
+                <button type="button" onClick={handleCalcDarf} disabled={darfLoading}>
+                  {darfLoading ? "Calculando..." : "Calcular"}
+                </button>
+                <button
+                  type="button"
+                  className="secondary"
+                  onClick={handlePdfDarf}
+                  disabled={darfLoading}
+                >
+                  {darfLoading ? "Gerando..." : "Gerar PDF"}
+                </button>
+              </div>
+              {darfResult ? (
+                <div className="helper">
+                  {`Mês ${darfResult.month.toString().padStart(2, "0")}/${darfResult.year} | Lucro USD: ${formatCurrency(
+                    darfResult.profit_usd,
+                    "USD"
+                  )} | Lucro BRL: ${formatCurrency(darfResult.profit_brl, "BRL")} | Imposto: ${formatCurrency(
+                    darfResult.tax_due,
+                    "BRL"
+                  )} | Alíquota ${(darfResult.tax_rate * 100).toFixed(2)}%`}
+                  {darfResult.message ? ` ? ${darfResult.message}` : ""}
+                </div>
+              ) : null}
+              {darfStatus ? <div className="helper">{darfStatus}</div> : null}
+              <div className="helper">
+                Perfil fiscal agora fica na aba "Perfil fiscal" no topo. Preencha lá para o cálculo/PDF da DARF.
+              </div>
+              {darfHistory.length ? (
+                <div className="table-wrap" style={{ marginTop: 12 }}>
+                  <table className="table">
+                    <thead>
+                      <tr>
+                        <th>Mês</th>
+                        <th className="th-num">Lucro BRL</th>
+                        <th className="th-num">Imposto</th>
+                        <th className="th-num">Câmbio</th>
+                        <th className="th-num">Alíquota</th>
+                        <th className="th-num">Trades</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {darfHistory.map((item) => (
+                        <tr key={`${item.year}-${item.month}`}>
+                          <td>{`${item.month.toString().padStart(2, "0")}/${item.year}`}</td>
+                          <td className="td-num">{formatCurrency(item.profit_brl, "BRL")}</td>
+                          <td className="td-num">{formatCurrency(item.tax_due, "BRL")}</td>
+                          <td className="td-num">{item.fx_rate.toFixed(4)}</td>
+                          <td className="td-num">{(item.tax_rate * 100).toFixed(2)}%</td>
+                          <td className="td-num">{item.trades_count}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="helper">Nenhum cálculo salvo ainda.</div>
+              )}
             </div>
           </div>
           <div className="chart-grid">
             <div className="panel chart-card">
               <div className="panel-header">
                 <h4>Evolucao patrimonial</h4>
-                <span>Lucro acumulado no período selecionado.</span>
+                <span>Lucro acumulado no per�odo selecionado.</span>
               </div>
               <div className="chart-body">
                 <ResponsiveContainer width="100%" height={260}>
@@ -1047,7 +1466,7 @@ export default function Dashboard() {
 
             <div className="panel chart-card">
               <div className="panel-header">
-                <h4>Comparativo lucro x prejuízo</h4>
+                <h4>Comparativo lucro x preju�zo</h4>
                 <span>Somatorio de ganhos e perdas.</span>
               </div>
               <div className="chart-body">
@@ -1085,8 +1504,8 @@ export default function Dashboard() {
 
             <div className="panel chart-card">
               <div className="panel-header">
-                <h4>Lucro diário</h4>
-                <span>Barras diárias com resultado líquido.</span>
+                <h4>Lucro di�rio</h4>
+                <span>Barras di�rias com resultado l�quido.</span>
               </div>
               <div className="chart-body">
                 <ResponsiveContainer width="100%" height={260}>
@@ -1116,7 +1535,7 @@ export default function Dashboard() {
             <div className="panel chart-card">
               <div className="panel-header">
                 <h4>Progresso mensal</h4>
-                <span>Acumulado vs. meta líquida e bruta.</span>
+                <span>Acumulado vs. meta l�quida e bruta.</span>
               </div>
               <div className="chart-body">
                 <ResponsiveContainer width="100%" height={260}>
@@ -1150,7 +1569,7 @@ export default function Dashboard() {
                       dot={false}
                       isAnimationActive
                       animationDuration={900}
-                      name="Meta líquida"
+                      name="Meta l�quida"
                     />
                     <Line
                       type="monotone"
@@ -1170,7 +1589,7 @@ export default function Dashboard() {
             <div className="panel chart-card">
               <div className="panel-header">
                 <h4>Dia da semana</h4>
-                <span>Resultado líquido por dia.</span>
+                <span>Resultado l�quido por dia.</span>
               </div>
               <div className="chart-body">
                 <ResponsiveContainer width="100%" height={260}>
@@ -1201,8 +1620,8 @@ export default function Dashboard() {
 
           <div className="panel">
             <div className="panel-header">
-              <h4>Mapa de calor: dia x horário</h4>
-              <span>Identifique os horários mais positivos e negativos.</span>
+              <h4>Mapa de calor: dia x hor�rio</h4>
+              <span>Identifique os hor�rios mais positivos e negativos.</span>
             </div>
             <div className="heatmap">
               <div className="heatmap-header">

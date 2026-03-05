@@ -25,6 +25,7 @@ Write-Host "Build do app desktop..." -ForegroundColor Cyan
 Push-Location $root
 & $venvPython -m pip install -r (Join-Path $backend "requirements.txt")
 & $venvPython -m pip install pillow
+& $venvPython -m pip install reportlab
 & $venvPython (Join-Path $root "tools\ensure_icon.py")
 
 $pyiArgs = @(
@@ -41,6 +42,7 @@ $pyiArgs = @(
     "--collect-all", "uvicorn",
     "--collect-all", "websockets",
     "--collect-all", "openpyxl",
+    "--collect-all", "reportlab",
     "--collect-submodules", "fastapi",
     "--collect-submodules", "starlette",
     "--hidden-import", "fastapi.middleware",

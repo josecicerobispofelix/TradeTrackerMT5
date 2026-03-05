@@ -59,7 +59,8 @@ def _reset_ttl_hours() -> int:
 
 
 def _smtp_configured() -> bool:
-    return bool(os.getenv("SMTP_HOST"))
+    host = os.getenv("SMTP_HOST")
+    return bool(host and host.strip())
 
 
 def _send_reset_email(to_email: str, token: str) -> None:
@@ -129,13 +130,20 @@ async def login(
 ):
     email = payload.email.lower().strip()
     user = await session.scalar(select(User).where(User.email == email))
+    if not user:
+        total_users = await session.scalar(select(func.count(User.id)))
+        if total_users == 0:
+            user = User(email=email, password_hash=hash_password(payload.password))
+            session.add(user)
+            await session.commit()
+            await session.refresh(user)
+
     if not user or not verify_password(payload.password, user.password_hash):
-        raise HTTPException(status_code=400, detail="E-mail ou senha invÃ¡lidos")
+        raise HTTPException(status_code=400, detail="E-mail ou senha inv?lidos")
 
     token, expires_at = await create_session(session, user.id)
     set_session_cookie(response, token, expires_at)
     return UserOut(id=user.id, email=user.email)
-
 
 @router.post("/auth/logout")
 async def logout(
@@ -158,7 +166,16 @@ async def me(
     if not token:
         raise HTTPException(status_code=401, detail="NOT_AUTHENTICATED")
     record = await session.scalar(select(Session).where(Session.token == token))
-    if not record or record.expires_at < _now():
+    if not record:
+        raise HTTPException(status_code=401, detail="SESSION_EXPIRED")
+
+    expires_at = record.expires_at
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    else:
+        expires_at = expires_at.astimezone(timezone.utc)
+
+    if expires_at < _now():
         raise HTTPException(status_code=401, detail="SESSION_EXPIRED")
     user = await session.get(User, record.user_id)
     if not user:
@@ -211,8 +228,17 @@ async def reset_password(
     record = await session.scalar(
         select(PasswordReset).where(PasswordReset.token_hash == token_hash)
     )
-    if not record or record.used_at is not None or record.expires_at < _now():
-        raise HTTPException(status_code=400, detail="Token invÃ¡lido ou expirado")
+    if not record or record.used_at is not None:
+        raise HTTPException(status_code=400, detail="Token inv?lido ou expirado")
+
+    expires_at = record.expires_at
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    else:
+        expires_at = expires_at.astimezone(timezone.utc)
+
+    if expires_at < _now():
+        raise HTTPException(status_code=400, detail="Token inv?lido ou expirado")
 
     await session.execute(
         update(User)

@@ -18,6 +18,7 @@ export default function TopNav({ onLogout, showNav = true }: TopNavProps) {
             <NavLink to="/">Dashboard</NavLink>
             <NavLink to="/upload">Upload</NavLink>
             <NavLink to="/history">Histórico</NavLink>
+            <NavLink to="/profile">Perfil fiscal</NavLink>
             {onLogout ? (
               <button type="button" className="logout-btn" onClick={onLogout}>
                 Sair

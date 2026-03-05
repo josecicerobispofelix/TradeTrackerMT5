@@ -81,3 +81,63 @@ class FXRateOut(BaseModel):
 
 class FXRateListResponse(BaseModel):
     rates: List[FXRateOut]
+
+
+class FiscalProfileIn(BaseModel):
+    full_name: Optional[str] = None
+    cpf: Optional[str] = None
+    birth_date: Optional[dt.date] = None
+    cep: Optional[str] = None
+    street: Optional[str] = None
+    number: Optional[str] = None
+    complement: Optional[str] = None
+    neighborhood: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    broker: Optional[str] = None
+    trading_account: Optional[str] = None
+    account_currency: Optional[str] = "USD"
+    tax_rate: Optional[float] = 0.15
+    fx_source: Optional[str] = "manual"
+
+
+class FiscalProfileOut(FiscalProfileIn):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    user_id: int
+
+
+class DarfCalcRequest(BaseModel):
+    month: int
+    year: int
+    fx_rate: Optional[float] = None
+    tax_rate: Optional[float] = None
+
+
+class DarfCalcResponse(BaseModel):
+    month: int
+    year: int
+    trades_count: int
+    profit_usd: float
+    profit_brl: float
+    fx_rate: float
+    tax_rate: float
+    tax_due: float
+    currency: str
+    message: Optional[str] = None
+
+
+class DarfHistoryItem(BaseModel):
+    month: int
+    year: int
+    trades_count: int
+    profit_usd: float
+    profit_brl: float
+    fx_rate: float
+    tax_rate: float
+    tax_due: float
+    currency: str
+
+
+class DarfHistoryResponse(BaseModel):
+    items: List[DarfHistoryItem]

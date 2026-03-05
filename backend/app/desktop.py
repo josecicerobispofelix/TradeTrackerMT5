@@ -62,12 +62,20 @@ def _load_env_file():
 
 
 def _ensure_db():
-    if os.environ.get("DATABASE_URL"):
-        return
     base_dir = _data_base()
     data_dir = base_dir / "data"
     data_dir.mkdir(parents=True, exist_ok=True)
     db_path = data_dir / "tradetracker.db"
+
+    db_url = os.environ.get("DATABASE_URL")
+    if db_url and db_url.startswith("sqlite"):
+        marker = ":///"
+        if marker in db_url:
+            path_part = db_url.split(marker, 1)[1]
+            if not Path(path_part).is_absolute():
+                fixed = base_dir / Path(path_part)
+                os.environ["DATABASE_URL"] = f"sqlite+aiosqlite:///{fixed.as_posix()}"
+                return
     os.environ.setdefault("DATABASE_URL", f"sqlite+aiosqlite:///{db_path.as_posix()}")
 
 
@@ -106,7 +114,7 @@ def _run_migrations():
 
 def _run_server():
     host = os.environ.get("APP_HOST", "127.0.0.1")
-    port = int(os.environ.get("APP_PORT", "8000"))
+    port = int(os.environ.get("APP_PORT", "18100"))
     try:
         import importlib
 
@@ -211,7 +219,7 @@ def main():
         thread.start()
         _log("Thread do servidor iniciada")
         host = os.environ.get("APP_HOST", "127.0.0.1")
-        port = int(os.environ.get("APP_PORT", "8000"))
+        port = int(os.environ.get("APP_PORT", "18100"))
         url = f"http://{host}:{port}"
         if not _wait_for_server(url, timeout=20.0):
             _log("Servidor nao iniciou a tempo")
@@ -220,7 +228,9 @@ def main():
         _log("Servidor respondeu")
 
         _log("Criando janela")
-        webview.create_window("TradeTrackerMT5", url)
+        storage_dir = _data_base() / "webview"
+        storage_dir.mkdir(parents=True, exist_ok=True)
+        webview.create_window("TradeTrackerMT5", url, confirm_close=True)
         webview.start()
     except Exception:
         _log_trace("Erro ao iniciar interface")
