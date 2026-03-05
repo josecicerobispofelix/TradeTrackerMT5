@@ -320,8 +320,10 @@ export default function App() {
                         type="button"
                         className="toggle-eye"
                         onClick={() => setShowPassword((v) => !v)}
+                        aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                        title={showPassword ? "Ocultar senha" : "Mostrar senha"}
                       >
-                        {showPassword ? "Ocultar" : "Mostrar"}
+                        {/* ícone via CSS; texto oculto */}
                       </button>
                     </div>
                   </label>
@@ -339,8 +341,10 @@ export default function App() {
                         type="button"
                         className="toggle-eye"
                         onClick={() => setShowPassword2((v) => !v)}
+                        aria-label={showPassword2 ? "Ocultar senha" : "Mostrar senha"}
+                        title={showPassword2 ? "Ocultar senha" : "Mostrar senha"}
                       >
-                        {showPassword2 ? "Ocultar" : "Mostrar"}
+                        {/* ícone via CSS */}
                       </button>
                     </div>
                   </label>
@@ -368,8 +372,10 @@ export default function App() {
                           type="button"
                           className="toggle-eye"
                           onClick={() => setShowResetPassword((v) => !v)}
+                          aria-label={showResetPassword ? "Ocultar senha" : "Mostrar senha"}
+                          title={showResetPassword ? "Ocultar senha" : "Mostrar senha"}
                         >
-                          {showResetPassword ? "Ocultar" : "Mostrar"}
+                          {/* ícone via CSS */}
                         </button>
                       </div>
                     </label>

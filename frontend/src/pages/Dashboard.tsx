@@ -26,6 +26,7 @@ import {
   saveFiscalProfile,
   getFxRate,
   setFxRate,
+  fetchFxHistory,
   calculateDarf,
   fetchDarfHistory,
   downloadDarfPdf,
@@ -154,6 +155,34 @@ function formatNumber(value: number, digits = 2) {
 function formatPercent(value: number) {
   const safe = Number.isFinite(value) ? value : 0;
   return `${(safe * 100).toFixed(2)}%`;
+}
+
+function buildFxSeries(rates: FxRate[], days = 30): FxRate[] {
+  if (!rates.length) return [];
+  const sorted = [...rates].sort((a, b) => a.date.localeCompare(b.date));
+  const map = new Map(sorted.map((item) => [item.date, item.usd_brl_rate]));
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const start = new Date(today);
+  start.setDate(start.getDate() - (days - 1));
+
+  let lastValue = sorted[0].usd_brl_rate;
+  const series: FxRate[] = [];
+
+  for (
+    const cursor = new Date(start);
+    cursor <= today;
+    cursor.setDate(cursor.getDate() + 1)
+  ) {
+    const key = toDateInput(cursor);
+    const value = map.get(key);
+    if (value != null) {
+      lastValue = value;
+    }
+    series.push({ date: key, usd_brl_rate: lastValue });
+  }
+
+  return series;
 }
 
 function getHeatColor(value: number, maxAbs: number) {
@@ -656,21 +685,11 @@ export default function Dashboard() {
   const loadFxHistory = useCallback(async () => {
     setFxHistoryLoading(true);
     try {
-      const to = new Date();
-      const from = new Date(to);
-      from.setDate(from.getDate() - 30);
-      const response = await listFxRates({
-        from: toDateInput(from),
-        to: toDateInput(to)
-      });
-      if (response.rates.length === 0 && fxRate != null) {
-        setFxHistory([{ date: fxDate, usd_brl_rate: fxRate }]);
-      } else {
-        setFxHistory(response.rates);
-      }
+      const response = await fetchFxHistory(30);
+      setFxHistory(buildFxSeries(response.rates));
     } catch {
       if (fxRate != null) {
-        setFxHistory([{ date: fxDate, usd_brl_rate: fxRate }]);
+        setFxHistory(buildFxSeries([{ date: toDateInput(new Date()), usd_brl_rate: fxRate }]));
       } else {
         setFxHistory([]);
       }
@@ -1215,7 +1234,12 @@ export default function Dashboard() {
                     <XAxis
                       dataKey="date"
                       tick={{ fill: "#9aa4b2", fontSize: 11 }}
-                      tickFormatter={(value) => value.slice(5)}
+                      tickFormatter={(value) =>
+                        new Intl.DateTimeFormat("pt-BR", {
+                          day: "2-digit",
+                          month: "2-digit"
+                        }).format(new Date(`${value}T00:00:00`))
+                      }
                     />
                     <YAxis
                       tick={{ fill: "#9aa4b2", fontSize: 11 }}
@@ -1224,7 +1248,14 @@ export default function Dashboard() {
                     <Tooltip
                       contentStyle={chartTooltipStyle}
                       formatter={(value: number) => value.toFixed(4)}
-                      labelFormatter={(label) => `Dia ${label}`}
+                      labelFormatter={(label) => {
+                        const date = new Date(`${label}T00:00:00`);
+                        return new Intl.DateTimeFormat("pt-BR", {
+                          day: "2-digit",
+                          month: "long",
+                          year: "numeric"
+                        }).format(date);
+                      }}
                     />
                     <Line
                       type="monotone"

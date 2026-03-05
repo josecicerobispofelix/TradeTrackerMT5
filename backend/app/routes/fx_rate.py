@@ -46,6 +46,49 @@ async def list_fx_rates(
     )
 
 
+@router.get("/fx-rate/history", response_model=FXRateListResponse)
+async def fetch_fx_history(
+    days: int = Query(30, ge=1, le=90),
+    to: dt.date | None = Query(None),
+    session: AsyncSession = Depends(get_session),
+):
+    """
+    Retorna a série dos últimos `days` dias; busca em provedor os dias ausentes e salva.
+    """
+    end = to or dt.date.today()
+    start = end - dt.timedelta(days=days - 1)
+
+    existing = (
+        await session.execute(
+            select(FXRate).where(FXRate.date.between(start, end)).order_by(FXRate.date)
+        )
+    ).scalars().all()
+    by_date = {rate.date: rate for rate in existing}
+    series: list[FXRateOut] = []
+    created = False
+
+    cursor = start
+    while cursor <= end:
+        stored = by_date.get(cursor)
+        if stored:
+            value = float(stored.usd_brl_rate)
+        else:
+            try:
+                value = await fetch_usd_brl_rate(cursor)
+            except FxProviderError as exc:
+                raise HTTPException(status_code=502, detail="Falha ao buscar taxa") from exc
+            new_rate = FXRate(date=cursor, usd_brl_rate=value)
+            session.add(new_rate)
+            created = True
+        series.append(FXRateOut(date=cursor, usd_brl_rate=value))
+        cursor += dt.timedelta(days=1)
+
+    if created:
+        await session.commit()
+
+    return FXRateListResponse(rates=series)
+
+
 @router.post("/fx-rate", response_model=FXRateOut)
 async def set_fx_rate(
     payload: FXRateIn,

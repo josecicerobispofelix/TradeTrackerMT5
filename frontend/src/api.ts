@@ -262,6 +262,12 @@ export async function listFxRates(params?: {
   );
 }
 
+export async function fetchFxHistory(days = 30): Promise<FxRateListResponse> {
+  const search = new URLSearchParams();
+  if (days) search.append("days", String(days));
+  return apiFetch<FxRateListResponse>(`/api/fx-rate/history?${search.toString()}`);
+}
+
 export async function setFxRate(payload: FxRate): Promise<FxRate> {
   return apiFetch<FxRate>("/api/fx-rate", {
     method: "POST",
