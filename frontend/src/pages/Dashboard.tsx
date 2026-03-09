@@ -6138,8 +6138,9 @@ export default function Dashboard() {
                     display: "flex",
                     gap: 8,
                     alignItems: "center",
-                    marginTop: 12,
-                    justifyContent: "flex-start"
+                    marginTop: 16,
+                    justifyContent: "flex-start",
+                    alignSelf: "flex-start"
                   }}
                 >
 
