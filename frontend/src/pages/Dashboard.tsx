@@ -6132,7 +6132,7 @@ export default function Dashboard() {
               {lastPdfPath ? (
 
 
-                <div className="helper" style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <div className="helper compact" style={{ display: "flex", gap: 8, alignItems: "center" }}>
 
 
                   <span
@@ -6142,7 +6142,12 @@ export default function Dashboard() {
                     Último PDF: {lastPdfPath}
                   </span>
 
-                  <button type="button" className="secondary" onClick={handleOpenPdfFolder}>
+                  <button
+                    type="button"
+                    className="secondary"
+                    onClick={handleOpenPdfFolder}
+                    style={{ padding: "8px 12px", minWidth: "auto" }}
+                  >
                     Abrir pasta do PDF
                   </button>
 

@@ -528,6 +528,10 @@ button:hover:not(:disabled) {
   font-size: 13px;
 }
 
+.helper.compact {
+  font-size: 12px;
+}
+
 .muted {
   color: var(--muted);
 }
