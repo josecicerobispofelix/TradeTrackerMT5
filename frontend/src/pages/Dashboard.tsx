@@ -7375,25 +7375,42 @@ export default function Dashboard() {
 
                       const isBottom = heatmapHighlight.bottom.has(key);
 
+                      const visible = count >= minTradesFilter;
+                      const cellColor = visible
+                        ? getHeatColor(
+                            heatmapMetric === "profit" ? value : (winRate ?? 0),
+                            heatmapMetric === "profit" ? metrics.heatMax : 100
+                          )
+                        : "rgba(148, 163, 184, 0.06)";
+
                       return (
 
                         <div
 
                           key={`cell-${rowIndex}-${colIndex}`}
 
-                          className={`heatmap-cell${isTop ? " heatmap-cell-top" : ""}${isBottom ? " heatmap-cell-bottom" : ""}`}
+                          className={`heatmap-cell${visible ? "" : " muted"}${isTop ? " heatmap-cell-top" : ""}${isBottom ? " heatmap-cell-bottom" : ""}`}
 
                           style={{
 
-                            backgroundColor: getHeatColor(value, metrics.heatMax)
+                            backgroundColor: cellColor
 
                           }}
 
-                          title={`${DAYS[rowIndex]} ${colIndex}h: ${formatCurrency(value, currency)} · ${count} trade${count === 1 ? "" : "s"}${winRate != null ? ` · Win rate ${winRate.toFixed(0)}%` : ""}`}
+                          title={
+                            visible
+                              ? `${DAYS[rowIndex]} ${colIndex}h: ${formatCurrency(
+                                  value,
+                                  currency
+                                )} · ${count} trade${count === 1 ? "" : "s"}${
+                                  winRate != null ? ` · Win rate ${winRate.toFixed(0)}%` : ""
+                                }`
+                              : "Amostra insuficiente para atingir o mínimo de trades."
+                          }
 
                         >
 
-                          {count ? <span className="heatmap-count">{count}</span> : null}
+                          {visible && count ? <span className="heatmap-count">{count}</span> : null}
 
                         </div>
 
