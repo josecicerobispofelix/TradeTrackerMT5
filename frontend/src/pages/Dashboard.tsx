@@ -3703,7 +3703,13 @@ export default function Dashboard() {
 
   );
 
-  const heatmapRowAvg = useMemo(() => metrics.heatmap.map((row) => (row.length ? row.reduce((a, b) => a + b, 0) / row.length : 0)), [metrics.heatmap]);
+  const [heatmapMetric, setHeatmapMetric] = useState<"profit" | "winrate">("profit");
+  const [minTradesFilter, setMinTradesFilter] = useState<number>(1);
+
+  const heatmapRowAvg = useMemo(
+    () => metrics.heatmap.map((row) => (row.length ? row.reduce((a, b) => a + b, 0) / row.length : 0)),
+    [metrics.heatmap]
+  );
 
   const heatmapColAvg = useMemo(() => {
     if (!metrics.heatmap.length) return [];
@@ -3731,16 +3737,20 @@ export default function Dashboard() {
   }, [metrics.heatmap]);
 
   const heatmapMinMax = useMemo(() => {
-    let min = 0;
-    let max = 0;
-    metrics.heatmap.forEach((row) => {
-      row.forEach((value) => {
-        if (value < min) min = value;
-        if (value > max) max = value;
+    if (heatmapMetric === "profit") {
+      let min = 0;
+      let max = 0;
+      metrics.heatmap.forEach((row) => {
+        row.forEach((value) => {
+          if (value < min) min = value;
+          if (value > max) max = value;
+        });
       });
-    });
-    return { min, max };
-  }, [metrics.heatmap]);
+      return { min, max };
+    }
+    // winrate: 0% a 100%
+    return { min: 0, max: 100 };
+  }, [metrics.heatmap, heatmapMetric]);
 
   const heatmapHighlight = useMemo(() => {
     const items: { r: number; c: number; v: number }[] = [];
@@ -7272,16 +7282,58 @@ export default function Dashboard() {
 
 
 
-            <div className="heatmap-legend">
-              <div className="heatmap-legend-bar">
-                <span>{formatCurrency(heatmapMinMax.min, currency)}</span>
-                <div className="heatmap-legend-gradient">
-                  <span className="heatmap-legend-zero">0</span>
+            <div className="heatmap-controls">
+              <div className="heatmap-legend">
+                <div className="heatmap-legend-bar">
+                  <span>
+                    {heatmapMetric === "profit"
+                      ? formatCurrency(heatmapMinMax.min, currency)
+                      : "0%"}
+                  </span>
+                  <div className="heatmap-legend-gradient">
+                    <span className="heatmap-legend-zero">
+                      {heatmapMetric === "profit" ? "0" : "50%"}
+                    </span>
+                  </div>
+                  <span>
+                    {heatmapMetric === "profit"
+                      ? formatCurrency(heatmapMinMax.max, currency)
+                      : "100%"}
+                  </span>
                 </div>
-                <span>{formatCurrency(heatmapMinMax.max, currency)}</span>
+                <div className="heatmap-legend-note">
+                  Cor = {heatmapMetric === "profit" ? "lucro médio" : "win rate"}; número = trades; tooltip mostra lucro, trades e win rate.
+                </div>
               </div>
-              <div className="heatmap-legend-note">
-                Cor = lucro médio; número = trades; tooltip mostra lucro, trades e win rate.
+
+              <div className="heatmap-toggles">
+                <div className="toggle-row">
+                  <button
+                    type="button"
+                    className={`chip tiny ${heatmapMetric === "profit" ? "active" : ""}`}
+                    onClick={() => setHeatmapMetric("profit")}
+                  >
+                    Lucro
+                  </button>
+                  <button
+                    type="button"
+                    className={`chip tiny ${heatmapMetric === "winrate" ? "active" : ""}`}
+                    onClick={() => setHeatmapMetric("winrate")}
+                  >
+                    Win rate
+                  </button>
+                </div>
+                <div className="toggle-row">
+                  <label className="mini-label">
+                    Mínimo de trades
+                    <input
+                      type="number"
+                      min={0}
+                      value={minTradesFilter}
+                      onChange={(e) => setMinTradesFilter(Math.max(0, Number(e.target.value)))}
+                    />
+                  </label>
+                </div>
               </div>
             </div>
 
