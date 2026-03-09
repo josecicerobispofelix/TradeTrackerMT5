@@ -1,6 +1,7 @@
 import calendar
 import datetime as dt
 from io import BytesIO
+from pathlib import Path
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -301,3 +302,24 @@ async def generate_darf_pdf(
     filename = f"DARF_{payload.month:02d}_{payload.year}.pdf"
     headers = {"Content-Disposition": f"attachment; filename={filename}"}
     return StreamingResponse(BytesIO(pdf_bytes), media_type="application/pdf", headers=headers)
+
+
+@router.post("/darf/pdf/save")
+async def save_darf_pdf(
+    payload: DarfCalcRequest,
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(get_current_user),
+):
+    profile = await _get_profile(session, user.id)
+    if not profile or not profile.full_name or not profile.cpf:
+        raise HTTPException(status_code=400, detail="Preencha o Perfil Fiscal para gerar o PDF.")
+
+    result = await calculate_darf(payload, session=session, user=user)
+    pdf_bytes = _build_pdf(result, profile)
+
+    filename = f"DARF_{payload.month:02d}_{payload.year}.pdf"
+    target_dir = Path.home() / "Downloads"
+    target_dir.mkdir(parents=True, exist_ok=True)
+    target_path = target_dir / filename
+    target_path.write_bytes(pdf_bytes)
+    return {"path": str(target_path), "filename": filename}

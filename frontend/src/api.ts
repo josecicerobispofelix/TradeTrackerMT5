@@ -347,6 +347,18 @@ export async function downloadDarfPdf(
   return response.blob();
 }
 
+export async function saveDarfPdfFile(
+  payload: DarfCalcRequest
+): Promise<{ path: string; filename: string }> {
+  return apiFetch<{ path: string; filename: string }>("/api/darf/pdf/save", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload)
+  });
+}
+
 export async function getLicenseStatus(): Promise<LicenseStatus> {
   return apiFetch<LicenseStatus>("/api/license/status");
 }

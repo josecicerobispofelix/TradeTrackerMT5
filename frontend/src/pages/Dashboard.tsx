@@ -30,6 +30,7 @@ import {
   calculateDarf,
   fetchDarfHistory,
   downloadDarfPdf,
+  saveDarfPdfFile,
   Trade,
   FiscalProfile,
   FxRate,
@@ -588,6 +589,19 @@ export default function Dashboard() {
     setDarfStatus(null);
     try {
       const payload = buildDarfPayload();
+      const isDesktop = Boolean((window as any).pywebview);
+
+      // Em desktop, tenta salvar direto via backend (escreve em Downloads)
+      if (isDesktop) {
+        try {
+          const saved = await saveDarfPdfFile(payload);
+          setDarfStatus(`PDF salvo em ${saved.path}`);
+          return;
+        } catch (saveErr) {
+          console.error("Falha ao salvar PDF via backend", saveErr);
+        }
+      }
+
       const blob = await downloadDarfPdf(payload);
       const filename = `DARF_${String(payload.month).padStart(2, "0")}_${payload.year}.pdf`;
 
