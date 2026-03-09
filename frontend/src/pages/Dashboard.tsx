@@ -1438,7 +1438,11 @@ export default function Dashboard() {
                       darfResult.tax_due > 0
                         ? `Imposto devido: ${formatCurrency(darfResult.tax_due, "BRL")}.`
                         : "Imposto devido: R$ 0,00. Nada a pagar neste mês.";
-                    const extra = darfResult.message ? ` ${darfResult.message}` : "";
+                    const extraMessage = (darfResult.message || "").trim();
+                    const isDuplicate =
+                      extraMessage !== "" &&
+                      extraMessage.toLowerCase().includes("não há imposto a pagar");
+                    const extra = !isDuplicate && extraMessage ? ` ${extraMessage}` : "";
                     return `${resumo} ${aliquota} ${imposto}${extra}`;
                   })()}
                 </div>
