@@ -16,6 +16,7 @@ frontend/dist/
 frontend/.vite/
 frontend/playwright-report/
 frontend/test-results/
+test-results/
 
 build/
 dist/

@@ -1,5 +1,5 @@
 Param(
-    [string]$BaseUrl = "http://127.0.0.1:18100"
+    [string]$BaseUrl = "http://127.0.0.1:18100/api"
 )
 
 Write-Host "Smoke test - API health ($BaseUrl/health)"
