@@ -2442,8 +2442,8 @@ export default function Dashboard() {
 
 
     const api: any = (window as any).pywebview?.api;
-
-
+    const dir = getDirPath(lastPdfPath) || lastPdfPath;
+    const fileUrl = `file:///${dir.replace(/\\/g, "/")}`;
 
     // 1) Bridge desktop
 
@@ -2551,23 +2551,15 @@ export default function Dashboard() {
 
     try {
 
+      const w = window.open(fileUrl, "_blank");
 
+      if (!w) throw new Error("Popup bloqueado ao abrir a pasta do PDF.");
 
-      const dir = getDirPath(lastPdfPath) || lastPdfPath;
-
-
-
-      window.open(`file://${dir}`);
-
-
+      setDarfStatus(null);
 
     } catch (err) {
 
-
-
-      setDarfStatus((err as Error).message);
-
-
+      setDarfStatus((err as Error).message || "Não foi possível abrir a pasta do PDF.");
 
     }
 
