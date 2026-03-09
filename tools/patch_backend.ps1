@@ -20,10 +20,14 @@ if (-not (Test-Path $AppDataPath)) {
 # Copy everything (includes TradeTrackerMT5.exe and _internal)
 robocopy $SourcePath $AppDataPath /MIR /NFL /NDL /NJH /NJS /NP
 $code = $LASTEXITCODE
-if ($code -le 1) {
+# Robocopy: <8 é sucesso (0 nada, 1 copiou, 2 extra, 3 copiou+extra).
+if ($code -lt 8) {
+    if ($code -ge 2) {
+        Write-Warning "Robocopy retornou código $code (arquivos extras ou em uso). Se algo não atualizar, feche o app/EBWebView e rode de novo."
+    }
     Write-Host "Backend/binary patched successfully."
     exit 0
-} else {
-    Write-Error "Robocopy failed with code $code"
-    exit $code
 }
+
+Write-Error "Robocopy failed with code $code. Feche o TradeTrackerMT5 (e processos WebView2) e tente novamente."
+exit $code

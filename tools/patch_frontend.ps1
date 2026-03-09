@@ -17,13 +17,17 @@ if (-not (Test-Path $AppDataPath)) {
     New-Item -ItemType Directory -Force -Path $AppDataPath | Out-Null
 }
 
-# Sync files (mirror) to keep hashes identical; robocopy returns 1 on copy success, so treat 0 or 1 as success.
+# Sync files (mirror) to keep hashes identical.
+# Robocopy exit codes: 0=nothing, 1=copy ok, 2=extra files, 3=copy+extra. Treat <8 as sucesso.
 robocopy $SourcePath $AppDataPath /MIR /NFL /NDL /NJH /NJS /NP
 $code = $LASTEXITCODE
-if ($code -le 1) {
+if ($code -lt 8) {
+    if ($code -ge 2) {
+        Write-Warning "Robocopy retornou código $code (arquivos extras ou em uso). Se algo não atualizar, feche o app/EBWebView e rode de novo."
+    }
     Write-Host "Frontend patched successfully."
     exit 0
-} else {
-    Write-Error "Robocopy failed with code $code"
-    exit $code
 }
+
+Write-Error "Robocopy failed with code $code. Feche o TradeTrackerMT5 (e processos WebView2) e tente novamente."
+exit $code

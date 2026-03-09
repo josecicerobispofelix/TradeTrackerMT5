@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 import { Route, Routes } from "react-router-dom";
 import {
   activateLicense,
@@ -12,11 +12,12 @@ import {
   logoutUser,
   User
 } from "./api";
-import Dashboard from "./pages/Dashboard";
-import Upload from "./pages/Upload";
-import History from "./pages/History";
-import Profile from "./pages/Profile";
 import TopNav from "./components/TopNav";
+
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Upload = lazy(() => import("./pages/Upload"));
+const History = lazy(() => import("./pages/History"));
+const Profile = lazy(() => import("./pages/Profile"));
 
 export default function App() {
   const MIN_PASSWORD_LEN = 6;
@@ -423,12 +424,14 @@ export default function App() {
     <div className="app-shell">
       <TopNav onLogout={handleLogout} showNav />
       <main className="content">
-        <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/upload" element={<Upload />} />
-          <Route path="/history" element={<History />} />
-          <Route path="/profile" element={<Profile />} />
-        </Routes>
+        <Suspense fallback={<div className="panel">Carregando...</div>}>
+          <Routes>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/upload" element={<Upload />} />
+            <Route path="/history" element={<History />} />
+            <Route path="/profile" element={<Profile />} />
+          </Routes>
+        </Suspense>
       </main>
     </div>
   );

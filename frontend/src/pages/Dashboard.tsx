@@ -42,6 +42,7 @@ const DAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sab"];
 const HOURS = Array.from({ length: 24 }, (_, index) => index);
 const TAX_RATE = 0.15;
 const MS_DAY = 24 * 60 * 60 * 1000;
+const LAST_PDF_DIR_KEY = "ttmt5_last_pdf_dir";
 
 function toDateInput(date: Date) {
   const year = date.getFullYear();
@@ -156,6 +157,12 @@ function formatNumber(value: number, digits = 2) {
 function formatPercent(value: number) {
   const safe = Number.isFinite(value) ? value : 0;
   return `${(safe * 100).toFixed(2)}%`;
+}
+
+function getDirPath(path: string) {
+  const norm = path.replace(/\\/g, "/");
+  const idx = norm.lastIndexOf("/");
+  return idx >= 0 ? norm.slice(0, idx) : "";
 }
 
 function buildFxSeries(rates: FxRate[], days = 30): FxRate[] {
@@ -601,6 +608,7 @@ export default function Dashboard() {
       const payload = buildDarfPayload();
       // Tenta salvar direto via backend (escreve em Downloads)
       const filename = `DARF_${String(payload.month).padStart(2, "0")}_${payload.year}.pdf`;
+      const lastPdfDir = localStorage.getItem(LAST_PDF_DIR_KEY) || undefined;
 
       // Se houver pywebview com diálogo de salvar, prioriza
       const api: any = (window as any).pywebview?.api;
@@ -614,9 +622,13 @@ export default function Dashboard() {
             binary += String.fromCharCode(bytes[i]);
           }
           const base64 = window.btoa(binary);
-          const response = await api.save_pdf_prompt(base64, filename);
+          const response = await api.save_pdf_prompt(base64, filename, lastPdfDir);
           if (response?.success) {
             setDarfStatus(`PDF salvo em ${response.path}`);
+            if (response.path) {
+              const dir = getDirPath(response.path);
+              if (dir) localStorage.setItem(LAST_PDF_DIR_KEY, dir);
+            }
             return;
           }
           // se usuário cancelou, segue fluxo automático
@@ -629,6 +641,10 @@ export default function Dashboard() {
       try {
         const saved = await saveDarfPdfFile(payload);
         setDarfStatus(`PDF salvo em ${saved.path}`);
+        if (saved.path) {
+          const dir = getDirPath(saved.path);
+          if (dir) localStorage.setItem(LAST_PDF_DIR_KEY, dir);
+        }
         return;
       } catch (saveErr) {
         console.error("Falha ao salvar PDF via backend automático", saveErr);

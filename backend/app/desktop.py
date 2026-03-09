@@ -200,7 +200,7 @@ class _JsBridge:
             _log_trace(f"Falha ao salvar PDF: {exc}")
             return {"success": False, "error": str(exc)}
 
-    def save_pdf_prompt(self, base64_data: str, filename: str) -> dict:
+    def save_pdf_prompt(self, base64_data: str, filename: str, initial_dir: Optional[str] = None) -> dict:
         """
         Abre diálogo para o usuário escolher onde salvar.
         Retorna {"success": True, "path": "..."} ou {"success": False, "error": "..."}.
@@ -211,7 +211,16 @@ class _JsBridge:
                 raise RuntimeError("Janela WebView não encontrada")
 
             file_types = [("PDF (*.pdf)", "*.pdf")]
-            path = win.create_file_dialog(webview.SAVE_DIALOG, save_filename=filename, file_types=file_types)
+            suggested = filename
+            if initial_dir:
+                try:
+                    initial_path = Path(initial_dir)
+                    if initial_path.exists() and initial_path.is_dir():
+                        suggested = (initial_path / filename).as_posix()
+                except Exception:
+                    pass
+
+            path = win.create_file_dialog(webview.SAVE_DIALOG, save_filename=suggested, file_types=file_types)
             if not path:
                 return {"success": False, "error": "Operação cancelada pelo usuário"}
 
