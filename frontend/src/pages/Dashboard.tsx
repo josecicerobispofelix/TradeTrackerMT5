@@ -590,14 +590,23 @@ export default function Dashboard() {
       const payload = buildDarfPayload();
       const blob = await downloadDarfPdf(payload);
       const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `DARF_${String(payload.month).padStart(2, "0")}_${payload.year}.pdf`;
-      link.style.display = "none";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      const filename = `DARF_${String(payload.month).padStart(2, "0")}_${payload.year}.pdf`;
+
+      // Tenta abrir em nova aba (funciona melhor no WebView2)
+      const opened = window.open(url, "_blank");
+      if (!opened) {
+        // Fallback anchor
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = filename;
+        link.target = "_blank";
+        link.rel = "noopener";
+        link.style.display = "none";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
       setDarfStatus("PDF gerado.");
     } catch (err) {
       setDarfStatus((err as Error).message);
