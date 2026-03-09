@@ -1492,17 +1492,25 @@ export default function Dashboard() {
                     const brl = formatCurrency(Math.abs(darfResult.profit_brl), "BRL");
                     const usd = formatCurrency(darfResult.profit_usd, "USD");
                     const isProfit = darfResult.profit_brl >= 0;
-                    const resumo = `Fechamento ${monthLabel}: ${isProfit ? "lucro" : "prejuÃ­zo"} de ${brl} (${usd}).`;
-                    const aliquota = `AlÃ­quota ${(darfResult.tax_rate * 100).toFixed(2)}%.`;
+                    const resumo = `Fechamento ${monthLabel}: ${isProfit ? "lucro" : "prejuízo"} de ${brl} (${usd}).`;
+                    const aliquota = `Alíquota ${(darfResult.tax_rate * 100).toFixed(2)}%.`;
                     const imposto =
                       darfResult.tax_due > 0
                         ? `Imposto devido: ${formatCurrency(darfResult.tax_due, "BRL")}.`
-                        : "Imposto devido: R$ 0,00. Nada a pagar neste mÃªs.";
-                    const extraMessage = (darfResult.message || "").trim();
-                    const isDuplicate =
-                      extraMessage !== "" &&
-                      extraMessage.toLowerCase().includes("nÃ£o hÃ¡ imposto a pagar");
-                    const extra = !isDuplicate && extraMessage ? ` ${extraMessage}` : "";
+                        : "Imposto devido: R$ 0,00. Nada a pagar neste mês.";
+
+                    let extraMessage = (darfResult.message || "").trim();
+                    const extraLower = extraMessage.toLowerCase();
+                    const mentionsNoTax = extraLower.includes("não há imposto a pagar");
+                    const mentionsProfile = extraLower.includes("perfil fiscal");
+                    if (darfResult.tax_due <= 0 && mentionsNoTax) {
+                      extraMessage = "";
+                    }
+                    if (hasFiscalProfile && mentionsProfile) {
+                      extraMessage = "";
+                    }
+
+                    const extra = extraMessage ? ` ${extraMessage}` : "";
                     return `${resumo} ${aliquota} ${imposto}${extra}`;
                   })()}
                 </div>
@@ -1511,7 +1519,7 @@ export default function Dashboard() {
               {lastPdfPath ? (
                 <div className="helper" style={{ display: "flex", gap: 8, alignItems: "center" }}>
                   <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    Ãšltimo PDF: {lastPdfPath}
+                    Último PDF: {lastPdfPath}
                   </span>
                   <button type="button" className="secondary" onClick={handleOpenPdfFolder}>
                     Abrir pasta do PDF
@@ -1520,7 +1528,7 @@ export default function Dashboard() {
               ) : null}
               {profileLoaded && !hasFiscalProfile ? (
                 <div className="helper">
-                  preencha perfil fiscal (NO CANTO SUPERIOR DITEITO) para gerar a DARF
+                  Preencha o perfil fiscal (no canto superior direito) para gerar a DARF.
                 </div>
               ) : null}
               {darfHistory.length ? (
