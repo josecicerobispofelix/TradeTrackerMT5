@@ -1,4 +1,5 @@
-﻿import os
+﻿import base64
+import os
 import sys
 import threading
 import time
@@ -178,6 +179,28 @@ def _show_error_window(title: str, message: str) -> None:
     webview.start()
 
 
+
+class _JsBridge:
+    """
+    M?todos expostos ao front-end via window.pywebview.api.
+    Usamos para salvar o PDF localmente (evita popup de blob no WebView2).
+    """
+
+    def save_pdf(self, base64_data: str, filename: str) -> dict:
+        try:
+            data = base64.b64decode(base64_data)
+            target_dir = Path.home() / "Downloads"
+            target_dir.mkdir(parents=True, exist_ok=True)
+            target_path = target_dir / filename
+            with target_path.open("wb") as fp:
+                fp.write(data)
+            _log(f"PDF salvo via bridge em {target_path}")
+            return {"success": True, "path": str(target_path)}
+        except Exception as exc:
+            _log_trace(f"Falha ao salvar PDF: {exc}")
+            return {"success": False, "error": str(exc)}
+
+
 def main():
     os.environ.setdefault("CORS_ORIGINS", "http://localhost,http://127.0.0.1")
     os.environ.setdefault("PYWEBVIEW_GUI", "edgechromium")
@@ -231,7 +254,8 @@ def main():
         storage_dir = _data_base() / "webview"
         storage_dir.mkdir(parents=True, exist_ok=True)
         # create_window não aceita storage_path; usa webview.start(storage_path=...)
-        webview.create_window("TradeTrackerMT5", url, confirm_close=True)
+        bridge = _JsBridge()
+        webview.create_window("TradeTrackerMT5", url, confirm_close=True, js_api=bridge)
         # storage_path + private_mode=False para persistir localStorage/cookies entre execuções
         webview.start(storage_path=storage_dir.as_posix(), private_mode=False)
     except Exception:

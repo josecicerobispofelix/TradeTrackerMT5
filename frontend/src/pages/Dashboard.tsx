@@ -591,6 +591,27 @@ export default function Dashboard() {
       const blob = await downloadDarfPdf(payload);
       const filename = `DARF_${String(payload.month).padStart(2, "0")}_${payload.year}.pdf`;
 
+      // Primeiro tenta salvar nativamente via pywebview (evita prompts de blob)
+      const api: any = (window as any).pywebview?.api;
+      if (api?.save_pdf) {
+        try {
+          const buffer = await blob.arrayBuffer();
+          const bytes = new Uint8Array(buffer);
+          let binary = "";
+          for (let i = 0; i < bytes.byteLength; i += 1) {
+            binary += String.fromCharCode(bytes[i]);
+          }
+          const base64 = window.btoa(binary);
+          const response = await api.save_pdf(base64, filename);
+          if (response?.success) {
+            setDarfStatus(`PDF salvo em ${response.path}`);
+            return;
+          }
+        } catch (saveErr) {
+          console.error("Falha ao salvar PDF nativo", saveErr);
+        }
+      }
+
       // Baixa diretamente sem abrir nova aba para evitar prompt de "blob link" no WebView2
       const nav: any = window.navigator;
       if (nav && typeof nav.msSaveOrOpenBlob === "function") {
