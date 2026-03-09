@@ -43,6 +43,7 @@ const HOURS = Array.from({ length: 24 }, (_, index) => index);
 const TAX_RATE = 0.15;
 const MS_DAY = 24 * 60 * 60 * 1000;
 const LAST_PDF_DIR_KEY = "ttmt5_last_pdf_dir";
+const LAST_PDF_PATH_KEY = "ttmt5_last_pdf_path";
 
 function toDateInput(date: Date) {
   const year = date.getFullYear();
@@ -460,6 +461,9 @@ export default function Dashboard() {
   const [profileStatus, setProfileStatus] = useState<string | null>(null);
   const [cepStatus, setCepStatus] = useState<string | null>(null);
   const [profileLoaded, setProfileLoaded] = useState(false);
+  const [lastPdfPath, setLastPdfPath] = useState<string | null>(() =>
+    localStorage.getItem(LAST_PDF_PATH_KEY)
+  );
   const hasFiscalProfile = useMemo(
     () => Boolean(profile?.full_name?.trim() && profile?.cpf?.trim()),
     [profile]
@@ -601,6 +605,29 @@ export default function Dashboard() {
     }
   };
 
+  const handleOpenPdfFolder = async () => {
+    if (!lastPdfPath) return;
+    const targetDir = getDirPath(lastPdfPath) || lastPdfPath;
+    const api: any = (window as any).pywebview?.api;
+    if (api?.open_path) {
+      try {
+        const result = await api.open_path(targetDir);
+        if (!result?.success && result?.error) {
+          setDarfStatus(result.error);
+        }
+      } catch (err) {
+        setDarfStatus((err as Error).message);
+      }
+    } else {
+      try {
+        // fallback: tenta abrir via file:// (pode ser bloqueado no WebView)
+        window.open(`file://${targetDir}`);
+      } catch (err) {
+        setDarfStatus((err as Error).message);
+      }
+    }
+  };
+
   const handlePdfDarf = async () => {
     setDarfLoading(true);
     setDarfStatus(null);
@@ -626,6 +653,8 @@ export default function Dashboard() {
           if (response?.success) {
             setDarfStatus(`PDF salvo em ${response.path}`);
             if (response.path) {
+              setLastPdfPath(response.path);
+              localStorage.setItem(LAST_PDF_PATH_KEY, response.path);
               const dir = getDirPath(response.path);
               if (dir) localStorage.setItem(LAST_PDF_DIR_KEY, dir);
             }
@@ -642,6 +671,8 @@ export default function Dashboard() {
         const saved = await saveDarfPdfFile(payload);
         setDarfStatus(`PDF salvo em ${saved.path}`);
         if (saved.path) {
+          setLastPdfPath(saved.path);
+          localStorage.setItem(LAST_PDF_PATH_KEY, saved.path);
           const dir = getDirPath(saved.path);
           if (dir) localStorage.setItem(LAST_PDF_DIR_KEY, dir);
         }
@@ -1463,6 +1494,16 @@ export default function Dashboard() {
                 </div>
               ) : null}
               {darfStatus ? <div className="helper">{darfStatus}</div> : null}
+              {lastPdfPath ? (
+                <div className="helper" style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    Último PDF: {lastPdfPath}
+                  </span>
+                  <button type="button" className="secondary" onClick={handleOpenPdfFolder}>
+                    Abrir pasta do PDF
+                  </button>
+                </div>
+              ) : null}
               {profileLoaded && !hasFiscalProfile ? (
                 <div className="helper">
                   preencha perfil fiscal (NO CANTO SUPERIOR DITEITO) para gerar a DARF

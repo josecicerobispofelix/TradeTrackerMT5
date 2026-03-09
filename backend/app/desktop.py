@@ -241,6 +241,22 @@ class _JsBridge:
         _log(f"Ping JS -> Python: {message}")
         return {"ok": True, "echo": message}
 
+    def open_path(self, path: str) -> dict:
+        """
+        Abre o explorador no diretório informado ou seleciona o arquivo.
+        """
+        try:
+            target = Path(path)
+            if target.is_file():
+                target = target.parent
+            if not target.exists():
+                raise FileNotFoundError(f"Caminho não encontrado: {path}")
+            os.startfile(target)  # type: ignore[attr-defined]
+            return {"success": True, "path": str(target)}
+        except Exception as exc:
+            _log_trace(f"Falha ao abrir caminho {path}: {exc}")
+            return {"success": False, "error": str(exc)}
+
 
 def main():
     os.environ.setdefault("CORS_ORIGINS", "http://localhost,http://127.0.0.1")
