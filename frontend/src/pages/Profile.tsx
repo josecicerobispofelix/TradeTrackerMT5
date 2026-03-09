@@ -58,7 +58,7 @@ export default function Profile() {
   const lookupCep = useCallback(async (rawCep: string) => {
     const cep = onlyDigits(rawCep);
     if (cep.length !== 8) {
-      setCepStatus("Informe 8 d?gitos do CEP.");
+      setCepStatus("Informe 8 dígitos do CEP.");
       return;
     }
     setCepStatus("Buscando CEP...");
@@ -69,7 +69,7 @@ export default function Profile() {
       });
       const data = await response.json();
       if (data.erro) {
-        setCepStatus("CEP n?o encontrado.");
+        setCepStatus("CEP não encontrado.");
         return;
       }
       setProfile((prev) => ({
@@ -80,7 +80,7 @@ export default function Profile() {
         city: data.localidade || prev.city,
         state: data.uf || prev.state
       }));
-      setCepStatus("Endere?o preenchido pelo CEP.");
+      setCepStatus("Endereço preenchido pelo CEP.");
     } catch (err) {
       setCepStatus((err as Error).message);
     }
@@ -108,7 +108,7 @@ export default function Profile() {
           <span>Preencha uma vez. O CEP preenche rua, bairro, cidade e UF automaticamente.</span>
         </div>
 
-        <div className="helper">Ap?s salvar, os dados s?o usados no c?lculo e PDF do DARF.</div>
+        <div className="helper">Após salvar, os dados são usados no cálculo e PDF do DARF.</div>
 
         <div className="form-row">
           <label>
@@ -165,7 +165,7 @@ export default function Profile() {
             />
           </label>
           <label>
-            N?mero
+            Número
             <input
               type="text"
               value={profile.number}
@@ -237,7 +237,7 @@ export default function Profile() {
             </select>
           </label>
           <label>
-            Al?quota padr?o %
+            Alíquota padrão %
             <input
               type="number"
               step="0.01"

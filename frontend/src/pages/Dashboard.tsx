@@ -529,7 +529,7 @@ export default function Dashboard() {
     } catch (err) {
       const message = (err as Error).message;
       if (message.toLowerCase().includes("perfil fiscal")) {
-        setProfileStatus("Perfil fiscal ainda n�o cadastrado.");
+        setProfileStatus("Perfil fiscal ainda não cadastrado.");
       } else {
         setProfileStatus(message);
       }
@@ -573,7 +573,7 @@ export default function Dashboard() {
       const payload = buildDarfPayload();
       const result = await calculateDarf(payload);
       setDarfResult(result);
-      setDarfStatus(result.message || "C�lculo conclu�do.");
+      setDarfStatus(result.message || "Cálculo concluído.");
       loadDarfHistory();
     } catch (err) {
       setDarfResult(null);
@@ -606,7 +606,7 @@ export default function Dashboard() {
   const lookupCep = useCallback(async (rawCep: string) => {
     const cep = onlyDigits(rawCep);
     if (cep.length !== 8) {
-      setCepStatus("Informe 8 d�gitos do CEP.");
+      setCepStatus("Informe 8 dígitos do CEP.");
       return;
     }
     setCepStatus("Buscando CEP...");
@@ -617,7 +617,7 @@ export default function Dashboard() {
       });
       const data = await response.json();
       if (data.erro) {
-        setCepStatus("CEP n�o encontrado.");
+        setCepStatus("CEP não encontrado.");
         return;
       }
       setProfile((prev) => ({
@@ -628,7 +628,7 @@ export default function Dashboard() {
         city: data.localidade || prev.city,
         state: data.uf || prev.state
       }));
-      setCepStatus("Endere�o preenchido pelo CEP.");
+      setCepStatus("Endereço preenchido pelo CEP.");
     } catch (err) {
       setCepStatus((err as Error).message);
     }
@@ -723,7 +723,7 @@ export default function Dashboard() {
   const handleSaveFx = async () => {
     const value = Number(fxRateInput);
     if (!Number.isFinite(value) || value <= 0) {
-      setFxStatus("Informe uma taxa v�lida.");
+        setFxStatus("Informe uma taxa válida.");
       return;
     }
     setFxLoading(true);
@@ -746,7 +746,7 @@ export default function Dashboard() {
       const response = await fetchFxRateAuto(fxDate);
       setFxRateValue(response.usd_brl_rate);
       setFxRateInput(String(response.usd_brl_rate));
-      setFxStatus("Cota��o atualizada automaticamente.");
+      setFxStatus("Cotação atualizada automaticamente.");
     } catch (err) {
       setFxStatus((err as Error).message);
     } finally {
@@ -847,7 +847,7 @@ export default function Dashboard() {
 
   const profitLossData = [
     { label: "Lucro bruto", value: metrics.grossProfit },
-    { label: "Preju�zo bruto", value: Math.abs(metrics.grossLoss) }
+    { label: "Prejuízo bruto", value: Math.abs(metrics.grossLoss) }
   ];
 
   const winRateData = [
@@ -868,7 +868,7 @@ export default function Dashboard() {
         <aside className="filter-panel">
           <h4>Painel de filtros</h4>
           <div className="filter-section">
-            <label>Per�odo</label>
+          <label>Período</label>
             <div className="filter-grid">
               <input
                 type="date"
@@ -937,7 +937,7 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="filter-section">
-            <label>Hor�rio</label>
+          <label>Horário</label>
             <div className="chip-group">
               <button
                 type="button"
@@ -1002,7 +1002,7 @@ export default function Dashboard() {
             <h2>Sua performance</h2>
             <p>
               Analise seus resultados do MetaTrader 5 com filtros completos,
-              indicadores-chave e gr�ficos animados.
+              indicadores-chave e gráficos animados.
             </p>
             <div className="filter-actions" style={{ marginTop: 12 }}>
               <button type="button" className="secondary" onClick={() => navigate('/profile')}>
@@ -1015,9 +1015,9 @@ export default function Dashboard() {
           <div className="cards kpi-grid">
             <div
               className="card kpi-card highlight"
-              title="Resultado l�quido = lucro + comiss�o + swap. � o valor final real do per�odo."
+              title="Resultado líquido = lucro + comissão + swap. É o valor final real do período."
             >
-              <div className="card-title">Resultado l�quido</div>
+              <div className="card-title">Resultado líquido</div>
               <div
                 className={`card-value ${metrics.net >= 0 ? "text-success" : "text-danger"}`}
               >
@@ -1027,7 +1027,7 @@ export default function Dashboard() {
             </div>
             <div
               className="card kpi-card"
-              title="Resultado bruto = soma dos lucros das opera��es vencedoras (sem descontar custos)."
+              title="Resultado bruto = soma dos lucros das operações vencedoras (sem descontar custos)."
             >
               <div className="card-title">Resultado bruto</div>
               <div className="card-value text-success">
@@ -1037,9 +1037,9 @@ export default function Dashboard() {
             </div>
             <div
               className="card kpi-card"
-              title="Preju�zo bruto = soma das perdas das opera��es perdedoras (sem custos). Pode ser maior que o capital investido."
+              title="Prejuízo bruto = soma das perdas das operações perdedoras (sem custos). Pode ser maior que o capital investido."
             >
-              <div className="card-title">Preju�zo bruto</div>
+              <div className="card-title">Prejuízo bruto</div>
               <div className="card-value text-danger">
                 {formatCurrency(Math.abs(metrics.grossLoss), currency)}
               </div>
@@ -1050,7 +1050,7 @@ export default function Dashboard() {
               <div className="card-value">
                 {formatCurrency(metrics.costs, currency)}
               </div>
-              <div className="card-sub">Comiss�o + swap</div>
+              <div className="card-sub">Comissão + swap</div>
             </div>
           </div>
 
@@ -1072,13 +1072,13 @@ export default function Dashboard() {
               <div className="card-value">{formatNumber(metrics.profitFactor, 2)}</div>
             </div>
             <div className="card small">
-              <div className="card-title">Ganho m�dio</div>
+              <div className="card-title">Ganho médio</div>
               <div className="card-value text-success">
                 {formatCurrency(metrics.avgWin, currency)}
               </div>
             </div>
             <div className="card small">
-              <div className="card-title">Perda m�dia</div>
+              <div className="card-title">Perda média</div>
               <div className="card-value text-danger">
                 {formatCurrency(metrics.avgLoss, currency)}
               </div>
@@ -1090,7 +1090,7 @@ export default function Dashboard() {
               </div>
             </div>
             <div className="card small">
-              <div className="card-title">Maior preju�zo</div>
+              <div className="card-title">Maior prejuízo</div>
               <div className="card-value text-danger">
                 {formatCurrency(Math.abs(metrics.maxLoss), currency)}
               </div>
@@ -1108,7 +1108,7 @@ export default function Dashboard() {
               <div className="card-value text-danger">{metrics.streakLoss}</div>
             </div>
             <div className="card small">
-              <div className="card-title">M�x. drawdown</div>
+              <div className="card-title">Máx. drawdown</div>
               <div className="card-value text-danger">
                 {formatCurrency(metrics.drawdown, currency)}
               </div>
@@ -1119,13 +1119,13 @@ export default function Dashboard() {
               <div className="panel-header">
                 <h4>Meta mensal</h4>
                 <span>
-                  Meta de {goalMonthLabel || "m�s selecionado"}. Atualize a meta e o painel
+                  Meta de {goalMonthLabel || "mês selecionado"}. Atualize a meta e o painel
                   recalcula automaticamente.
                 </span>
               </div>
               <div className="form-row">
                 <label>
-                  M�s da meta
+                  Mês da meta
                   <input
                     type="month"
                     value={goalMonth}
@@ -1133,7 +1133,7 @@ export default function Dashboard() {
                   />
                 </label>
                 <label>
-                  Meta l�quida (BRL)
+                  Meta líquida (BRL)
                   <input
                     type="number"
                     min={0}
@@ -1150,13 +1150,13 @@ export default function Dashboard() {
                   />
                 </label>
                 <label>
-                  Dias restantes no m�s
+                  Dias restantes no mês
                   <input type="text" value={`${daysRemaining}`} readOnly />
                 </label>
               </div>
               <div className="progress-row">
                 <div>
-                  <strong>Progresso l�quido:</strong>{" "}
+                  <strong>Progresso líquido:</strong>{" "}
                   {formatCurrency(metricsBrl.net, "BRL")} / {formatCurrency(goalNet, "BRL")}
                 </div>
                 <div className="progress-bar">
@@ -1170,7 +1170,7 @@ export default function Dashboard() {
                   <span style={{ width: `${progressGross * 100}%` }} />
                 </div>
                 <div>
-                  <strong>Falta l�quido:</strong> {formatCurrency(remainingNet, "BRL")}
+                  <strong>Falta líquida:</strong> {formatCurrency(remainingNet, "BRL")}
                 </div>
                 <div>
                   <strong>Falta bruto:</strong> {formatCurrency(remainingGross, "BRL")}
@@ -1188,7 +1188,7 @@ export default function Dashboard() {
             <div className="panel">
               <div className="panel-header">
                 <h4>Taxa USD/BRL</h4>
-                <span>Use a taxa di�ria para converter resultados em BRL.</span>
+                <span>Use a taxa diária para converter resultados em BRL.</span>
               </div>
               <div className="form-row">
                 <label>
@@ -1217,7 +1217,7 @@ export default function Dashboard() {
                   onClick={handleAutoFx}
                   disabled={fxLoading}
                 >
-                  Buscar autom�tico
+                  Buscar automático
                 </button>
               </div>
               <div className="helper">
@@ -1271,10 +1271,10 @@ export default function Dashboard() {
                 </ResponsiveContainer>
               </div>
               {fxHistoryLoading ? (
-                <div className="helper">Carregando hist&oacute;rico...</div>
+                <div className="helper">Carregando histórico...</div>
               ) : fxHistory.length === 0 ? (
                 <div className="helper">
-                  Sem hist&oacute;rico recente. Salve uma taxa ou use &ldquo;Buscar autom&aacute;tico&rdquo; para preencher o gr&aacute;fico.
+                  Sem histórico recente. Salve uma taxa ou use "Buscar automático" para preencher o gráfico.
                 </div>
               ) : null}
             </div>
@@ -1411,8 +1411,8 @@ export default function Dashboard() {
           <div className="chart-grid">
             <div className="panel chart-card">
               <div className="panel-header">
-                <h4>Evolucao patrimonial</h4>
-                <span>Lucro acumulado no per�odo selecionado.</span>
+                <h4>Evolução patrimonial</h4>
+                <span>Lucro acumulado no período selecionado.</span>
               </div>
               <div className="chart-body">
                 <ResponsiveContainer width="100%" height={260}>
@@ -1497,8 +1497,8 @@ export default function Dashboard() {
 
             <div className="panel chart-card">
               <div className="panel-header">
-                <h4>Comparativo lucro x preju�zo</h4>
-                <span>Somatorio de ganhos e perdas.</span>
+                <h4>Comparativo lucro x prejuízo</h4>
+                <span>Somatório de ganhos e perdas.</span>
               </div>
               <div className="chart-body">
                 <ResponsiveContainer width="100%" height={260}>
@@ -1535,8 +1535,8 @@ export default function Dashboard() {
 
             <div className="panel chart-card">
               <div className="panel-header">
-                <h4>Lucro di�rio</h4>
-                <span>Barras di�rias com resultado l�quido.</span>
+                <h4>Lucro diário</h4>
+                <span>Barras diárias com resultado líquido.</span>
               </div>
               <div className="chart-body">
                 <ResponsiveContainer width="100%" height={260}>
@@ -1566,7 +1566,7 @@ export default function Dashboard() {
             <div className="panel chart-card">
               <div className="panel-header">
                 <h4>Progresso mensal</h4>
-                <span>Acumulado vs. meta l�quida e bruta.</span>
+                <span>Acumulado vs. meta líquida e bruta.</span>
               </div>
               <div className="chart-body">
                 <ResponsiveContainer width="100%" height={260}>
@@ -1600,7 +1600,7 @@ export default function Dashboard() {
                       dot={false}
                       isAnimationActive
                       animationDuration={900}
-                      name="Meta l�quida"
+                      name="Meta líquida"
                     />
                     <Line
                       type="monotone"
@@ -1620,7 +1620,7 @@ export default function Dashboard() {
             <div className="panel chart-card">
               <div className="panel-header">
                 <h4>Dia da semana</h4>
-                <span>Resultado l�quido por dia.</span>
+                <span>Resultado líquido por dia.</span>
               </div>
               <div className="chart-body">
                 <ResponsiveContainer width="100%" height={260}>
@@ -1651,8 +1651,8 @@ export default function Dashboard() {
 
           <div className="panel">
             <div className="panel-header">
-              <h4>Mapa de calor: dia x hor�rio</h4>
-              <span>Identifique os hor�rios mais positivos e negativos.</span>
+              <h4>Mapa de calor: dia x horário</h4>
+              <span>Identifique os horários mais positivos e negativos.</span>
             </div>
             <div className="heatmap">
               <div className="heatmap-header">

@@ -230,8 +230,10 @@ def main():
         _log("Criando janela")
         storage_dir = _data_base() / "webview"
         storage_dir.mkdir(parents=True, exist_ok=True)
+        # create_window não aceita storage_path; usa webview.start(storage_path=...)
         webview.create_window("TradeTrackerMT5", url, confirm_close=True)
-        webview.start()
+        # storage_path + private_mode=False para persistir localStorage/cookies entre execuções
+        webview.start(storage_path=storage_dir.as_posix(), private_mode=False)
     except Exception:
         _log_trace("Erro ao iniciar interface")
         _show_error_window("ERRO AO INICIAR", "Falha ao iniciar a interface do aplicativo.")
