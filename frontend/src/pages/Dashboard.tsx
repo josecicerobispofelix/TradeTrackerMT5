@@ -39,7 +39,7 @@ import {
 
 const DAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sab"];
 const HOURS = Array.from({ length: 24 }, (_, index) => index);
-const TAX_RATE = 0.2;
+const TAX_RATE = 0.15;
 const MS_DAY = 24 * 60 * 60 * 1000;
 
 function toDateInput(date: Date) {
@@ -796,15 +796,16 @@ export default function Dashboard() {
   );
 
   const currency: "USD" | "BRL" = useBrl ? "BRL" : "USD";
-  const goalGross = goalNet / (1 - TAX_RATE);
+  const applyTax = (value: number) => (value > 0 ? value * (1 + TAX_RATE) : value);
+  const goalGross = applyTax(goalNet);
   const goalNetUsd = fxRate ? goalNet / fxRate : null;
   const goalGrossUsd = fxRate ? goalGross / fxRate : null;
+  const grossProgressValue = applyTax(metricsBrl.net);
 
   const progressNet = goalNet > 0 ? Math.min(metricsBrl.net / goalNet, 1) : 0;
-  const progressGross =
-    goalGross > 0 ? Math.min(metricsBrl.grossProfit / goalGross, 1) : 0;
+  const progressGross = goalGross > 0 ? Math.min(grossProgressValue / goalGross, 1) : 0;
   const remainingNet = Math.max(goalNet - metricsBrl.net, 0);
-  const remainingGross = Math.max(goalGross - metricsBrl.grossProfit, 0);
+  const remainingGross = Math.max(goalGross - grossProgressValue, 0);
 
   const daysRemaining = useMemo(() => {
     if (!goalMonth) return 0;
@@ -1164,7 +1165,7 @@ export default function Dashboard() {
                 </div>
                 <div>
                   <strong>Progresso bruto:</strong>{" "}
-                  {formatCurrency(metricsBrl.grossProfit, "BRL")} / {formatCurrency(goalGross, "BRL")}
+                  {formatCurrency(grossProgressValue, "BRL")} / {formatCurrency(goalGross, "BRL")}
                 </div>
                 <div className="progress-bar">
                   <span style={{ width: `${progressGross * 100}%` }} />
