@@ -4,6 +4,7 @@ import traceback
 import time
 from datetime import datetime
 from pathlib import Path
+import subprocess
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -70,6 +71,31 @@ app.add_middleware(
 @app.get("/api/health")
 async def api_health():
     return {"status": "ok"}
+
+
+@app.post("/api/open-path")
+async def api_open_path(payload: dict):
+    """
+    Abre o explorador no caminho informado (arquivo ou diretório).
+    Útil para o botão "Abrir pasta do PDF" quando o bridge do desktop falhar.
+    """
+    try:
+        raw_path = payload.get("path") if isinstance(payload, dict) else None
+        if not raw_path:
+            raise ValueError("Path não informado.")
+        target = Path(raw_path)
+        if target.is_file():
+            target = target.parent
+        if not target.exists():
+            raise FileNotFoundError(f"Caminho não encontrado: {raw_path}")
+        if os.name == "nt":
+            os.startfile(str(target))  # type: ignore[attr-defined]
+        else:
+            subprocess.Popen(["xdg-open", str(target)])
+        return {"success": True, "path": str(target)}
+    except Exception as exc:
+        _log_trace(f"Falha no /api/open-path: {exc}")
+        return JSONResponse(status_code=400, content={"success": False, "error": str(exc)})
 
 
 @app.middleware("http")

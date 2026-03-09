@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Area,
@@ -546,7 +546,7 @@ export default function Dashboard() {
     } catch (err) {
       const message = (err as Error).message;
       if (message.toLowerCase().includes("perfil fiscal")) {
-        setProfileStatus("Perfil fiscal ainda não cadastrado.");
+        setProfileStatus("Perfil fiscal ainda nÃ£o cadastrado.");
       } else {
         setProfileStatus(message);
       }
@@ -591,10 +591,10 @@ export default function Dashboard() {
       const payload = buildDarfPayload();
       const result = await calculateDarf(payload);
       setDarfResult(result);
-      const statusMessage = (result.message || "Cálculo concluído.").trim();
+      const statusMessage = (result.message || "CÃ¡lculo concluÃ­do.").trim();
       const isNoTax =
         result.tax_due <= 0 &&
-        statusMessage.toLowerCase().includes("não há imposto a pagar");
+        statusMessage.toLowerCase().includes("nÃ£o hÃ¡ imposto a pagar");
       setDarfStatus(isNoTax ? null : statusMessage);
       loadDarfHistory();
     } catch (err) {
@@ -607,27 +607,38 @@ export default function Dashboard() {
 
   const handleOpenPdfFolder = async () => {
     if (!lastPdfPath) return;
-    const targetDir = lastPdfPath;
     const api: any = (window as any).pywebview?.api;
+    // 1) Bridge desktop
     if (api?.open_path) {
       try {
-        const result = await api.open_path(targetDir);
+        const result = await api.open_path(lastPdfPath);
         if (!result?.success) {
           throw new Error(result?.error || "Não foi possível abrir a pasta do PDF.");
         }
         return;
       } catch (err) {
         setDarfStatus((err as Error).message);
-        return;
       }
-    } else {
-      try {
-        // fallback: tenta abrir via file:// (pode ser bloqueado no WebView)
-        const dir = getDirPath(targetDir) || targetDir;
-        window.open(`file://${dir}`);
-      } catch (err) {
-        setDarfStatus((err as Error).message);
-      }
+    }
+    // 2) Endpoint HTTP (backend)
+    try {
+      const res = await fetch("/api/open-path", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ path: lastPdfPath })
+      });
+      const data = await res.json();
+      if (data?.success) return;
+      if (data?.error) throw new Error(data.error);
+    } catch (err) {
+      setDarfStatus((err as Error).message);
+    }
+    // 3) Fallback final: file://
+    try {
+      const dir = getDirPath(lastPdfPath) || lastPdfPath;
+      window.open(`file://${dir}`);
+    } catch (err) {
+      setDarfStatus((err as Error).message);
     }
   };
 
@@ -640,7 +651,7 @@ export default function Dashboard() {
       const filename = `DARF_${String(payload.month).padStart(2, "0")}_${payload.year}.pdf`;
       const lastPdfDir = localStorage.getItem(LAST_PDF_DIR_KEY) || undefined;
 
-      // Se houver pywebview com diálogo de salvar, prioriza
+      // Se houver pywebview com diÃ¡logo de salvar, prioriza
       const api: any = (window as any).pywebview?.api;
       if (api?.save_pdf_prompt) {
         try {
@@ -654,25 +665,25 @@ export default function Dashboard() {
           const base64 = window.btoa(binary);
           const response = await api.save_pdf_prompt(base64, filename, lastPdfDir);
           if (response?.success) {
-            setDarfStatus(`PDF salvo: ${filename}`);
             if (response.path) {
               setLastPdfPath(response.path);
               localStorage.setItem(LAST_PDF_PATH_KEY, response.path);
               const dir = getDirPath(response.path);
               if (dir) localStorage.setItem(LAST_PDF_DIR_KEY, dir);
             }
+            setDarfStatus(null); // evita duplicar com "Ãšltimo PDF"
             return;
           }
-          // se usuário cancelou, segue fluxo automático
+          // se usuÃ¡rio cancelou, segue fluxo automÃ¡tico
         } catch (promptErr) {
-          console.error("Falha no salvar com diálogo", promptErr);
+          console.error("Falha no salvar com diÃ¡logo", promptErr);
         }
       }
 
-      // Sem diálogo: salva automático via backend em Downloads
+      // Sem diÃ¡logo: salva automÃ¡tico via backend em Downloads
       try {
         const saved = await saveDarfPdfFile(payload);
-        setDarfStatus(`PDF salvo: ${filename}`);
+        setDarfStatus(null); // evita duplicar com "Último PDF"
         if (saved.path) {
           setLastPdfPath(saved.path);
           localStorage.setItem(LAST_PDF_PATH_KEY, saved.path);
@@ -681,10 +692,10 @@ export default function Dashboard() {
         }
         return;
       } catch (saveErr) {
-        console.error("Falha ao salvar PDF via backend automático", saveErr);
+        console.error("Falha ao salvar PDF via backend automÃ¡tico", saveErr);
       }
 
-      // Último fallback: download direto (blob)
+      // Ãšltimo fallback: download direto (blob)
       const blob = await downloadDarfPdf(payload);
 
       // Baixa diretamente sem abrir nova aba para evitar prompt de "blob link" no WebView2
@@ -717,7 +728,7 @@ export default function Dashboard() {
   const lookupCep = useCallback(async (rawCep: string) => {
     const cep = onlyDigits(rawCep);
     if (cep.length !== 8) {
-      setCepStatus("Informe 8 dígitos do CEP.");
+      setCepStatus("Informe 8 dÃ­gitos do CEP.");
       return;
     }
     setCepStatus("Buscando CEP...");
@@ -728,7 +739,7 @@ export default function Dashboard() {
       });
       const data = await response.json();
       if (data.erro) {
-        setCepStatus("CEP não encontrado.");
+        setCepStatus("CEP nÃ£o encontrado.");
         return;
       }
       setProfile((prev) => ({
@@ -739,7 +750,7 @@ export default function Dashboard() {
         city: data.localidade || prev.city,
         state: data.uf || prev.state
       }));
-      setCepStatus("Endereço preenchido pelo CEP.");
+      setCepStatus("EndereÃ§o preenchido pelo CEP.");
     } catch (err) {
       setCepStatus((err as Error).message);
     }
@@ -841,7 +852,7 @@ export default function Dashboard() {
   const handleSaveFx = async () => {
     const value = Number(fxRateInput);
     if (!Number.isFinite(value) || value <= 0) {
-        setFxStatus("Informe uma taxa válida.");
+        setFxStatus("Informe uma taxa vÃ¡lida.");
       return;
     }
     setFxLoading(true);
@@ -864,7 +875,7 @@ export default function Dashboard() {
       const response = await fetchFxRateAuto(fxDate);
       setFxRateValue(response.usd_brl_rate);
       setFxRateInput(String(response.usd_brl_rate));
-      setFxStatus("Cotação atualizada automaticamente.");
+      setFxStatus("CotaÃ§Ã£o atualizada automaticamente.");
     } catch (err) {
       setFxStatus((err as Error).message);
     } finally {
@@ -966,7 +977,7 @@ export default function Dashboard() {
 
   const profitLossData = [
     { label: "Lucro bruto", value: metrics.grossProfit },
-    { label: "Prejuízo bruto", value: Math.abs(metrics.grossLoss) }
+    { label: "PrejuÃ­zo bruto", value: Math.abs(metrics.grossLoss) }
   ];
 
   const winRateData = [
@@ -987,7 +998,7 @@ export default function Dashboard() {
         <aside className="filter-panel">
           <h4>Painel de filtros</h4>
           <div className="filter-section">
-          <label>Período</label>
+          <label>PerÃ­odo</label>
             <div className="filter-grid">
               <input
                 type="date"
@@ -1056,7 +1067,7 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="filter-section">
-          <label>Horário</label>
+          <label>HorÃ¡rio</label>
             <div className="chip-group">
               <button
                 type="button"
@@ -1121,7 +1132,7 @@ export default function Dashboard() {
             <h2>Sua performance</h2>
             <p>
               Analise seus resultados do MetaTrader 5 com filtros completos,
-              indicadores-chave e gráficos animados.
+              indicadores-chave e grÃ¡ficos animados.
             </p>
           </div>
 
@@ -1129,9 +1140,9 @@ export default function Dashboard() {
           <div className="cards kpi-grid">
             <div
               className="card kpi-card highlight"
-              title="Resultado líquido = lucro + comissão + swap. É o valor final real do período."
+              title="Resultado lÃ­quido = lucro + comissÃ£o + swap. Ã‰ o valor final real do perÃ­odo."
             >
-              <div className="card-title">Resultado líquido</div>
+              <div className="card-title">Resultado lÃ­quido</div>
               <div
                 className={`card-value ${metrics.net >= 0 ? "text-success" : "text-danger"}`}
               >
@@ -1141,7 +1152,7 @@ export default function Dashboard() {
             </div>
             <div
               className="card kpi-card"
-              title="Resultado bruto = soma dos lucros das operações vencedoras (sem descontar custos)."
+              title="Resultado bruto = soma dos lucros das operaÃ§Ãµes vencedoras (sem descontar custos)."
             >
               <div className="card-title">Resultado bruto</div>
               <div className="card-value text-success">
@@ -1151,9 +1162,9 @@ export default function Dashboard() {
             </div>
             <div
               className="card kpi-card"
-              title="Prejuízo bruto = soma das perdas das operações perdedoras (sem custos). Pode ser maior que o capital investido."
+              title="PrejuÃ­zo bruto = soma das perdas das operaÃ§Ãµes perdedoras (sem custos). Pode ser maior que o capital investido."
             >
-              <div className="card-title">Prejuízo bruto</div>
+              <div className="card-title">PrejuÃ­zo bruto</div>
               <div className="card-value text-danger">
                 {formatCurrency(Math.abs(metrics.grossLoss), currency)}
               </div>
@@ -1164,7 +1175,7 @@ export default function Dashboard() {
               <div className="card-value">
                 {formatCurrency(metrics.costs, currency)}
               </div>
-              <div className="card-sub">Comissão + swap</div>
+              <div className="card-sub">ComissÃ£o + swap</div>
             </div>
           </div>
 
@@ -1186,13 +1197,13 @@ export default function Dashboard() {
               <div className="card-value">{formatNumber(metrics.profitFactor, 2)}</div>
             </div>
             <div className="card small">
-              <div className="card-title">Ganho médio</div>
+              <div className="card-title">Ganho mÃ©dio</div>
               <div className="card-value text-success">
                 {formatCurrency(metrics.avgWin, currency)}
               </div>
             </div>
             <div className="card small">
-              <div className="card-title">Perda média</div>
+              <div className="card-title">Perda mÃ©dia</div>
               <div className="card-value text-danger">
                 {formatCurrency(metrics.avgLoss, currency)}
               </div>
@@ -1204,7 +1215,7 @@ export default function Dashboard() {
               </div>
             </div>
             <div className="card small">
-              <div className="card-title">Maior prejuízo</div>
+              <div className="card-title">Maior prejuÃ­zo</div>
               <div className="card-value text-danger">
                 {formatCurrency(Math.abs(metrics.maxLoss), currency)}
               </div>
@@ -1222,7 +1233,7 @@ export default function Dashboard() {
               <div className="card-value text-danger">{metrics.streakLoss}</div>
             </div>
             <div className="card small">
-              <div className="card-title">Máx. drawdown</div>
+              <div className="card-title">MÃ¡x. drawdown</div>
               <div className="card-value text-danger">
                 {formatCurrency(metrics.drawdown, currency)}
               </div>
@@ -1233,13 +1244,13 @@ export default function Dashboard() {
               <div className="panel-header">
                 <h4>Meta mensal</h4>
                 <span>
-                  Meta de {goalMonthLabel || "mês selecionado"}. Atualize a meta e o painel
+                  Meta de {goalMonthLabel || "mÃªs selecionado"}. Atualize a meta e o painel
                   recalcula automaticamente.
                 </span>
               </div>
               <div className="form-row">
                 <label>
-                  Mês da meta
+                  MÃªs da meta
                   <input
                     type="month"
                     value={goalMonth}
@@ -1247,7 +1258,7 @@ export default function Dashboard() {
                   />
                 </label>
                 <label>
-                  Meta líquida (BRL)
+                  Meta lÃ­quida (BRL)
                   <input
                     type="number"
                     min={0}
@@ -1264,13 +1275,13 @@ export default function Dashboard() {
                   />
                 </label>
                 <label>
-                  Dias restantes no mês
+                  Dias restantes no mÃªs
                   <input type="text" value={`${daysRemaining}`} readOnly />
                 </label>
               </div>
               <div className="progress-row">
                 <div>
-                  <strong>Progresso líquido:</strong>{" "}
+                  <strong>Progresso lÃ­quido:</strong>{" "}
                   {formatCurrency(metricsBrl.net, "BRL")} / {formatCurrency(goalNet, "BRL")}
                 </div>
                 <div className="progress-bar">
@@ -1284,7 +1295,7 @@ export default function Dashboard() {
                   <span style={{ width: `${progressGross * 100}%` }} />
                 </div>
                 <div>
-                  <strong>Falta líquida:</strong> {formatCurrency(remainingNet, "BRL")}
+                  <strong>Falta lÃ­quida:</strong> {formatCurrency(remainingNet, "BRL")}
                 </div>
                 <div>
                   <strong>Falta bruto:</strong> {formatCurrency(remainingGross, "BRL")}
@@ -1302,7 +1313,7 @@ export default function Dashboard() {
             <div className="panel">
               <div className="panel-header">
                 <h4>Taxa USD/BRL</h4>
-                <span>Use a taxa diária para converter resultados em BRL.</span>
+                <span>Use a taxa diÃ¡ria para converter resultados em BRL.</span>
               </div>
               <div className="form-row">
                 <label>
@@ -1331,7 +1342,7 @@ export default function Dashboard() {
                   onClick={handleAutoFx}
                   disabled={fxLoading}
                 >
-                  Buscar automático
+                  Buscar automÃ¡tico
                 </button>
               </div>
               <div className="helper">
@@ -1385,17 +1396,17 @@ export default function Dashboard() {
                 </ResponsiveContainer>
               </div>
               {fxHistoryLoading ? (
-                <div className="helper">Carregando histórico...</div>
+                <div className="helper">Carregando histÃ³rico...</div>
               ) : fxHistory.length === 0 ? (
                 <div className="helper">
-                  Sem histórico recente. Salve uma taxa ou use "Buscar automático" para preencher o gráfico.
+                  Sem histÃ³rico recente. Salve uma taxa ou use "Buscar automÃ¡tico" para preencher o grÃ¡fico.
                 </div>
               ) : null}
             </div>
             <div className="panel darf-panel">
               <div className="panel-header">
                 <h4>DARF / Imposto</h4>
-                <span>Calcule o imposto do mês e gere o PDF da DARF.</span>
+                <span>Calcule o imposto do mÃªs e gere o PDF da DARF.</span>
               </div>
 
               <div
@@ -1405,7 +1416,7 @@ export default function Dashboard() {
                   currentDarf.tax_due > 0 ? (
                     <>
                       <strong>Imposto a pagar:</strong>{" "}
-                      {formatCurrency(currentDarf.tax_due, "BRL")} — Alíquota {(
+                      {formatCurrency(currentDarf.tax_due, "BRL")} â€” AlÃ­quota {(
                         currentDarf.tax_rate * 100
                       ).toFixed(2)}%
                     </>
@@ -1416,13 +1427,13 @@ export default function Dashboard() {
                     </>
                   )
                 ) : (
-                  <>Calcule para ver se há imposto.</>
+                  <>Calcule para ver se hÃ¡ imposto.</>
                 )}
               </div>
 
               <div className="form-row">
                 <label>
-                  Mês
+                  MÃªs
                   <select
                     value={darfMonth}
                     onChange={(event) => setDarfMonth(Number(event.target.value))}
@@ -1454,7 +1465,7 @@ export default function Dashboard() {
                   />
                 </label>
                 <label>
-                  Alíquota % (opcional)
+                  AlÃ­quota % (opcional)
                   <input
                     type="number"
                     step="0.01"
@@ -1481,16 +1492,16 @@ export default function Dashboard() {
                     const brl = formatCurrency(Math.abs(darfResult.profit_brl), "BRL");
                     const usd = formatCurrency(darfResult.profit_usd, "USD");
                     const isProfit = darfResult.profit_brl >= 0;
-                    const resumo = `Fechamento ${monthLabel}: ${isProfit ? "lucro" : "prejuízo"} de ${brl} (${usd}).`;
-                    const aliquota = `Alíquota ${(darfResult.tax_rate * 100).toFixed(2)}%.`;
+                    const resumo = `Fechamento ${monthLabel}: ${isProfit ? "lucro" : "prejuÃ­zo"} de ${brl} (${usd}).`;
+                    const aliquota = `AlÃ­quota ${(darfResult.tax_rate * 100).toFixed(2)}%.`;
                     const imposto =
                       darfResult.tax_due > 0
                         ? `Imposto devido: ${formatCurrency(darfResult.tax_due, "BRL")}.`
-                        : "Imposto devido: R$ 0,00. Nada a pagar neste mês.";
+                        : "Imposto devido: R$ 0,00. Nada a pagar neste mÃªs.";
                     const extraMessage = (darfResult.message || "").trim();
                     const isDuplicate =
                       extraMessage !== "" &&
-                      extraMessage.toLowerCase().includes("não há imposto a pagar");
+                      extraMessage.toLowerCase().includes("nÃ£o hÃ¡ imposto a pagar");
                     const extra = !isDuplicate && extraMessage ? ` ${extraMessage}` : "";
                     return `${resumo} ${aliquota} ${imposto}${extra}`;
                   })()}
@@ -1500,7 +1511,7 @@ export default function Dashboard() {
               {lastPdfPath ? (
                 <div className="helper" style={{ display: "flex", gap: 8, alignItems: "center" }}>
                   <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    Último PDF: {lastPdfPath}
+                    Ãšltimo PDF: {lastPdfPath}
                   </span>
                   <button type="button" className="secondary" onClick={handleOpenPdfFolder}>
                     Abrir pasta do PDF
@@ -1517,11 +1528,11 @@ export default function Dashboard() {
                   <table className="table">
                     <thead>
                       <tr>
-                        <th>Mês</th>
+                        <th>MÃªs</th>
                         <th className="th-num">Lucro BRL</th>
                         <th className="th-num">Imposto</th>
-                        <th className="th-num">Câmbio</th>
-                        <th className="th-num">Alíquota</th>
+                        <th className="th-num">CÃ¢mbio</th>
+                        <th className="th-num">AlÃ­quota</th>
                         <th className="th-num">Trades</th>
                       </tr>
                     </thead>
@@ -1540,15 +1551,15 @@ export default function Dashboard() {
                   </table>
                 </div>
               ) : profileLoaded && !hasFiscalProfile ? (
-                <div className="helper">Nenhum cálculo salvo ainda.</div>
+                <div className="helper">Nenhum cÃ¡lculo salvo ainda.</div>
               ) : null}
             </div>
           </div>
           <div className="chart-grid">
             <div className="panel chart-card">
               <div className="panel-header">
-                <h4>Evolução patrimonial</h4>
-                <span>Lucro acumulado no período selecionado.</span>
+                <h4>EvoluÃ§Ã£o patrimonial</h4>
+                <span>Lucro acumulado no perÃ­odo selecionado.</span>
               </div>
               <div className="chart-body">
                 <ResponsiveContainer width="100%" height={260}>
@@ -1633,8 +1644,8 @@ export default function Dashboard() {
 
             <div className="panel chart-card">
               <div className="panel-header">
-                <h4>Comparativo lucro x prejuízo</h4>
-                <span>Somatório de ganhos e perdas.</span>
+                <h4>Comparativo lucro x prejuÃ­zo</h4>
+                <span>SomatÃ³rio de ganhos e perdas.</span>
               </div>
               <div className="chart-body">
                 <ResponsiveContainer width="100%" height={260}>
@@ -1671,8 +1682,8 @@ export default function Dashboard() {
 
             <div className="panel chart-card">
               <div className="panel-header">
-                <h4>Lucro diário</h4>
-                <span>Barras diárias com resultado líquido.</span>
+                <h4>Lucro diÃ¡rio</h4>
+                <span>Barras diÃ¡rias com resultado lÃ­quido.</span>
               </div>
               <div className="chart-body">
                 <ResponsiveContainer width="100%" height={260}>
@@ -1702,7 +1713,7 @@ export default function Dashboard() {
             <div className="panel chart-card">
               <div className="panel-header">
                 <h4>Progresso mensal</h4>
-                <span>Acumulado vs. meta líquida e bruta.</span>
+                <span>Acumulado vs. meta lÃ­quida e bruta.</span>
               </div>
               <div className="chart-body">
                 <ResponsiveContainer width="100%" height={260}>
@@ -1736,7 +1747,7 @@ export default function Dashboard() {
                       dot={false}
                       isAnimationActive
                       animationDuration={900}
-                      name="Meta líquida"
+                      name="Meta lÃ­quida"
                     />
                     <Line
                       type="monotone"
@@ -1756,7 +1767,7 @@ export default function Dashboard() {
             <div className="panel chart-card">
               <div className="panel-header">
                 <h4>Dia da semana</h4>
-                <span>Resultado líquido por dia.</span>
+                <span>Resultado lÃ­quido por dia.</span>
               </div>
               <div className="chart-body">
                 <ResponsiveContainer width="100%" height={260}>
@@ -1787,8 +1798,8 @@ export default function Dashboard() {
 
           <div className="panel">
             <div className="panel-header">
-              <h4>Mapa de calor: dia x horário</h4>
-              <span>Identifique os horários mais positivos e negativos.</span>
+              <h4>Mapa de calor: dia x horÃ¡rio</h4>
+              <span>Identifique os horÃ¡rios mais positivos e negativos.</span>
             </div>
             <div className="heatmap">
               <div className="heatmap-header">
@@ -1821,3 +1832,4 @@ export default function Dashboard() {
     </div>
   );
 }
+
