@@ -1073,11 +1073,6 @@ export default function Dashboard() {
               Analise seus resultados do MetaTrader 5 com filtros completos,
               indicadores-chave e gráficos animados.
             </p>
-            <div className="filter-actions" style={{ marginTop: 12 }}>
-              <button type="button" className="secondary" onClick={() => navigate('/profile')}>
-                Abrir perfil fiscal
-              </button>
-            </div>
           </div>
 
           {error ? <div className="panel">Erro: {error}</div> : null}
