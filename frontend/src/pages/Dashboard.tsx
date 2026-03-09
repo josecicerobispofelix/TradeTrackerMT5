@@ -452,6 +452,7 @@ export default function Dashboard() {
   const [profileLoading, setProfileLoading] = useState(false);
   const [profileStatus, setProfileStatus] = useState<string | null>(null);
   const [cepStatus, setCepStatus] = useState<string | null>(null);
+  const [profileLoaded, setProfileLoaded] = useState(false);
   const hasFiscalProfile = useMemo(
     () => Boolean(profile?.full_name?.trim() && profile?.cpf?.trim()),
     [profile]
@@ -540,6 +541,7 @@ export default function Dashboard() {
       }
     } finally {
       setProfileLoading(false);
+      setProfileLoaded(true);
     }
   }, []);
 
@@ -1436,7 +1438,7 @@ export default function Dashboard() {
                 </div>
               ) : null}
               {darfStatus ? <div className="helper">{darfStatus}</div> : null}
-              {!hasFiscalProfile ? (
+              {profileLoaded && !hasFiscalProfile ? (
                 <div className="helper">
                   preencha perfil fiscal (NO CANTO SUPERIOR DITEITO) para gerar a DARF
                 </div>
@@ -1468,7 +1470,7 @@ export default function Dashboard() {
                     </tbody>
                   </table>
                 </div>
-              ) : !hasFiscalProfile ? (
+              ) : profileLoaded && !hasFiscalProfile ? (
                 <div className="helper">Nenhum cálculo salvo ainda.</div>
               ) : null}
             </div>
