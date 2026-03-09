@@ -6132,7 +6132,10 @@ export default function Dashboard() {
               {lastPdfPath ? (
 
 
-                <div className="helper compact" style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <div
+                  className="helper compact"
+                  style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 6 }}
+                >
 
 
                   <span
