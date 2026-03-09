@@ -690,6 +690,13 @@ export default function Dashboard() {
   }, [loadMeta]);
 
   useEffect(() => {
+    const api: any = (window as any).pywebview?.api;
+    if (api?.ping) {
+      api.ping("dashboard-ready").catch(() => {});
+    }
+  }, []);
+
+  useEffect(() => {
     const timer = setTimeout(() => {
       loadTrades();
     }, 250);

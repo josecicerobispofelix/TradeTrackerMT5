@@ -182,7 +182,7 @@ def _show_error_window(title: str, message: str) -> None:
 
 class _JsBridge:
     """
-    M?todos expostos ao front-end via window.pywebview.api.
+    Métodos expostos ao front-end via window.pywebview.api.
     Usamos para salvar o PDF localmente (evita popup de blob no WebView2).
     """
 
@@ -199,6 +199,10 @@ class _JsBridge:
         except Exception as exc:
             _log_trace(f"Falha ao salvar PDF: {exc}")
             return {"success": False, "error": str(exc)}
+
+    def ping(self, message: str = "ping") -> dict:
+        _log(f"Ping JS -> Python: {message}")
+        return {"ok": True, "echo": message}
 
 
 def main():
