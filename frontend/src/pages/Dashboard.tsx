@@ -593,7 +593,10 @@ export default function Dashboard() {
       const link = document.createElement("a");
       link.href = url;
       link.download = `DARF_${String(payload.month).padStart(2, "0")}_${payload.year}.pdf`;
+      link.style.display = "none";
+      document.body.appendChild(link);
       link.click();
+      document.body.removeChild(link);
       URL.revokeObjectURL(url);
       setDarfStatus("PDF gerado.");
     } catch (err) {
