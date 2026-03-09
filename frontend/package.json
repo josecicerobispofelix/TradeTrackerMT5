@@ -7,7 +7,8 @@
     "dev": "vite --host",
     "build": "vite build",
     "preview": "vite preview --host",
-    "test:smoke": "npx playwright test tests/api-smoke.spec.ts"
+    "test:smoke": "npx playwright test tests/api-smoke.spec.ts",
+    "test:e2e": "RUN_E2E=1 USER_EMAIL=ciceroforex@gmail.com USER_PASSWORD=123456 FRONTEND_URL=http://127.0.0.1:5173 npx playwright test tests/darf-flow.spec.ts"
   },
   "dependencies": {
     "playwright": "^1.58.2",
