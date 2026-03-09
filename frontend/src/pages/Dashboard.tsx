@@ -6146,7 +6146,7 @@ export default function Dashboard() {
                     type="button"
                     className="secondary"
                     onClick={handleOpenPdfFolder}
-                    style={{ padding: "8px 12px", minWidth: "auto" }}
+                    style={{ padding: "6px 10px", minWidth: "96px", fontSize: "12px" }}
                   >
                     Abrir pasta do PDF
                   </button>
