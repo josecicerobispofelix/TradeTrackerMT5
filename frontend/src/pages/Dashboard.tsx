@@ -607,21 +607,24 @@ export default function Dashboard() {
 
   const handleOpenPdfFolder = async () => {
     if (!lastPdfPath) return;
-    const targetDir = getDirPath(lastPdfPath) || lastPdfPath;
+    const targetDir = lastPdfPath;
     const api: any = (window as any).pywebview?.api;
     if (api?.open_path) {
       try {
         const result = await api.open_path(targetDir);
-        if (!result?.success && result?.error) {
-          setDarfStatus(result.error);
+        if (!result?.success) {
+          throw new Error(result?.error || "Não foi possível abrir a pasta do PDF.");
         }
+        return;
       } catch (err) {
         setDarfStatus((err as Error).message);
+        return;
       }
     } else {
       try {
         // fallback: tenta abrir via file:// (pode ser bloqueado no WebView)
-        window.open(`file://${targetDir}`);
+        const dir = getDirPath(targetDir) || targetDir;
+        window.open(`file://${dir}`);
       } catch (err) {
         setDarfStatus((err as Error).message);
       }
@@ -651,7 +654,7 @@ export default function Dashboard() {
           const base64 = window.btoa(binary);
           const response = await api.save_pdf_prompt(base64, filename, lastPdfDir);
           if (response?.success) {
-            setDarfStatus(`PDF salvo em ${response.path}`);
+            setDarfStatus(`PDF salvo: ${filename}`);
             if (response.path) {
               setLastPdfPath(response.path);
               localStorage.setItem(LAST_PDF_PATH_KEY, response.path);
@@ -669,7 +672,7 @@ export default function Dashboard() {
       // Sem diálogo: salva automático via backend em Downloads
       try {
         const saved = await saveDarfPdfFile(payload);
-        setDarfStatus(`PDF salvo em ${saved.path}`);
+        setDarfStatus(`PDF salvo: ${filename}`);
         if (saved.path) {
           setLastPdfPath(saved.path);
           localStorage.setItem(LAST_PDF_PATH_KEY, saved.path);
