@@ -1067,38 +1067,22 @@ function computeMetrics(
 
 
   const dayOfWeek = DAYS.map((label) => ({
-
-
-
     label,
-
-
-
     net: 0,
-
-
-
     trades: 0
-
-
-
   }));
 
-
-
-
-
-  const heatmapCount = Array.from({ length: 7 }, () =>
-
+  const heatmap = Array.from({ length: 7 }, () =>
     Array.from({ length: 24 }, () => 0)
-
   );
 
+  const heatmapCount = Array.from({ length: 7 }, () =>
+    Array.from({ length: 24 }, () => 0)
+  );
 
-
-
-
-
+  const heatmapWins = Array.from({ length: 7 }, () =>
+    Array.from({ length: 24 }, () => 0)
+  );
 
   const getProfitValue = (trade: Trade) => {
 
@@ -1325,13 +1309,11 @@ function computeMetrics(
 
 
     if (heatmap[dow] && heatmap[dow][hour] != null) {
-
-
-
       heatmap[dow][hour] += netValue;
-
-
-
+      heatmapCount[dow][hour] += 1;
+      if (netValue > 0) {
+        heatmapWins[dow][hour] += 1;
+      }
     }
 
 
@@ -1611,6 +1593,8 @@ function computeMetrics(
     heatmap,
 
     heatmapCount,
+
+    heatmapWins,
 
     heatMax: heatMax || 1,
 
@@ -7296,7 +7280,9 @@ export default function Dashboard() {
                 </div>
                 <span>{formatCurrency(heatmapMinMax.max, currency)}</span>
               </div>
-              <div className="heatmap-legend-note">Números nas células = quantidade de trades.</div>
+              <div className="heatmap-legend-note">
+                Cor = lucro médio; número = trades; tooltip mostra lucro, trades e win rate.
+              </div>
             </div>
 
             <div className="heatmap">
@@ -7327,6 +7313,10 @@ export default function Dashboard() {
 
                       const count = metrics.heatmapCount?.[rowIndex]?.[colIndex] ?? 0;
 
+                      const wins = metrics.heatmapWins?.[rowIndex]?.[colIndex] ?? 0;
+
+                      const winRate = count ? (wins / count) * 100 : null;
+
                       const key = `${rowIndex}-${colIndex}`;
 
                       const isTop = heatmapHighlight.top.has(key);
@@ -7347,7 +7337,7 @@ export default function Dashboard() {
 
                           }}
 
-                          title={`${DAYS[rowIndex]} ${colIndex}h: ${formatCurrency(value, currency)} · ${count} trade${count === 1 ? "" : "s"}`}
+                          title={`${DAYS[rowIndex]} ${colIndex}h: ${formatCurrency(value, currency)} · ${count} trade${count === 1 ? "" : "s"}${winRate != null ? ` · Win rate ${winRate.toFixed(0)}%` : ""}`}
 
                         >
 
