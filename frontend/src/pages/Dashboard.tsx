@@ -580,7 +580,11 @@ export default function Dashboard() {
       const payload = buildDarfPayload();
       const result = await calculateDarf(payload);
       setDarfResult(result);
-      setDarfStatus(result.message || "Cálculo concluído.");
+      const statusMessage = (result.message || "Cálculo concluído.").trim();
+      const isNoTax =
+        result.tax_due <= 0 &&
+        statusMessage.toLowerCase().includes("não há imposto a pagar");
+      setDarfStatus(isNoTax ? null : statusMessage);
       loadDarfHistory();
     } catch (err) {
       setDarfResult(null);
