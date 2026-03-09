@@ -14,6 +14,8 @@ backend/*.sqlite
 frontend/node_modules/
 frontend/dist/
 frontend/.vite/
+frontend/playwright-report/
+frontend/test-results/
 
 build/
 dist/
@@ -27,3 +29,5 @@ __pycache__/
 *.db
 *.sqlite
 .DS_Store
+playwright_*.png
+temp_tail.txt
