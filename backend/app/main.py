@@ -1,6 +1,7 @@
 import logging
 import os
 import traceback
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -64,6 +65,19 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def request_logger(request: Request, call_next):
+    start = time.time()
+    try:
+        response = await call_next(request)
+        elapsed = int((time.time() - start) * 1000)
+        _log(f"REQ {request.method} {request.url.path} -> {response.status_code} {elapsed}ms")
+        return response
+    except Exception:
+        _log_trace(f"REQ_ERR {request.method} {request.url.path}")
+        raise
 
 
 @app.middleware("http")

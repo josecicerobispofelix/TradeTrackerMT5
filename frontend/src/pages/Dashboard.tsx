@@ -452,6 +452,10 @@ export default function Dashboard() {
   const [profileLoading, setProfileLoading] = useState(false);
   const [profileStatus, setProfileStatus] = useState<string | null>(null);
   const [cepStatus, setCepStatus] = useState<string | null>(null);
+  const hasFiscalProfile = useMemo(
+    () => Boolean(profile?.full_name?.trim() && profile?.cpf?.trim()),
+    [profile]
+  );
 
   useEffect(() => {
     const legacy = localStorage.getItem("ttmt5_goal_net_brl");
@@ -589,42 +593,43 @@ export default function Dashboard() {
     setDarfStatus(null);
     try {
       const payload = buildDarfPayload();
-      const isDesktop = Boolean((window as any).pywebview);
-
-      // Em desktop, tenta salvar direto via backend (escreve em Downloads)
-      if (isDesktop) {
-        try {
-          const saved = await saveDarfPdfFile(payload);
-          setDarfStatus(`PDF salvo em ${saved.path}`);
-          return;
-        } catch (saveErr) {
-          console.error("Falha ao salvar PDF via backend", saveErr);
-        }
-      }
-
-      const blob = await downloadDarfPdf(payload);
+      // Tenta salvar direto via backend (escreve em Downloads)
       const filename = `DARF_${String(payload.month).padStart(2, "0")}_${payload.year}.pdf`;
 
-      // Primeiro tenta salvar nativamente via pywebview (evita prompts de blob)
+      // Se houver pywebview com diálogo de salvar, prioriza
       const api: any = (window as any).pywebview?.api;
-      if (api?.save_pdf) {
+      if (api?.save_pdf_prompt) {
         try {
-          const buffer = await blob.arrayBuffer();
+          const blobPrompt = await downloadDarfPdf(payload);
+          const buffer = await blobPrompt.arrayBuffer();
           const bytes = new Uint8Array(buffer);
           let binary = "";
           for (let i = 0; i < bytes.byteLength; i += 1) {
             binary += String.fromCharCode(bytes[i]);
           }
           const base64 = window.btoa(binary);
-          const response = await api.save_pdf(base64, filename);
+          const response = await api.save_pdf_prompt(base64, filename);
           if (response?.success) {
             setDarfStatus(`PDF salvo em ${response.path}`);
             return;
           }
-        } catch (saveErr) {
-          console.error("Falha ao salvar PDF nativo", saveErr);
+          // se usuário cancelou, segue fluxo automático
+        } catch (promptErr) {
+          console.error("Falha no salvar com diálogo", promptErr);
         }
       }
+
+      // Sem diálogo: salva automático via backend em Downloads
+      try {
+        const saved = await saveDarfPdfFile(payload);
+        setDarfStatus(`PDF salvo em ${saved.path}`);
+        return;
+      } catch (saveErr) {
+        console.error("Falha ao salvar PDF via backend automático", saveErr);
+      }
+
+      // Último fallback: download direto (blob)
+      const blob = await downloadDarfPdf(payload);
 
       // Baixa diretamente sem abrir nova aba para evitar prompt de "blob link" no WebView2
       const nav: any = window.navigator;
@@ -1431,9 +1436,11 @@ export default function Dashboard() {
                 </div>
               ) : null}
               {darfStatus ? <div className="helper">{darfStatus}</div> : null}
-              <div className="helper">
-                preencha perfil fiscal (NO CANTO SUPERIOR DITEITO) para gerar a DARF
-              </div>
+              {!hasFiscalProfile ? (
+                <div className="helper">
+                  preencha perfil fiscal (NO CANTO SUPERIOR DITEITO) para gerar a DARF
+                </div>
+              ) : null}
               {darfHistory.length ? (
                 <div className="table-wrap" style={{ marginTop: 12 }}>
                   <table className="table">
@@ -1461,9 +1468,9 @@ export default function Dashboard() {
                     </tbody>
                   </table>
                 </div>
-              ) : (
+              ) : !hasFiscalProfile ? (
                 <div className="helper">Nenhum cálculo salvo ainda.</div>
-              )}
+              ) : null}
             </div>
           </div>
           <div className="chart-grid">

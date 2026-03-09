@@ -200,6 +200,34 @@ class _JsBridge:
             _log_trace(f"Falha ao salvar PDF: {exc}")
             return {"success": False, "error": str(exc)}
 
+    def save_pdf_prompt(self, base64_data: str, filename: str) -> dict:
+        """
+        Abre diálogo para o usuário escolher onde salvar.
+        Retorna {"success": True, "path": "..."} ou {"success": False, "error": "..."}.
+        """
+        try:
+            win = webview.windows[0] if webview.windows else None
+            if not win:
+                raise RuntimeError("Janela WebView não encontrada")
+
+            file_types = [("PDF (*.pdf)", "*.pdf")]
+            path = win.create_file_dialog(webview.SAVE_DIALOG, save_filename=filename, file_types=file_types)
+            if not path:
+                return {"success": False, "error": "Operação cancelada pelo usuário"}
+
+            # pywebview retorna lista quando múltiplas seleções são permitidas
+            if isinstance(path, (list, tuple)):
+                path = path[0]
+
+            data = base64.b64decode(base64_data)
+            target_path = Path(path)
+            target_path.write_bytes(data)
+            _log(f"PDF salvo via dialogo em {target_path}")
+            return {"success": True, "path": str(target_path)}
+        except Exception as exc:
+            _log_trace(f"Falha no save_pdf_prompt: {exc}")
+            return {"success": False, "error": str(exc)}
+
     def ping(self, message: str = "ping") -> dict:
         _log(f"Ping JS -> Python: {message}")
         return {"ok": True, "echo": message}

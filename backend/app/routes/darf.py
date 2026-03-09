@@ -292,6 +292,9 @@ async def generate_darf_pdf(
     session: AsyncSession = Depends(get_session),
     user: User = Depends(get_current_user),
 ):
+    from ..main import _log  # local import to avoid circular at import time
+
+    _log(f"GERAR_PDF request user={user.id} {payload.month:02d}/{payload.year}")
     profile = await _get_profile(session, user.id)
     if not profile or not profile.full_name or not profile.cpf:
         raise HTTPException(status_code=400, detail="Preencha o Perfil Fiscal para gerar o PDF.")
@@ -310,6 +313,9 @@ async def save_darf_pdf(
     session: AsyncSession = Depends(get_session),
     user: User = Depends(get_current_user),
 ):
+    from ..main import _log  # local import to avoid circular at import time
+
+    _log(f"SAVE_PDF request user={user.id} {payload.month:02d}/{payload.year}")
     profile = await _get_profile(session, user.id)
     if not profile or not profile.full_name or not profile.cpf:
         raise HTTPException(status_code=400, detail="Preencha o Perfil Fiscal para gerar o PDF.")
@@ -322,4 +328,5 @@ async def save_darf_pdf(
     target_dir.mkdir(parents=True, exist_ok=True)
     target_path = target_dir / filename
     target_path.write_bytes(pdf_bytes)
+    _log(f"SAVE_PDF ok -> {target_path}")
     return {"path": str(target_path), "filename": filename}
