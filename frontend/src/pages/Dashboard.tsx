@@ -1427,14 +1427,20 @@ export default function Dashboard() {
               </div>
               {darfResult ? (
                 <div className="helper">
-                  {`Mês ${darfResult.month.toString().padStart(2, "0")}/${darfResult.year} | Lucro USD: ${formatCurrency(
-                    darfResult.profit_usd,
-                    "USD"
-                  )} | Lucro BRL: ${formatCurrency(darfResult.profit_brl, "BRL")} | Imposto: ${formatCurrency(
-                    darfResult.tax_due,
-                    "BRL"
-                  )} | Alíquota ${(darfResult.tax_rate * 100).toFixed(2)}%`}
-                  {darfResult.message ? ` ? ${darfResult.message}` : ""}
+                  {(() => {
+                    const monthLabel = `${darfResult.month.toString().padStart(2, "0")}/${darfResult.year}`;
+                    const brl = formatCurrency(Math.abs(darfResult.profit_brl), "BRL");
+                    const usd = formatCurrency(darfResult.profit_usd, "USD");
+                    const isProfit = darfResult.profit_brl >= 0;
+                    const resumo = `Fechamento ${monthLabel}: ${isProfit ? "lucro" : "prejuízo"} de ${brl} (${usd}).`;
+                    const aliquota = `Alíquota ${(darfResult.tax_rate * 100).toFixed(2)}%.`;
+                    const imposto =
+                      darfResult.tax_due > 0
+                        ? `Imposto devido: ${formatCurrency(darfResult.tax_due, "BRL")}.`
+                        : "Imposto devido: R$ 0,00. Nada a pagar neste mês.";
+                    const extra = darfResult.message ? ` ${darfResult.message}` : "";
+                    return `${resumo} ${aliquota} ${imposto}${extra}`;
+                  })()}
                 </div>
               ) : null}
               {darfStatus ? <div className="helper">{darfStatus}</div> : null}
