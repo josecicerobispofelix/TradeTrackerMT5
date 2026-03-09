@@ -70,6 +70,22 @@ cd C:\Users\ciler\Documents\TradeTrackerMT5
 
 Depois, abra o atalho "TradeTrackerMT5" criado na área de trabalho.
 
+## Atualização rápida (sem reinstalar)
+
+Se só o frontend mudar (arquivos em `frontend/dist`):
+```powershell
+pwsh tools/patch_frontend.ps1
+```
+
+Se backend/binário mudar (substitui `TradeTrackerMT5.exe` e `_internal`):
+```powershell
+pwsh tools/patch_backend.ps1
+```
+
+Observações:
+- Execute `build_desktop.ps1` antes, para gerar `dist/TradeTrackerMT5` e `frontend/dist`.
+- O patch copia direto para `%LOCALAPPDATA%\TradeTrackerMT5` (e subpastas), sem precisar rodar o instalador.
+
 ## Banco MySQL (Hostinger)
 
 Configure o banco em `TradeTrackerMT5.env` (na raiz do projeto). Exemplo:
