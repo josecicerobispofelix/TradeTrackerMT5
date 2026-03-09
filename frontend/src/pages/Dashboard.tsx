@@ -6134,7 +6134,13 @@ export default function Dashboard() {
 
                 <div
                   className="helper compact"
-                  style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 6 }}
+                  style={{
+                    display: "flex",
+                    gap: 8,
+                    alignItems: "center",
+                    marginTop: 12,
+                    justifyContent: "flex-start"
+                  }}
                 >
 
 
