@@ -1375,7 +1375,7 @@ export default function Dashboard() {
               ) : null}
               {darfStatus ? <div className="helper">{darfStatus}</div> : null}
               <div className="helper">
-                Perfil fiscal agora fica na aba "Perfil fiscal" no topo. Preencha lá para o cálculo/PDF da DARF.
+                preencha perfil fiscal (NO CANTO SUPERIOR DITEITO) para gerar a DARF
               </div>
               {darfHistory.length ? (
                 <div className="table-wrap" style={{ marginTop: 12 }}>
