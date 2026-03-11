@@ -4592,6 +4592,7 @@ export default function Dashboard() {
 
 
             <h2>Sua performance</h2>
+            <div className="dev-badge">Desenvolvido por TecnoHuby</div>
 
 
 
