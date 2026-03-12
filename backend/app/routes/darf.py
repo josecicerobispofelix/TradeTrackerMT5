@@ -112,7 +112,7 @@ def _build_pdf(data: DarfCalcResponse, profile: FiscalProfile) -> bytes:
 
     y = height - 50
     pdf.setFont("Helvetica-Bold", 16)
-    pdf.drawString(50, y, "Relatório de Apuração de Imposto – TradeTracker")
+    pdf.drawString(50, y, "Relatório de Apuração de Imposto – TradersTrackerMT5")
     y -= 30
 
     pdf.setFont("Helvetica", 11)

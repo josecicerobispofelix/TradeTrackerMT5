@@ -9,6 +9,6 @@ try {
     Write-Host "Health OK:" ($response | ConvertTo-Json -Compress)
     exit 0
 } catch {
-    Write-Error "Falha no health check. Certifique-se que o TradeTrackerMT5 está aberto. Erro: $($_.Exception.Message)"
+    Write-Error "Falha no health check. Certifique-se que o TradersTrackerMT5 está aberto. Erro: $($_.Exception.Message)"
     exit 1
 }

@@ -4,7 +4,7 @@ $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 $backend = Join-Path $root "backend"
 $frontend = Join-Path $root "frontend"
 
-$envFile = Join-Path $root "TradeTrackerMT5.env"
+$envFile = Join-Path $root "TradersTrackerMT5.env"
 if (Test-Path $envFile) {
     Get-Content $envFile | ForEach-Object {
         $line = $_.Trim()

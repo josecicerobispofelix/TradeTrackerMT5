@@ -1,5 +1,6 @@
 ﻿import hashlib
-from datetime import date
+from datetime import date, timedelta, timezone
+from zoneinfo import ZoneInfo
 from typing import Dict
 import os
 import traceback
@@ -21,10 +22,22 @@ from ..schemas import UploadResponse
 router = APIRouter()
 
 
+def _get_local_timezone():
+    """Resolve timezone with safe fallbacks for packaged Windows builds."""
+    tz_name = os.getenv("APP_TIMEZONE", "America/Sao_Paulo")
+    for name in (tz_name, "America/Sao_Paulo"):
+        try:
+            return ZoneInfo(name)
+        except Exception:
+            continue
+    # Fallback: fixed offset for Brasília time when tzdata is missing
+    return timezone(timedelta(hours=-3))
+
+
 def _log_path() -> Path:
     base_dir = os.getenv("LOCALAPPDATA")
     if base_dir:
-        return Path(base_dir) / "TradeTrackerMT5" / "app.log"
+        return Path(base_dir) / "TradersTrackerMT5" / "app.log"
     return Path.cwd() / "app.log"
 
 
@@ -62,6 +75,14 @@ def build_trade_hash(user_id: int, account: str, trade: Dict) -> str:
         ]
     )
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+
+def _to_local_dt(dt_value, local_tz):
+    if dt_value is None:
+        return None
+    if dt_value.tzinfo is None:
+        return dt_value.replace(tzinfo=local_tz)
+    return dt_value.astimezone(local_tz)
 
 
 @router.post("/upload", response_model=UploadResponse)
@@ -103,14 +124,27 @@ async def upload_report(
         report_start = meta.get("report_start")
         report_end = meta.get("report_end")
 
+        local_tz = _get_local_timezone()
+
         values = []
         for trade in trades:
+            open_dt = _to_local_dt(trade.get("open_time"), local_tz)
+            close_dt = _to_local_dt(trade.get("close_time"), local_tz)
+            if open_dt is None or close_dt is None:
+                continue
+
             deal_id = trade.get("deal_id")
             if deal_id:
                 trade_uid = f"{user.id}:{account}:{deal_id}"
             else:
-                trade_uid = build_trade_hash(user.id, account, trade)
-            close_date = trade["close_time"].date()
+                trade_uid = build_trade_hash(
+                    user.id,
+                    account,
+                    {**trade, "open_time": open_dt, "close_time": close_dt},
+                )
+
+            # Converte timestamps para o fuso configurado antes de extrair a data
+            close_date = close_dt.date()
             values.append(
                 {
                     "account": account,
@@ -118,8 +152,8 @@ async def upload_report(
                     "symbol": trade.get("symbol"),
                     "side": trade.get("side"),
                     "volume": trade.get("volume"),
-                    "open_time": trade.get("open_time"),
-                    "close_time": trade.get("close_time"),
+                    "open_time": open_dt,
+                    "close_time": close_dt,
                     "open_price": trade.get("open_price"),
                     "close_price": trade.get("close_price"),
                     "profit": trade.get("profit"),

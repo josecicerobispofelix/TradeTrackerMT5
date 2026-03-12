@@ -5,12 +5,20 @@ import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-from fastapi import Cookie, Depends, HTTPException, Response
+from fastapi import Cookie, Depends, Header, HTTPException, Request, Response
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .db import get_session
 from .models import Session, User
+
+
+def _token_from_request(request: Request) -> Optional[str]:
+    """Extract Bearer token from Authorization header for mobile clients."""
+    auth = request.headers.get("Authorization")
+    if auth and auth.startswith("Bearer "):
+        return auth[7:].strip()
+    return None
 
 
 def _now() -> datetime:
@@ -86,9 +94,12 @@ def clear_session_cookie(response: Response) -> None:
 
 
 async def get_current_user(
+    request: Request,
     session: AsyncSession = Depends(get_session),
     token: Optional[str] = Cookie(default=None, alias="ttmt5_session"),
 ) -> User:
+    # Mobile: Bearer token from Authorization header
+    token = token or _token_from_request(request)
     if not token:
         raise HTTPException(status_code=401, detail="NOT_AUTHENTICATED")
 

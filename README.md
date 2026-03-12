@@ -1,4 +1,4 @@
-﻿# TradeTrackerMT5
+# TradersTrackerMT5
 
 Painel web para importar relatórios do MetaTrader 5 (MT5) em XLSX, consolidar histórico e acompanhar metas mensais em BRL com deduplicação forte.
 
@@ -10,6 +10,8 @@ Este software é **comercial e proprietário**. O código não é open-source e 
 
 - `backend/`: FastAPI + SQLAlchemy async + Alembic (SQLite local)
 - `frontend/`: React + Vite (TypeScript) + Recharts
+- `mobile/`: App Android (Flutter) que consome a mesma API
+- `docs/API_MOBILE.md`: Endpoints e autenticação para o app mobile
 
 ## Pré-requisitos
 
@@ -52,7 +54,7 @@ O app desktop abre o painel em uma janela nativa.
 1. Instale as dependências (se ainda não fez):
 
 ```bash
-cd C:\Users\ciler\Documents\TradeTrackerMT5
+cd C:\Users\ciler\Documents\TradersTrackerMT5   # ou TradeTrackerMT5 se ainda nao renomeou a pasta
 .\install.ps1
 ```
 
@@ -68,7 +70,7 @@ cd C:\Users\ciler\Documents\TradeTrackerMT5
 .\install_desktop.bat
 ```
 
-Depois, abra o atalho "TradeTrackerMT5" criado na área de trabalho.
+Depois, abra o atalho "TradersTrackerMT5" criado na área de trabalho.
 
 ## Atualização rápida (sem reinstalar)
 
@@ -77,29 +79,40 @@ Se só o frontend mudar (arquivos em `frontend/dist`):
 pwsh tools/patch_frontend.ps1
 ```
 
-Se backend/binário mudar (substitui `TradeTrackerMT5.exe` e `_internal`):
+Se backend/binário mudar (substitui `TradersTrackerMT5.exe` e `_internal`):
 ```powershell
 pwsh tools/patch_backend.ps1
 ```
 
 Observações:
-- Execute `build_desktop.ps1` antes, para gerar `dist/TradeTrackerMT5` e `frontend/dist`.
-- O patch copia direto para `%LOCALAPPDATA%\TradeTrackerMT5` (e subpastas), sem precisar rodar o instalador.
+- Execute `build_desktop.ps1` antes, para gerar `dist/TradersTrackerMT5` e `frontend/dist`.
+- O patch copia direto para `%LOCALAPPDATA%\TradersTrackerMT5` (e subpastas), sem precisar rodar o instalador.
 
 ## Banco MySQL (Hostinger)
 
-Configure o banco em `TradeTrackerMT5.env` (na raiz do projeto). Exemplo:
+Configure o banco em `TradersTrackerMT5.env` (na raiz do projeto). Exemplo:
 
 ```
-DATABASE_URL=mysql+aiomysql://dados:TradeTracker1411@localhost:3306/TradeTrackerMT5?charset=utf8mb4
+DATABASE_URL=mysql+aiomysql://dados:TradersTracker1411@localhost:3306/TradersTrackerMT5?charset=utf8mb4
 ```
 
 Observação: `localhost` significa o mesmo computador onde o app roda. Se o MySQL estiver em outro servidor, troque pelo host/IP correto.
+
+## App Android (Flutter)
+
+O app mobile conecta ao mesmo backend via Bearer token e replica Dashboard, Histórico, Upload e Perfil fiscal.
+
+1. Backend com CORS para mobile (opcional): `set MOBILE_CORS=1` antes de subir o uvicorn.
+2. Em `mobile/`, execute: `flutter pub get` e depois `flutter build apk --release`.
+3. O APK sai em `mobile/build/app/outputs/flutter-apk/app-release.apk`.
+
+Detalhes: [mobile/README.md](mobile/README.md). API para mobile: [docs/API_MOBILE.md](docs/API_MOBILE.md).
 
 ## Rotas da API
 
 - `POST /api/upload` - upload do XLSX MT5
 - `GET /api/summary?month=YYYY-MM` - resumo mensal
+- `GET /api/dashboard/stats?month=YYYY-MM` - estatísticas do mês (mobile)
 - `GET /api/trades?from=YYYY-MM-DD&to=YYYY-MM-DD&symbol=EURUSD` - histórico filtrado
 - `GET /api/fx-rate` - última taxa cadastrada
 - `GET /api/fx-rate?date=YYYY-MM-DD` - taxa específica
@@ -138,4 +151,4 @@ O parser procura a seção `Positions`, identifica cabeçalhos e lê linhas até
 .\build_installer.bat
 ```
 
-O setup sai em `dist-installer\TradeTrackerMT5-Setup.exe`.
+O setup sai em `dist-installer\TradersTrackerMT5-Setup.exe`.

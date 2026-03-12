@@ -22,7 +22,7 @@ def _license_dir() -> Path:
 
     base = os.getenv("APPDATA")
     if base:
-        return Path(base) / "TradeTrackerMT5"
+        return Path(base) / "TradersTrackerMT5"
     return Path.home() / ".tradetracker"
 
 

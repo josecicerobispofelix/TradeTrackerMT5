@@ -101,8 +101,9 @@ def parse_datetime(value) -> Optional[dt.datetime]:
     else:
         return None
 
-    if result.tzinfo is None:
-        result = result.replace(tzinfo=dt.timezone.utc)
+    # MT5 exports are timezone-naive (use broker/client local time). We keep them
+    # naive here and let the caller decide how to localize (e.g., using
+    # APP_TIMEZONE in the upload route) to avoid accidental double conversions.
     return result
 
 

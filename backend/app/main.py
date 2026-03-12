@@ -16,6 +16,7 @@ from fastapi.responses import JSONResponse
 from .license import is_activated
 from .routes import (
     auth,
+    dashboard,
     darf,
     fx_rate,
     license as license_routes,
@@ -27,12 +28,12 @@ from .routes import (
 
 logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
 
-app = FastAPI(title="TradeTrackerMT5 API", version="1.0.0")
+app = FastAPI(title="TradersTrackerMT5 API", version="1.0.0")
 
 def _log_path() -> Path:
     base_dir = os.getenv("LOCALAPPDATA")
     if base_dir:
-        return Path(base_dir) / "TradeTrackerMT5" / "app.log"
+        return Path(base_dir) / "TradersTrackerMT5" / "app.log"
     return Path.cwd() / "app.log"
 
 
@@ -57,12 +58,17 @@ cors_origins = os.getenv(
     "CORS_ORIGINS",
     "http://localhost:5173,http://127.0.0.1:5173,http://localhost,http://localhost:8000,http://127.0.0.1:8000",
 )
-origins = [origin.strip() for origin in cors_origins.split(",") if origin.strip()]
+# Allow mobile/Flutter (no fixed origin); add * when MOBILE_CORS=1
+mobile_cors = os.getenv("MOBILE_CORS", "").lower() in ("1", "true", "yes")
+if mobile_cors:
+    origins = ["*"]
+else:
+    origins = [origin.strip() for origin in cors_origins.split(",") if origin.strip()]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
-    allow_credentials=True,
+    allow_credentials=not mobile_cors,  # must be False when origins=["*"]
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -128,6 +134,7 @@ app.include_router(fx_rate.router, prefix="/api", tags=["fx-rate"])
 app.include_router(darf.router, prefix="/api", tags=["darf"])
 app.include_router(auth.router, prefix="/api", tags=["auth"])
 app.include_router(license_routes.router, prefix="/api", tags=["license"])
+app.include_router(dashboard.router, prefix="/api", tags=["dashboard"])
 app.include_router(diag.router, prefix="/api", tags=["diag"])
 
 

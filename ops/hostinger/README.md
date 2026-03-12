@@ -24,7 +24,7 @@ sudo mkdir -p /opt/tradetracker
 sudo chown $USER:$USER /opt/tradetracker
 cd /opt/tradetracker
 # copie o repositório ou sincronize (git/rsync/scp)
-# exemplo: git clone https://github.com/SEU_USER/TradeTrackerMT5.git .
+# exemplo: git clone https://github.com/SEU_USER/TradersTrackerMT5.git .
 ```
 
 ### 3) Criar venv e instalar requisitos
@@ -48,7 +48,7 @@ APP_PORT=8000
 Crie `/etc/systemd/system/tradetracker-license.service`:
 ```
 [Unit]
-Description=TradeTrackerMT5 License API
+Description=TradersTrackerMT5 License API
 After=network.target
 
 [Service]

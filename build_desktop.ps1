@@ -29,7 +29,7 @@ Push-Location $root
 & $venvPython (Join-Path $root "tools\ensure_icon.py")
 
 $pyiArgs = @(
-    "--name", "TradeTrackerMT5",
+    "--name", "TradersTrackerMT5",
     "--noconsole",
     "--onedir",
     "--noconfirm",
@@ -71,4 +71,4 @@ $pyiArgs = @(
 & $venvPython -m PyInstaller @pyiArgs @iconArgs "$backend\app\desktop.py"
 Pop-Location
 
-Write-Host "Build concluido em dist\TradeTrackerMT5" -ForegroundColor Green
+Write-Host "Build concluido em dist\TradersTrackerMT5" -ForegroundColor Green

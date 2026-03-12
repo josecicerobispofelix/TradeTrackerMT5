@@ -1,7 +1,7 @@
 $ErrorActionPreference = "Stop"
 
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
-$iss = Join-Path $root "TradeTrackerMT5.iss"
+$iss = Join-Path $root "TradersTrackerMT5.iss"
 
 $inno = Join-Path ${env:ProgramFiles(x86)} "Inno Setup 6\\ISCC.exe"
 if (-Not (Test-Path $inno)) {
@@ -23,4 +23,4 @@ if (-Not (Test-Path $inno)) {
 }
 
 & $inno $iss
-Write-Host "Installer gerado em dist-installer\\TradeTrackerMT5-Setup.exe" -ForegroundColor Green
+Write-Host "Installer gerado em dist-installer\\TradersTrackerMT5-Setup.exe" -ForegroundColor Green

@@ -1,5 +1,5 @@
 Param(
-    [string]$AppDataPath = "$env:LOCALAPPDATA\TradeTrackerMT5\_internal\frontend\dist",
+    [string]$AppDataPath = "$env:LOCALAPPDATA\TradersTrackerMT5\_internal\frontend\dist",
     [string]$SourcePath  = "$PSScriptRoot\..\frontend\dist"
 )
 
@@ -29,5 +29,5 @@ if ($code -lt 8) {
     exit 0
 }
 
-Write-Error "Robocopy failed with code $code. Feche o TradeTrackerMT5 (e processos WebView2) e tente novamente."
+Write-Error "Robocopy failed with code $code. Feche o TradersTrackerMT5 (e processos WebView2) e tente novamente."
 exit $code

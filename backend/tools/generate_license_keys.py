@@ -1,5 +1,5 @@
 """
-Gerador de chaves de licença para o TradeTrackerMT5.
+Gerador de chaves de licença para o TradersTrackerMT5.
 
 Uso:
   python tools/generate_license_keys.py --machine 1234ABCD5678EF90

@@ -51,7 +51,7 @@ def _log_trace(prefix: str) -> None:
 
 def _load_env_file():
     base_dir = _data_base()
-    env_file = base_dir / "TradeTrackerMT5.env"
+    env_file = base_dir / "TradersTrackerMT5.env"
     if not env_file.exists():
         return
     for line in env_file.read_text(encoding="utf-8").splitlines():
@@ -261,7 +261,7 @@ class _JsBridge:
 def main():
     os.environ.setdefault("CORS_ORIGINS", "http://localhost,http://127.0.0.1")
     os.environ.setdefault("PYWEBVIEW_GUI", "edgechromium")
-    _log("Iniciando TradeTrackerMT5")
+    _log("Iniciando TradersTrackerMT5")
     try:
         _load_env_file()
         _log("Env carregado")
@@ -312,7 +312,7 @@ def main():
         storage_dir.mkdir(parents=True, exist_ok=True)
         # create_window não aceita storage_path; usa webview.start(storage_path=...)
         bridge = _JsBridge()
-        webview.create_window("TradeTrackerMT5", url, confirm_close=True, js_api=bridge)
+        webview.create_window("TradersTrackerMT5", url, confirm_close=True, js_api=bridge)
         # storage_path + private_mode=False para persistir localStorage/cookies entre execuções
         webview.start(storage_path=storage_dir.as_posix(), private_mode=False)
     except Exception:

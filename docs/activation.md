@@ -1,4 +1,4 @@
-# Ativação de licença – TradeTrackerMT5
+# Ativação de licença – TradersTrackerMT5
 
 ## Para quem opera as licenças
 1. Defina o segredo (mesmo valor no servidor e no gerador):
@@ -18,7 +18,7 @@
    - Envie essa chave ao cliente.
 
 ## Para o cliente
-1. Instale o TradeTrackerMT5 pelo instalador fornecido.
+1. Instale o TradersTrackerMT5 pelo instalador fornecido.
 2. Abra o app: na tela de ativação, copie o **Código da máquina**.
 3. Envie o código para receber a chave de licença.
 4. Cole a **Chave de licença** no app e clique em **Ativar**.

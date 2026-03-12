@@ -19,7 +19,7 @@ from typing import Optional
 import smtplib
 
 
-from fastapi import APIRouter, Cookie, Depends, HTTPException, Response
+from fastapi import APIRouter, Cookie, Depends, Header, HTTPException, Response
 
 
 from pydantic import BaseModel, Field
@@ -104,12 +104,15 @@ class LoginPayload(BaseModel):
 
 
 class UserOut(BaseModel):
-
-
     id: int
-
-
     email: str
+
+
+class UserWithTokenOut(BaseModel):
+    id: int
+    email: str
+    token: str
+    expires_at: str
 
 
 
@@ -226,7 +229,7 @@ def _send_reset_email(to_email: str, token: str) -> None:
     msg = EmailMessage()
 
 
-    msg["Subject"] = "Redefinição de senha - TradeTrackerMT5"
+    msg["Subject"] = "Redefinição de senha - TradersTrackerMT5"
 
 
     msg["From"] = sender
@@ -238,7 +241,7 @@ def _send_reset_email(to_email: str, token: str) -> None:
     msg.set_content(
 
 
-        "Use o código abaixo para redefinir sua senha no TradeTrackerMT5:\n\n"
+        "Use o código abaixo para redefinir sua senha no TradersTrackerMT5:\n\n"
 
 
         f"{token}\n\n"
@@ -274,24 +277,13 @@ def _send_reset_email(to_email: str, token: str) -> None:
 
 
 
-@router.post("/auth/register", response_model=UserOut)
-
-
+@router.post("/auth/register")
 async def register(
-
-
     payload: RegisterPayload,
-
-
     response: Response,
-
-
     session: AsyncSession = Depends(get_session),
-
-
+    x_return_token: Optional[str] = Header(None, alias="X-Return-Token"),
 ):
-
-
     email = payload.email.lower().strip()
 
 
@@ -356,38 +348,24 @@ async def register(
 
 
     token, expires_at = await create_session(session, user.id)
-
-
+    if (x_return_token or "").lower() == "true":
+        return UserWithTokenOut(
+            id=user.id,
+            email=user.email,
+            token=token,
+            expires_at=expires_at.isoformat(),
+        )
     set_session_cookie(response, token, expires_at)
-
-
     return UserOut(id=user.id, email=user.email)
 
 
-
-
-
-
-
-
-@router.post("/auth/login", response_model=UserOut)
-
-
+@router.post("/auth/login")
 async def login(
-
-
     payload: LoginPayload,
-
-
     response: Response,
-
-
     session: AsyncSession = Depends(get_session),
-
-
+    x_return_token: Optional[str] = Header(None, alias="X-Return-Token"),
 ):
-
-
     email = payload.email.lower().strip()
 
 
@@ -428,15 +406,15 @@ async def login(
 
 
     token, expires_at = await create_session(session, user.id)
-
-
+    if (x_return_token or "").lower() == "true":
+        return UserWithTokenOut(
+            id=user.id,
+            email=user.email,
+            token=token,
+            expires_at=expires_at.isoformat(),
+        )
     set_session_cookie(response, token, expires_at)
-
-
     return UserOut(id=user.id, email=user.email)
-
-
-
 
 
 @router.post("/auth/logout")

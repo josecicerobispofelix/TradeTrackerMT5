@@ -1,7 +1,7 @@
 .env
 .env.*
 !.env.example
-TradeTrackerMT5.env
+TradersTrackerMT5.env
 
 backend/.venv/
 backend/__pycache__/
@@ -21,7 +21,7 @@ test-results/
 build/
 dist/
 dist-installer/
-TradeTrackerMT5.spec
+TradersTrackerMT5.spec
 
 __pycache__/
 *.pyc

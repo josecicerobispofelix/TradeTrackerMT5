@@ -4585,14 +4585,11 @@ export default function Dashboard() {
 
         <div className="dashboard-main">
 
-
-
           <div className="hero">
 
 
 
-            <h2>Sua performance</h2>
-            <div className="dev-badge">Desenvolvido por Cicero Bispo</div>
+            <h2>SUA PERFORMANCE</h2>
 
 
 
@@ -4756,7 +4753,10 @@ export default function Dashboard() {
 
 
 
-            <div className="card kpi-card">
+            <div
+              className="card kpi-card"
+              title="Custos operacionais: comissão + swap somados."
+            >
 
 
 
@@ -4796,7 +4796,10 @@ export default function Dashboard() {
 
 
 
-            <div className="card small">
+            <div
+              className="card small"
+              title="Quantidade total de operações (ganhadoras + perdedoras) no período filtrado."
+            >
 
 
 
@@ -4812,7 +4815,10 @@ export default function Dashboard() {
 
 
 
-            <div className="card small">
+            <div
+              className="card small"
+              title="Número de operações com resultado positivo."
+            >
 
 
 
@@ -4828,7 +4834,10 @@ export default function Dashboard() {
 
 
 
-            <div className="card small">
+            <div
+              className="card small"
+              title="Número de operações com resultado negativo."
+            >
 
 
 
@@ -4844,7 +4853,10 @@ export default function Dashboard() {
 
 
 
-            <div className="card small">
+            <div
+              className="card small"
+              title="Fator de lucro: ganho bruto dividido pelo prejuízo bruto (|loss|). >1 indica sistema lucrativo."
+            >
 
 
 
@@ -4860,7 +4872,10 @@ export default function Dashboard() {
 
 
 
-            <div className="card small">
+            <div
+              className="card small"
+              title="Ganho médio das operações vencedoras (já em BRL/USD conforme seleção)."
+            >
 
 
 
@@ -4884,7 +4899,10 @@ export default function Dashboard() {
 
 
 
-            <div className="card small">
+            <div
+              className="card small"
+              title="Perda média das operações perdedoras."
+            >
 
 
 
@@ -4908,7 +4926,10 @@ export default function Dashboard() {
 
 
 
-            <div className="card small">
+            <div
+              className="card small"
+              title="Maior lucro obtido em uma única operação."
+            >
 
 
 
@@ -4932,7 +4953,10 @@ export default function Dashboard() {
 
 
 
-            <div className="card small">
+            <div
+              className="card small"
+              title="Maior prejuízo em uma única operação."
+            >
 
 
 
@@ -4956,7 +4980,10 @@ export default function Dashboard() {
 
 
 
-            <div className="card small">
+            <div
+              className="card small"
+              title="Payoff: ganho médio dividido pela perda média. >1 significa ganhos médios maiores que perdas médias."
+            >
 
 
 
@@ -4972,7 +4999,10 @@ export default function Dashboard() {
 
 
 
-            <div className="card small">
+            <div
+              className="card small"
+              title="Maior sequência de vitórias consecutivas."
+            >
 
 
 
@@ -4988,7 +5018,10 @@ export default function Dashboard() {
 
 
 
-            <div className="card small">
+            <div
+              className="card small"
+              title="Maior sequência de perdas consecutivas."
+            >
 
 
 
@@ -5004,7 +5037,10 @@ export default function Dashboard() {
 
 
 
-            <div className="card small">
+            <div
+              className="card small"
+              title="Máximo drawdown: maior queda acumulada desde um pico de capital."
+            >
 
 
 
@@ -7270,32 +7306,43 @@ export default function Dashboard() {
 
 
 
-          <div className="panel">
+            <div className="panel">
 
 
 
-            <div className="panel-header">
+              <div className="panel-header panel-header-center">
 
 
 
-              <h4>Mapa de calor: dia x horário</h4>
+                <h4 className="heatmap-title">Mapa de calor: dia x horário</h4>
 
 
 
-              <span>Identifique os horários mais positivos e negativos.</span>
+                <span>Identifique os horários mais positivos e negativos.</span>
 
 
 
-            </div>
+              </div>
 
 
 
             <div className="heatmap-controls">
               <div className="heatmap-legend">
                 <div className="heatmap-legend-bar">
-                  <span>
+                  <span className="legend-min">
                     {heatmapMetric === "profit"
-                      ? formatCurrency(heatmapMinMax.min, currency)
+                      ? (() => {
+                          const absVal = Math.abs(heatmapMinMax.min || 0);
+                          if (absVal === 0) return formatCurrency(0, currency);
+                          const formatter = new Intl.NumberFormat("pt-BR", {
+                            style: "currency",
+                            currency,
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                            signDisplay: "always"
+                          });
+                          return formatter.format(-absVal); // força sinal antes do símbolo
+                        })()
                       : "0%"}
                   </span>
                   <div className="heatmap-legend-gradient">
@@ -7303,13 +7350,13 @@ export default function Dashboard() {
                       {heatmapMetric === "profit" ? "0" : "50%"}
                     </span>
                   </div>
-                  <span>
+                  <span className="legend-max">
                     {heatmapMetric === "profit"
                       ? formatCurrency(heatmapMinMax.max, currency)
                       : "100%"}
                   </span>
                 </div>
-                <div className="heatmap-legend-note">
+                <div className="heatmap-legend-note center-note">
                   Cor = {heatmapMetric === "profit" ? "lucro médio" : "win rate"}; número = trades; tooltip mostra lucro, trades e win rate.
                 </div>
               </div>
@@ -7332,14 +7379,19 @@ export default function Dashboard() {
                   </button>
                 </div>
                 <div className="toggle-row">
-                  <label className="mini-label">
+                  <label className="mini-label slider-label">
                     Mínimo de trades
-                    <input
-                      type="number"
-                      min={0}
-                      value={minTradesFilter}
-                      onChange={(e) => setMinTradesFilter(Math.max(0, Number(e.target.value)))}
-                    />
+                    <div className="slider-row">
+                      <input
+                        type="range"
+                        min={0}
+                        max={20}
+                        step={1}
+                        value={minTradesFilter}
+                        onChange={(e) => setMinTradesFilter(Math.max(0, Number(e.target.value)))}
+                      />
+                      <span className="slider-value">{minTradesFilter}</span>
+                    </div>
                   </label>
                 </div>
               </div>
@@ -7352,9 +7404,7 @@ export default function Dashboard() {
                 <div />
 
                 {HOURS.map((hour) => (
-
-                  <span key={`h-${hour}`}>{hour}</span>
-
+                  <span key={`h-${hour}`}>{`${hour}h`}</span>
                 ))}
 
                 <span className="heatmap-avg-label">Média</span>
@@ -7389,7 +7439,7 @@ export default function Dashboard() {
                             heatmapMetric === "profit" ? value : (winRate ?? 0),
                             heatmapMetric === "profit" ? metrics.heatMax : 100
                           )
-                        : "rgba(148, 163, 184, 0.06)";
+                        : "rgba(255, 255, 255, 0.04)";
 
                       return (
 
@@ -7407,11 +7457,11 @@ export default function Dashboard() {
 
                           title={
                             visible
-                              ? `${DAYS[rowIndex]} ${colIndex}h: ${formatCurrency(
+                              ? `${DAYS[rowIndex]} ${colIndex}h\nTrades: ${count}\nLucro médio: ${formatCurrency(
                                   value,
                                   currency
-                                )} · ${count} trade${count === 1 ? "" : "s"}${
-                                  winRate != null ? ` · Win rate ${winRate.toFixed(0)}%` : ""
+                                )}\nWin rate: ${
+                                  winRate != null ? `${winRate.toFixed(0)}%` : "n/d"
                                 }`
                               : "Amostra insuficiente para atingir o mínimo de trades."
                           }
@@ -7458,6 +7508,10 @@ export default function Dashboard() {
 
             </div>
 
+          </div>
+
+          <div className="dashboard-footer">
+            Desenvolvido por Cicero Bispo
           </div>
 
         </div>
