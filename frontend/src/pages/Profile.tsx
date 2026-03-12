@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { fetchFiscalProfile, saveFiscalProfile, FiscalProfile } from "../api";
+import { fetchFiscalProfile, fetchTradeMeta, saveFiscalProfile, FiscalProfile } from "../api";
 
 function onlyDigits(value: string) {
   return value.replace(/\D/g, "");
@@ -42,7 +42,18 @@ export default function Profile() {
     setStatus(null);
     try {
       const response = await fetchFiscalProfile();
-      setProfile(normalizeProfile(response));
+      const normalized = normalizeProfile(response);
+
+      // Busca sugestões a partir dos uploads (conta/corretora)
+      try {
+        const meta = await fetchTradeMeta();
+        normalized.broker = normalized.broker || meta.suggested_broker || "";
+        normalized.trading_account = normalized.trading_account || meta.suggested_account || "";
+      } catch {
+        // ignora falha silenciosa para não quebrar o carregamento do perfil
+      }
+
+      setProfile(normalized);
       setStatus("Perfil carregado.");
     } catch (err) {
       setStatus((err as Error).message);

@@ -61,6 +61,8 @@ export type TradeListResponse = {
 export type TradeMetaResponse = {
   symbols: string[];
   accounts: string[];
+  suggested_account?: string | null;
+  suggested_broker?: string | null;
 };
 
 export type FxRate = {
@@ -204,12 +206,22 @@ export type AuthMessage = {
   reset_token?: string;
 };
 
+export type MessageResponse = {
+  message: string;
+};
+
 export async function uploadReport(file: File): Promise<UploadResponse> {
   const formData = new FormData();
   formData.append("file", file);
   return apiFetch<UploadResponse>("/api/upload", {
     method: "POST",
     body: formData
+  });
+}
+
+export async function deleteAllUploads(): Promise<MessageResponse> {
+  return apiFetch<MessageResponse>("/api/upload/all", {
+    method: "DELETE"
   });
 }
 

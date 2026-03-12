@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..auth import get_current_user
 from ..db import get_session
-from ..models import FXRate, Trade, User
+from ..models import FXRate, Trade, User, Import
 from ..schemas import TradeListResponse, TradeMetaResponse, TradeOut
 
 router = APIRouter()
@@ -128,7 +128,26 @@ async def list_trade_meta(
     symbols = (await session.execute(symbol_stmt)).scalars().all()
     accounts = (await session.execute(account_stmt)).scalars().all()
 
+    suggested_account = accounts[0] if accounts else None
+    suggested_broker = None
+
+    latest_import = (
+        await session.execute(
+            select(Import)
+                .where(Import.user_id == user.id)
+                .order_by(Import.created_at.desc())
+                .limit(1)
+        )
+    ).scalars().first()
+
+    if latest_import:
+        suggested_account = latest_import.account or suggested_account
+        meta_json = latest_import.meta_json or {}
+        suggested_broker = latest_import.server or meta_json.get("server") or suggested_broker
+
     return TradeMetaResponse(
         symbols=[s for s in symbols if s],
         accounts=[a for a in accounts if a],
+        suggested_account=suggested_account,
+        suggested_broker=suggested_broker,
     )

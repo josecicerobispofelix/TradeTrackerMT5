@@ -7,7 +7,7 @@ import traceback
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
-from sqlalchemy import insert, select
+from sqlalchemy import insert, select, delete
 from sqlalchemy.dialects.mysql import insert as mysql_insert
 from sqlalchemy.dialects.postgresql import insert as postgres_insert
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
@@ -55,6 +55,18 @@ def _log_trace(prefix: str) -> None:
     _log(prefix)
     for line in traceback.format_exc().splitlines():
         _log(line)
+
+
+@router.delete("/upload/all")
+async def delete_all_uploads(
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(get_current_user),
+):
+    """Remove todas as trades e registros de importação do usuário autenticado."""
+    await session.execute(delete(Trade).where(Trade.user_id == user.id))
+    await session.execute(delete(Import).where(Import.user_id == user.id))
+    await session.commit()
+    return {"message": "Todos os uploads foram apagados com sucesso."}
 
 
 def build_trade_hash(user_id: int, account: str, trade: Dict) -> str:

@@ -419,61 +419,19 @@ function normalizeProfile(data?: FiscalProfile | null): FiscalProfile {
 
 
     full_name: data?.full_name ?? "",
-
-
-
     cpf: data?.cpf ?? "",
-
-
-
     birth_date: data?.birth_date ?? "",
-
-
-
     cep: data?.cep ?? "",
-
-
-
     street: data?.street ?? "",
-
-
-
     number: data?.number ?? "",
-
-
-
     complement: data?.complement ?? "",
-
-
-
     neighborhood: data?.neighborhood ?? "",
-
-
-
     city: data?.city ?? "",
-
-
-
     state: data?.state ?? "",
-
-
-
     broker: data?.broker ?? "",
-
-
-
     trading_account: data?.trading_account ?? "",
-
-
-
     account_currency: data?.account_currency ?? "USD",
-
-
-
     tax_rate: data?.tax_rate ?? 0.15,
-
-
-
     fx_source: data?.fx_source ?? "manual"
 
 
@@ -1236,27 +1194,14 @@ function computeMetrics(
 
 
 
-    const daily = dailyMap.get(dateKey) ?? {
-
-
-
-      net: 0,
-
-
-
-      trades: 0,
-
-
-
-      wins: 0,
-
-
-
-      losses: 0
-
-
-
-    };
+    const daily =
+      dailyMap.get(dateKey) ??
+      {
+        net: 0,
+        trades: 0,
+        wins: 0,
+        losses: 0
+      };
 
 
 
@@ -1370,27 +1315,14 @@ function computeMetrics(
 
 
 
-    const daily = dailyMap.get(key) ?? {
-
-
-
-      net: 0,
-
-
-
-      trades: 0,
-
-
-
-      wins: 0,
-
-
-
-      losses: 0
-
-
-
-    };
+    const daily =
+      dailyMap.get(key) ??
+      {
+        net: 0,
+        trades: 0,
+        wins: 0,
+        losses: 0
+      };
 
 
 
@@ -1669,6 +1601,7 @@ export default function Dashboard() {
 
 
   const [trades, setTrades] = useState<Trade[]>([]);
+  const [goalTrades, setGoalTrades] = useState<Trade[]>([]);
 
 
 
@@ -1688,7 +1621,7 @@ export default function Dashboard() {
 
 
 
-  const [useBrl, setUseBrl] = useState(true);
+  const [useBrl, setUseBrl] = useState(false);
 
   const applyPreset = (preset: "today" | "week" | "month") => {
     const today = new Date();
@@ -1717,6 +1650,7 @@ export default function Dashboard() {
 
 
   const [goalMonth, setGoalMonth] = useState(initialGoalMonth);
+  const goalRange = useMemo(() => getMonthRange(goalMonth), [goalMonth]);
   const [goalUpdatedAt, setGoalUpdatedAt] = useState<string | null>(null);
 
 
@@ -1790,6 +1724,37 @@ export default function Dashboard() {
 
 
   );
+
+  const fxStats = useMemo(() => {
+    if (!fxHistory.length) {
+      return {
+        latest: null,
+        max: null,
+        min: null,
+        changeAbs: null,
+        changePct: null
+      };
+    }
+    const values = fxHistory
+      .map((item) => item.usd_brl_rate)
+      .filter((v) => Number.isFinite(v));
+    if (!values.length) {
+      return {
+        latest: null,
+        max: null,
+        min: null,
+        changeAbs: null,
+        changePct: null
+      };
+    }
+    const latest = values[values.length - 1];
+    const first = values[0];
+    const max = Math.max(...values);
+    const min = Math.min(...values);
+    const changeAbs = first ? latest - first : null;
+    const changePct = first ? (changeAbs / first) * 100 : null;
+    return { latest, max, min, changeAbs, changePct };
+  }, [fxHistory]);
 
 
 
@@ -2138,6 +2103,28 @@ export default function Dashboard() {
 
 
   }, [from, to, symbol, account]);
+
+  useEffect(() => {
+    const { from: goalFrom, to: goalTo } = goalRange;
+    if (!goalFrom || !goalTo) {
+      setGoalTrades([]);
+      return;
+    }
+    const loadGoalTrades = async () => {
+      try {
+        const response = await fetchTrades({
+          from: goalFrom,
+          to: goalTo,
+          symbol: symbol || undefined,
+          account: account || undefined
+        });
+        setGoalTrades(response.trades);
+      } catch {
+        setGoalTrades([]);
+      }
+    };
+    loadGoalTrades();
+  }, [goalRange.from, goalRange.to, symbol, account]);
 
 
 
@@ -3627,6 +3614,21 @@ export default function Dashboard() {
 
   }, [trades, selectedDays, selectedHours]);
 
+  const goalFilteredTrades = useMemo(() => {
+    const dayFilter = selectedDays.length ? selectedDays : DAYS.map((_, idx) => idx);
+    const hourFilter = selectedHours.length ? selectedHours : HOURS;
+    const source = goalTrades.length ? goalTrades : trades;
+    return source.filter((trade) => {
+      const closeTimeRaw = trade.close_time ?? "";
+      const closeDateKey = closeTimeRaw.slice(0, 10);
+      if (goalRange.from && closeDateKey < goalRange.from) return false;
+      if (goalRange.to && closeDateKey > goalRange.to) return false;
+      const closeDate = new Date(closeTimeRaw.replace(" ", "T"));
+      if (Number.isNaN(closeDate.getTime())) return false;
+      return dayFilter.includes(closeDate.getDay()) && hourFilter.includes(closeDate.getHours());
+    });
+  }, [goalTrades, trades, goalRange.from, goalRange.to, selectedDays, selectedHours]);
+
 
 
 
@@ -3690,6 +3692,34 @@ export default function Dashboard() {
 
 
     [filteredTrades, from, to, fxRate]
+
+
+
+  );
+
+  const goalMetrics = useMemo(
+
+
+
+    () => computeMetrics(goalFilteredTrades, useBrl ? "BRL" : "USD", goalRange.from, goalRange.to, fxRate),
+
+
+
+    [goalFilteredTrades, useBrl, goalRange.from, goalRange.to, fxRate]
+
+
+
+  );
+
+  const goalMetricsBrl = useMemo(
+
+
+
+    () => computeMetrics(goalFilteredTrades, "BRL", goalRange.from, goalRange.to, fxRate),
+
+
+
+    [goalFilteredTrades, goalRange.from, goalRange.to, fxRate]
 
 
 
@@ -3792,31 +3822,41 @@ export default function Dashboard() {
 
 
 
-  const grossProgressValue = applyTax(metricsBrl.net);
+  const goalNetTarget = useBrl ? goalNet : goalNetUsd ?? 0;
 
 
 
+  const goalGrossTarget = useBrl ? goalGross : goalGrossUsd ?? 0;
 
 
 
-
-  const progressNet = goalNet > 0 ? Math.min(metricsBrl.net / goalNet, 1) : 0;
-
-
-
-  const progressGross = goalGross > 0 ? Math.min(grossProgressValue / goalGross, 1) : 0;
+  const goalProgressValue = useBrl ? goalMetricsBrl.net : goalMetrics.net;
 
 
 
-  const remainingNet = Math.max(goalNet - metricsBrl.net, 0);
+  const goalGrossProgressValue = applyTax(goalProgressValue);
 
 
 
-  const remainingGross = Math.max(goalGross - grossProgressValue, 0);
+  // barra preenche apenas de 0 a 100%; se ficar negativo, zera para mostrar esvaziando
+  const goalProgressNet =
+    goalNetTarget > 0 ? Math.min(Math.max(goalProgressValue / goalNetTarget, 0), 1) : 0;
 
 
 
+  const goalProgressGross =
 
+
+
+    goalGrossTarget > 0
+      ? Math.min(Math.max(goalGrossProgressValue / goalGrossTarget, 0), 1)
+      : 0;
+
+
+
+  const goalRemainingNet = Math.max(goalNetTarget - goalProgressValue, 0);
+
+  const goalRemainingGross = Math.max(goalGrossTarget - goalGrossProgressValue, 0);
 
 
 
@@ -3933,11 +3973,31 @@ export default function Dashboard() {
 
 
 
-  const needPerDayBrl = remainingNet / (daysRemaining || 1);
+  const needPerDayBase = goalRemainingNet / (daysRemaining || 1);
 
 
 
-  const needPerDayUsd = fxRate ? needPerDayBrl / fxRate : null;
+  const needPerDayAlt = fxRate
+
+
+
+    ? {
+
+
+
+        currency: useBrl ? "USD" : "BRL",
+
+
+
+        value: useBrl ? needPerDayBase / fxRate : needPerDayBase * fxRate
+
+
+
+      }
+
+
+
+    : null;
 
 
 
@@ -5072,7 +5132,7 @@ export default function Dashboard() {
 
 
 
-            <div className="panel">
+            <div className="panel fx-panel">
 
 
 
@@ -5224,122 +5284,65 @@ export default function Dashboard() {
 
 
 
-              <div className="progress-row">
 
-
-
-                <div>
-
-
-
-                  <strong>Progresso líquido:</strong>{" "}
-
-
-
-                  {formatCurrency(metricsBrl.net, "BRL")} / {formatCurrency(goalNet, "BRL")}
-
-
-
+              <div className="goal-summary">
+                <div className="goal-chip">
+                  <span className="goal-label">Meta líquida</span>
+                  <span className="goal-value">
+                    {formatCurrency(goalNetTarget, currency)}
+                  </span>
                 </div>
 
-
-
-                <div className="progress-bar">
-
-
-
-                  <span style={{ width: `${progressNet * 100}%` }} />
-
-
-
+                <div className="goal-chip">
+                  <span className="goal-label">Já realizado</span>
+                  <span
+                    className={`goal-value ${goalProgressValue >= 0 ? "text-success" : "text-danger"}`}
+                  >
+                    {formatCurrency(goalProgressValue, currency)}
+                  </span>
+                  <span className="goal-note">{(goalProgressNet * 100).toFixed(0)}% da meta</span>
                 </div>
 
-
-
-                <div>
-
-
-
-                  <strong>Progresso bruto:</strong>{" "}
-
-
-
-                  {formatCurrency(grossProgressValue, "BRL")} / {formatCurrency(goalGross, "BRL")}
-
-
-
+                <div className="goal-chip">
+                  <span className="goal-label">Por atingir</span>
+                  <span className="goal-value">{formatCurrency(goalRemainingNet, currency)}</span>
+                  <span className="goal-note">
+                    {formatCurrency(needPerDayBase, currency)} / dia • {daysRemaining}{" "}
+                    {daysRemaining === 1 ? "dia" : "dias"} restantes
+                  </span>
+                  <span className="goal-note">
+                    {needPerDayAlt
+                      ? `${formatCurrency(needPerDayAlt.value, needPerDayAlt.currency)} / dia`
+                      : "Defina a taxa USD/BRL para ver na outra moeda"}
+                  </span>
                 </div>
-
-
-
-                <div className="progress-bar">
-
-
-
-                  <span style={{ width: `${progressGross * 100}%` }} />
-
-
-
-                </div>
-
-
-
-                <div>
-
-
-
-                  <strong>Falta líquida:</strong> {formatCurrency(remainingNet, "BRL")}
-
-
-
-                </div>
-
-
-
-                <div>
-
-
-
-                  <strong>Falta bruto:</strong> {formatCurrency(remainingGross, "BRL")}
-
-
-
-                </div>
-
-
-
-                <div>
-
-
-
-                  <strong>Precisa por dia (BRL):</strong> {formatCurrency(needPerDayBrl, "BRL")}
-
-
-
-                </div>
-
-
-
-                <div>
-
-
-
-                  <strong>Precisa por dia (USD):</strong>{" "}
-
-
-
-                  {needPerDayUsd ? formatCurrency(needPerDayUsd, "USD") : "Defina a taxa USD/BRL"}
-
-
-
-                </div>
-
-
-
               </div>
 
+              <div className="goal-bars">
+                <div className="goal-bar">
+                  <div className="goal-bar-header">
+                    <span className="goal-bar-label">Progresso líquido</span>
+                    <span className="goal-bar-value">
+                      {formatCurrency(goalProgressValue, currency)} / {formatCurrency(goalNetTarget, currency)}
+                    </span>
+                  </div>
+                  <div className="goal-bar-track">
+                    <span style={{ ["--progress" as const]: goalProgressNet }} />
+                  </div>
+                </div>
 
-
+                <div className="goal-bar ghost">
+                  <div className="goal-bar-header">
+                    <span className="goal-bar-label">Progresso bruto</span>
+                    <span className="goal-bar-value">
+                      {formatCurrency(goalGrossProgressValue, currency)} / {formatCurrency(goalGrossTarget, currency)}
+                    </span>
+                  </div>
+                  <div className="goal-bar-track">
+                    <span style={{ ["--progress" as const]: goalProgressGross }} />
+                  </div>
+                </div>
+              </div>
             </div>
 
 
@@ -5488,35 +5491,44 @@ export default function Dashboard() {
 
 
 
-              <div className="helper">
-
-
-
-                {fxStatus
-
-
-
-                  ? fxStatus
-
-
-
-                  : fxRate
-
-
-
-                    ? `Taxa atual: ${fxRate.toFixed(4)}`
-
-
-
-                    : "Sem taxa definida"}
-
-
-
+              <div className="fx-status-row">
+                <span className="fx-hint">
+                  {fxStatus
+                    ? fxStatus
+                    : fxRate
+                      ? `Última taxa salva: ${fxRate.toFixed(4)}`
+                      : "Sem taxa definida"}
+                </span>
+                <span className="fx-hint">Cotação atualizada automaticamente.</span>
               </div>
 
+              {fxHistory.length ? (
+                <div className="fx-stat-grid">
+                  <div className="fx-stat-card">
+                    <span className="fx-stat-label">Máxima (janela)</span>
+                    <span className="fx-stat-value">
+                      {fxStats.max != null ? fxStats.max.toFixed(4) : "--"}
+                    </span>
+                  </div>
+                  <div className="fx-stat-card">
+                    <span className="fx-stat-label">Mínima (janela)</span>
+                    <span className="fx-stat-value">
+                      {fxStats.min != null ? fxStats.min.toFixed(4) : "--"}
+                    </span>
+                  </div>
+                  <div className="fx-stat-card">
+                    <span className="fx-stat-label">Variação</span>
+                    <span
+                      className={`fx-stat-value ${fxStats.changeAbs != null && fxStats.changeAbs >= 0 ? "text-success" : "text-danger"}`}
+                    >
+                      {fxStats.changeAbs != null ? fxStats.changeAbs.toFixed(4) : "--"}{" "}
+                      {fxStats.changePct != null ? `(${fxStats.changePct.toFixed(2)}%)` : ""}
+                    </span>
+                  </div>
+                </div>
+              ) : null}
 
-
-              <div className="chart-body" style={{ height: 180, marginTop: 12 }}>
+              <div className="chart-body fx-chart" style={{ height: 200, marginTop: 16 }}>
 
 
 
@@ -5589,52 +5601,33 @@ export default function Dashboard() {
 
 
                     <Tooltip
-
-
-
                       contentStyle={chartTooltipStyle}
-
-
-
                       formatter={(value: number) => value.toFixed(4)}
-
-
-
                       labelFormatter={(label) => {
-
-
-
                         const date = new Date(`${label}T00:00:00`);
-
-
-
                         return new Intl.DateTimeFormat("pt-BR", {
-
-
-
                           day: "2-digit",
-
-
-
                           month: "long",
-
-
-
                           year: "numeric"
-
-
-
                         }).format(date);
-
-
-
                       }}
-
-
-
                     />
 
+                    <defs>
+                      <linearGradient id="fxGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#38bdf8" stopOpacity={0.32} />
+                        <stop offset="100%" stopColor="#38bdf8" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
 
+                    <Area
+                      type="monotone"
+                      dataKey="usd_brl_rate"
+                      stroke="none"
+                      fill="url(#fxGradient)"
+                      isAnimationActive
+                      animationDuration={700}
+                    />
 
                     <Line
 

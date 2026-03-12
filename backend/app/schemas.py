@@ -43,6 +43,8 @@ class TradeListResponse(BaseModel):
 class TradeMetaResponse(BaseModel):
     symbols: List[str]
     accounts: List[str]
+    suggested_account: Optional[str] = None
+    suggested_broker: Optional[str] = None
 
 
 class DailySummary(BaseModel):
