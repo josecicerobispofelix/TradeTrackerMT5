@@ -962,9 +962,28 @@ button:hover:not(:disabled) {
 }
 
 .risk-panel .form-row {
-  align-items: end;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 18px;
+  align-items: start;
+  grid-template-columns: repeat(4, minmax(220px, 1fr));
+  column-gap: 18px;
+  row-gap: 12px;
+}
+
+@media (max-width: 1280px) {
+  .risk-panel .form-row {
+    grid-template-columns: repeat(3, minmax(220px, 1fr));
+  }
+}
+
+@media (max-width: 980px) {
+  .risk-panel .form-row {
+    grid-template-columns: repeat(2, minmax(220px, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .risk-panel .form-row {
+    grid-template-columns: 1fr;
+  }
 }
 
 .risk-panel input,
@@ -992,8 +1011,8 @@ button:hover:not(:disabled) {
 
 .risk-summary {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
   margin: 12px 0 4px;
   padding: 10px 12px;
   border-radius: 14px;
