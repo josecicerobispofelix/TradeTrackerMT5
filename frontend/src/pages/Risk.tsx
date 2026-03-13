@@ -135,6 +135,9 @@ export default function Risk() {
         <div className="panel-header">
           <h4>Parâmetros base</h4>
           <span>Use o saldo real da sua conta para que os cálculos façam sentido.</span>
+          <span className="helper compact">
+            Preencha de cima para baixo: saldo → risco% → stop → valor por ponto → lote mínimo/step → limites e metas.
+          </span>
         </div>
 
         <div className="form-row">
@@ -146,6 +149,7 @@ export default function Risk() {
               value={params.balance}
               onChange={(e) => handleChange("balance", Number(e.target.value))}
             />
+            <span className="helper compact">Saldo disponível para risco. Não inclui alavancagem.</span>
           </label>
           <label>
             Risco por trade (%)
@@ -156,6 +160,7 @@ export default function Risk() {
               value={params.riskPerTradePct}
               onChange={(e) => handleChange("riskPerTradePct", Number(e.target.value))}
             />
+            <span className="helper compact">Quanto do saldo arriscar por operação. Faixa comum: 0,25% a 1%.</span>
           </label>
           <label>
             Stop (pips/pontos)
@@ -166,6 +171,7 @@ export default function Risk() {
               value={params.stopDistance}
               onChange={(e) => handleChange("stopDistance", Number(e.target.value))}
             />
+            <span className="helper compact">Distância média do stop da sua estratégia.</span>
           </label>
           <label>
             Valor por ponto (na moeda)
@@ -188,11 +194,11 @@ export default function Risk() {
               onChange={(e) => handleChange("minLot", Number(e.target.value))}
             />
             <span className="helper compact">Ex.: Tickmill Raw começa em 0.01</span>
-          </label>
-          <label>
-            Incremento do lote
-            <input
-              type="number"
+            </label>
+            <label>
+              Incremento do lote
+              <input
+                type="number"
               min={0.01}
               step="0.01"
               value={params.lotStep}
@@ -203,47 +209,51 @@ export default function Risk() {
         </div>
 
         <div className="form-row">
-          <label>
-            Limite de perda diário (%)
-            <input
-              type="number"
-              min={0}
-              step="0.1"
-              value={params.dailyLossPct}
-              onChange={(e) => handleChange("dailyLossPct", Number(e.target.value))}
-            />
-          </label>
-          <label>
-            Limite de perda semanal (%)
-            <input
-              type="number"
-              min={0}
-              step="0.1"
-              value={params.weeklyLossPct}
-              onChange={(e) => handleChange("weeklyLossPct", Number(e.target.value))}
-            />
-          </label>
-          <label>
-            Meta diária (%)
-            <input
-              type="number"
-              min={0}
-              step="0.1"
-              value={params.dailyGoalPct}
-              onChange={(e) => handleChange("dailyGoalPct", Number(e.target.value))}
-            />
-          </label>
-          <label>
-            Meta mensal (%)
-            <input
-              type="number"
-              min={0}
-              step="0.1"
-              value={params.monthlyGoalPct}
-              onChange={(e) => handleChange("monthlyGoalPct", Number(e.target.value))}
-            />
-          </label>
-        </div>
+            <label>
+              Limite de perda diário (%)
+              <input
+                type="number"
+                min={0}
+                step="0.1"
+                value={params.dailyLossPct}
+                onChange={(e) => handleChange("dailyLossPct", Number(e.target.value))}
+              />
+              <span className="helper compact">Percentual do saldo onde você para de operar no dia.</span>
+            </label>
+            <label>
+              Limite de perda semanal (%)
+              <input
+                type="number"
+                min={0}
+                step="0.1"
+                value={params.weeklyLossPct}
+                onChange={(e) => handleChange("weeklyLossPct", Number(e.target.value))}
+              />
+              <span className="helper compact">Limite acumulado da semana. Protege contra sequência ruim.</span>
+            </label>
+            <label>
+              Meta diária (%)
+              <input
+                type="number"
+                min={0}
+                step="0.1"
+                value={params.dailyGoalPct}
+                onChange={(e) => handleChange("dailyGoalPct", Number(e.target.value))}
+              />
+              <span className="helper compact">Lucro em % do saldo para reduzir risco ou encerrar o dia.</span>
+            </label>
+            <label>
+              Meta mensal (%)
+              <input
+                type="number"
+                min={0}
+                step="0.1"
+                value={params.monthlyGoalPct}
+                onChange={(e) => handleChange("monthlyGoalPct", Number(e.target.value))}
+              />
+              <span className="helper compact">Objetivo de mês. Ajuda a medir consistência.</span>
+            </label>
+          </div>
 
         <div className="risk-actions">
           <button type="button" className="secondary" onClick={resetDefaults}>
