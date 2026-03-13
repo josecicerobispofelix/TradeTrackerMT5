@@ -51,6 +51,7 @@ const PAIR_PRESETS: PairPreset[] = [
 type RiskParams = {
   balance: number;
   currency: Currency;
+  fxRate: number; // USD -> BRL para conversão opcional
   riskPerTradePct: number;
   dailyLossPct: number;
   weeklyLossPct: number;
@@ -65,6 +66,7 @@ type RiskParams = {
 const defaultParams: RiskParams = {
   balance: 10000,
   currency: "USD",
+  fxRate: 5,
   riskPerTradePct: 1,
   dailyLossPct: 3,
   weeklyLossPct: 6,
@@ -91,7 +93,9 @@ function sanitizeParams(params: RiskParams): RiskParams {
   const minLot = Math.max(params.minLot ?? 0.01, 0.01);
   const lotStep = Math.max(params.lotStep ?? 0.01, 0.01);
   const balance = Number.isFinite(params.balance) ? params.balance : defaultParams.balance;
-  return { ...params, currency: "USD", minLot, lotStep, balance };
+  const fxRate = Math.max(Number.isFinite(params.fxRate) ? params.fxRate : defaultParams.fxRate, 0.0001);
+  const currency: Currency = params.currency === "BRL" ? "BRL" : "USD";
+  return { ...params, currency, minLot, lotStep, balance, fxRate };
 }
 
 function formatCurrency(value: number, currency: Currency) {
@@ -150,6 +154,8 @@ export default function Risk() {
     };
   }, [params]);
 
+  const clamp = (val: number, min: number, max: number) => Math.min(max, Math.max(min, val));
+
   const handleChange = (field: keyof RiskParams, value: number | string) => {
     if (field === "balance") {
       setParams((prev) => {
@@ -162,7 +168,12 @@ export default function Risk() {
     setParams((prev) =>
       sanitizeParams({
         ...prev,
-        [field]: typeof value === "string" ? value : Number.isFinite(value) ? value : 0
+        [field]:
+          typeof value === "string"
+            ? (value as Currency)
+            : Number.isFinite(value)
+              ? value
+              : 0
       })
     );
   };
@@ -175,7 +186,7 @@ export default function Risk() {
       sanitizeParams({
         ...prev,
         stopDistance: preset.defaultStop,
-        valuePerPoint: preset.pipValuePerLot,
+        valuePerPoint: preset.pipValuePerLot * (prev.currency === "BRL" ? prev.fxRate : 1),
         minLot: preset.minLot ?? prev.minLot
       })
     );
@@ -221,12 +232,23 @@ export default function Risk() {
             </span>
           </label>
           <label>
+            Moeda da conta
+            <select
+              value={params.currency}
+              onChange={(e) => handleChange("currency", e.target.value as Currency)}
+            >
+              <option value="USD">USD</option>
+              <option value="BRL">BRL</option>
+            </select>
+            <span className="helper compact">Escolha a moeda base do saldo.</span>
+          </label>
+          <label>
             Saldo da conta (USD)
             <input
               type="number"
               min={0}
               value={params.balance}
-              onChange={(e) => handleChange("balance", Number(e.target.value))}
+              onChange={(e) => handleChange("balance", clamp(Number(e.target.value), 0, 100000000))}
             />
             <span className="helper compact">Saldo disponível para risco. Não inclui alavancagem.</span>
           </label>
@@ -236,8 +258,9 @@ export default function Risk() {
               type="number"
               min={0}
               step="0.1"
+              max={5}
               value={params.riskPerTradePct}
-              onChange={(e) => handleChange("riskPerTradePct", Number(e.target.value))}
+              onChange={(e) => handleChange("riskPerTradePct", clamp(Number(e.target.value), 0, 5))}
             />
             <span className="helper compact">Quanto do saldo arriscar por operação. Faixa comum: 0,25% a 1%.</span>
           </label>
@@ -247,8 +270,9 @@ export default function Risk() {
               type="number"
               min={0}
               step="1"
+              max={5000}
               value={params.stopDistance}
-              onChange={(e) => handleChange("stopDistance", Number(e.target.value))}
+              onChange={(e) => handleChange("stopDistance", clamp(Number(e.target.value), 0, 5000))}
             />
             <span className="helper compact">Distância média do stop da sua estratégia.</span>
           </label>
@@ -258,12 +282,26 @@ export default function Risk() {
               type="number"
               min={0}
               step="0.01"
+              max={1000}
               value={params.valuePerPoint}
-              onChange={(e) => handleChange("valuePerPoint", Number(e.target.value))}
+              onChange={(e) => handleChange("valuePerPoint", clamp(Number(e.target.value), 0, 1000))}
             />
             <span className="helper compact">
               Valor do pip para 1.00 lote. Ex.: EURUSD ≈ 10; XAUUSD ≈ 1; USDJPY ≈ 9.
             </span>
+          </label>
+          <label>
+            Cotação USD/BRL
+            <input
+              type="number"
+              min={0.01}
+              step="0.01"
+              max={20}
+              value={params.fxRate}
+              onChange={(e) => handleChange("fxRate", clamp(Number(e.target.value), 0.01, 20))}
+              disabled={params.currency === "USD"}
+            />
+            <span className="helper compact">Usada para converter valor do pip se a conta for em BRL.</span>
           </label>
           <label>
             Lote mínimo
@@ -271,19 +309,21 @@ export default function Risk() {
               type="number"
               min={0.01}
               step="0.01"
+              max={100}
               value={params.minLot}
-              onChange={(e) => handleChange("minLot", Number(e.target.value))}
+              onChange={(e) => handleChange("minLot", clamp(Number(e.target.value), 0.01, 100))}
             />
             <span className="helper compact">Ex.: Tickmill Raw começa em 0.01</span>
-            </label>
-            <label>
-              Incremento do lote
-              <input
-                type="number"
+          </label>
+          <label>
+            Incremento do lote
+            <input
+              type="number"
               min={0.01}
               step="0.01"
+              max={1}
               value={params.lotStep}
-              onChange={(e) => handleChange("lotStep", Number(e.target.value))}
+              onChange={(e) => handleChange("lotStep", clamp(Number(e.target.value), 0.0001, 1))}
             />
             <span className="helper compact">Passo de arredondamento (ex.: 0.01)</span>
           </label>
@@ -291,56 +331,59 @@ export default function Risk() {
 
         <div className="form-row">
             <label>
-              Limite de perda diário (%)
-              <input
-                type="number"
-                min={0}
-                step="0.1"
-                value={params.dailyLossPct}
-                onChange={(e) => handleChange("dailyLossPct", Number(e.target.value))}
-              />
-              <span className="helper compact">Percentual do saldo onde você para de operar no dia.</span>
-            </label>
-            <label>
-              Limite de perda semanal (%)
-              <input
-                type="number"
-                min={0}
-                step="0.1"
-                value={params.weeklyLossPct}
-                onChange={(e) => handleChange("weeklyLossPct", Number(e.target.value))}
-              />
-              <span className="helper compact">Limite acumulado da semana. Protege contra sequência ruim.</span>
-            </label>
-            <label>
-              Meta diária (%)
-              <input
-                type="number"
-                min={0}
-                step="0.1"
-                value={params.dailyGoalPct}
-                onChange={(e) => handleChange("dailyGoalPct", Number(e.target.value))}
-              />
-              <span className="helper compact">Lucro em % do saldo para reduzir risco ou encerrar o dia.</span>
-            </label>
-            <label>
-              Meta mensal (%)
-              <input
-                type="number"
-                min={0}
-                step="0.1"
-                value={params.monthlyGoalPct}
-                onChange={(e) => handleChange("monthlyGoalPct", Number(e.target.value))}
-              />
-              <span className="helper compact">Objetivo de mês. Ajuda a medir consistência.</span>
-            </label>
-          </div>
+            Limite de perda diário (%)
+            <input
+              type="number"
+              min={0}
+              step="0.1"
+              max={20}
+              value={params.dailyLossPct}
+              onChange={(e) => handleChange("dailyLossPct", clamp(Number(e.target.value), 0, 20))}
+            />
+            <span className="helper compact">Percentual do saldo onde você para de operar no dia.</span>
+          </label>
+          <label>
+            Limite de perda semanal (%)
+            <input
+              type="number"
+              min={0}
+              step="0.1"
+              max={40}
+              value={params.weeklyLossPct}
+              onChange={(e) => handleChange("weeklyLossPct", clamp(Number(e.target.value), 0, 40))}
+            />
+            <span className="helper compact">Limite acumulado da semana. Protege contra sequência ruim.</span>
+          </label>
+          <label>
+            Meta diária (%)
+            <input
+              type="number"
+              min={0}
+              step="0.1"
+              max={20}
+              value={params.dailyGoalPct}
+              onChange={(e) => handleChange("dailyGoalPct", clamp(Number(e.target.value), 0, 20))}
+            />
+            <span className="helper compact">Lucro em % do saldo para reduzir risco ou encerrar o dia.</span>
+          </label>
+          <label>
+            Meta mensal (%)
+            <input
+              type="number"
+              min={0}
+              step="0.1"
+              max={100}
+              value={params.monthlyGoalPct}
+              onChange={(e) => handleChange("monthlyGoalPct", clamp(Number(e.target.value), 0, 100))}
+            />
+            <span className="helper compact">Objetivo de mês. Ajuda a medir consistência.</span>
+          </label>
+        </div>
 
         <div className="risk-actions">
           <button type="button" className="secondary" onClick={resetDefaults}>
             Restaurar padrões
           </button>
-          <button type="button" onClick={() => applyPreset(pair)}>Aplicar preset do par</button>
         </div>
 
         <div className="risk-summary">
