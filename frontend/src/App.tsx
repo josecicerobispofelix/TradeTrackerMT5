@@ -18,6 +18,7 @@ const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Upload = lazy(() => import("./pages/Upload"));
 const History = lazy(() => import("./pages/History"));
 const Profile = lazy(() => import("./pages/Profile"));
+const Risk = lazy(() => import("./pages/Risk"));
 
 export default function App() {
   const MIN_PASSWORD_LEN = 6;
@@ -430,6 +431,7 @@ export default function App() {
             <Route path="/upload" element={<Upload />} />
             <Route path="/history" element={<History />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/risk" element={<Risk />} />
           </Routes>
         </Suspense>
       </main>

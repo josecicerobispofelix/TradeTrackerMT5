@@ -597,6 +597,71 @@ button:hover:not(:disabled) {
   }
 }
 
+.risk-panel .panel-header span {
+  max-width: 720px;
+}
+
+.risk-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  margin-top: 12px;
+}
+
+.risk-card {
+  background: linear-gradient(135deg, rgba(34, 211, 238, 0.08), rgba(56, 189, 248, 0.04));
+  border: 1px solid rgba(34, 211, 238, 0.2);
+  border-radius: 14px;
+  padding: 14px;
+  display: grid;
+  gap: 6px;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.25);
+}
+
+.risk-title {
+  font-size: 12px;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.risk-value {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.risk-list {
+  display: grid;
+  gap: 6px;
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.risk-note {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.risk-actions {
+  margin: 12px 0 4px;
+  display: flex;
+  gap: 10px;
+}
+
+.risk-checklist {
+  margin-top: 14px;
+}
+
+.risk-list.bullets {
+  list-style: disc;
+  padding-left: 18px;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
 .helper {
   color: var(--muted);
   font-size: 13px;
