@@ -4,6 +4,50 @@ type Currency = "USD" | "BRL";
 
 const STORAGE_KEY = "ttmt5_risk_params_v1";
 
+type PairPreset = {
+  symbol: string;
+  label: string;
+  pipValuePerLot: number; // valor do pip em USD para 1.00 lote
+  defaultStop: number;
+  minLot?: number;
+  note?: string;
+};
+
+const PAIR_PRESETS: PairPreset[] = [
+  {
+    symbol: "XAUUSD",
+    label: "XAUUSD (ouro)",
+    pipValuePerLot: 1,
+    defaultStop: 200,
+    minLot: 0.01,
+    note: "Ouro é volátil: teste 0,5–1% de risco e stops 200–400 pips."
+  },
+  {
+    symbol: "EURUSD",
+    label: "EURUSD",
+    pipValuePerLot: 10,
+    defaultStop: 35,
+    minLot: 0.01,
+    note: "Par major; 0,25–1% de risco; stops 20–50 pips."
+  },
+  {
+    symbol: "USDJPY",
+    label: "USDJPY",
+    pipValuePerLot: 9,
+    defaultStop: 40,
+    minLot: 0.01,
+    note: "JPY reage a notícias; stops 30–60 pips."
+  },
+  {
+    symbol: "GBPUSD",
+    label: "GBPUSD",
+    pipValuePerLot: 10,
+    defaultStop: 45,
+    minLot: 0.01,
+    note: "Volatilidade média-alta; stops 30–60 pips."
+  }
+];
+
 type RiskParams = {
   balance: number;
   currency: Currency;
@@ -60,6 +104,7 @@ function formatCurrency(value: number, currency: Currency) {
 
 export default function Risk() {
   const [params, setParams] = useState<RiskParams>(() => loadParams());
+  const [pair, setPair] = useState<PairPreset>(PAIR_PRESETS[0]);
 
   useEffect(() => {
     const sanitized = sanitizeParams(params);
@@ -88,6 +133,8 @@ export default function Risk() {
 
     const maxConsecutiveLoss =
       riskTrade > 0 ? Math.floor(dailyLoss / riskTrade) || 1 : 0;
+    const tradesUntilDailyLimit =
+      riskTrade > 0 ? Math.max(Math.floor(dailyLoss / riskTrade), 0) : 0;
 
     return {
       balance,
@@ -98,7 +145,8 @@ export default function Risk() {
       monthlyGoal,
       lot,
       lotRounded,
-      maxConsecutiveLoss
+      maxConsecutiveLoss,
+      tradesUntilDailyLimit
     };
   }, [params]);
 
@@ -121,6 +169,23 @@ export default function Risk() {
 
   const resetDefaults = () => setParams(defaultParams);
 
+  const applyPreset = (preset: PairPreset) => {
+    setPair(preset);
+    setParams((prev) =>
+      sanitizeParams({
+        ...prev,
+        stopDistance: preset.defaultStop,
+        valuePerPoint: preset.pipValuePerLot,
+        minLot: preset.minLot ?? prev.minLot
+      })
+    );
+  };
+
+  const handlePairChange = (symbol: string) => {
+    const preset = PAIR_PRESETS.find((p) => p.symbol === symbol);
+    if (preset) applyPreset(preset);
+  };
+
   return (
     <div className="section">
       <div className="hero">
@@ -141,6 +206,20 @@ export default function Risk() {
         </div>
 
         <div className="form-row">
+          <label>
+            Par / Preset
+            <select value={pair.symbol} onChange={(e) => handlePairChange(e.target.value)}>
+              {PAIR_PRESETS.map((p) => (
+                <option key={p.symbol} value={p.symbol}>
+                  {p.label}
+                </option>
+              ))}
+            </select>
+            <span className="helper compact">
+              Pip (1 lote): US${pair.pipValuePerLot.toFixed(2)} • Stop sugerido: {pair.defaultStop} pips{" "}
+              {pair.note ? `• ${pair.note}` : ""}
+            </span>
+          </label>
           <label>
             Saldo da conta (USD)
             <input
@@ -182,7 +261,9 @@ export default function Risk() {
               value={params.valuePerPoint}
               onChange={(e) => handleChange("valuePerPoint", Number(e.target.value))}
             />
-            <span className="helper compact">Ex.: 0,10 ≈ US$0.10 por pip em par major</span>
+            <span className="helper compact">
+              Valor do pip para 1.00 lote. Ex.: EURUSD ≈ 10; XAUUSD ≈ 1; USDJPY ≈ 9.
+            </span>
           </label>
           <label>
             Lote mínimo
@@ -259,6 +340,34 @@ export default function Risk() {
           <button type="button" className="secondary" onClick={resetDefaults}>
             Restaurar padrões
           </button>
+          <button type="button" onClick={() => applyPreset(pair)}>Aplicar preset do par</button>
+        </div>
+
+        <div className="risk-summary">
+          <div>
+            <span className="pill">Par</span>
+            <strong>{pair.symbol}</strong>
+          </div>
+          <div>
+            <span className="pill">Risco por trade</span>
+            <strong>{formatCurrency(riskValues.riskTrade, params.currency)}</strong>
+          </div>
+          <div>
+            <span className="pill">Stop</span>
+            <strong>{params.stopDistance} pips</strong>
+          </div>
+          <div>
+            <span className="pill">Valor do pip</span>
+            <strong>US${pair.pipValuePerLot.toFixed(2)} / lote</strong>
+          </div>
+          <div>
+            <span className="pill">Lote sugerido</span>
+            <strong>{riskValues.lotRounded.toFixed(3)}</strong>
+          </div>
+          <div>
+            <span className="pill">Trades até limite diário</span>
+            <strong>{riskValues.tradesUntilDailyLimit || 0}</strong>
+          </div>
         </div>
 
         <div className="risk-grid">
@@ -318,6 +427,23 @@ export default function Risk() {
             <li>Stop posicionado? Tamanho do lote respeitando o risco.</li>
             <li>Perdas acumuladas do dia abaixo do limite diário.</li>
             <li>Se bater meta diária, reduzir tamanho ou encerrar.</li>
+          </ul>
+        </div>
+
+        <div className="risk-formulas panel">
+          <div className="panel-header">
+            <h4>Fórmulas usadas</h4>
+            <span>Mostramos o cálculo para confiança e ajuste fino.</span>
+          </div>
+          <ul className="risk-list bullets">
+            <li>
+              Risco em $ = Saldo × (Risco% ÷ 100) → {formatCurrency(riskValues.riskTrade, params.currency)}
+            </li>
+            <li>
+              Lote = Risco $ ÷ (Stop pips × Valor/pip 1 lote) → {riskValues.lotRounded.toFixed(3)}
+            </li>
+            <li>Trades até limite diário = Limite diário $ ÷ Risco $ → {riskValues.tradesUntilDailyLimit}</li>
+            <li>Limite diário $ = Saldo × (Limite diário% ÷ 100) → {formatCurrency(riskValues.dailyLoss, params.currency)}</li>
           </ul>
         </div>
       </div>
