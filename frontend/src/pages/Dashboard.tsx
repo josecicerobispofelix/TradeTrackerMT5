@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useState } from "react";
 
 
 
@@ -545,6 +545,17 @@ function formatCurrency(value: number, currency: "USD" | "BRL") {
 
 
 }
+function formatCurrencySignAfterSymbol(value: number, currency: "USD" | "BRL") {
+  const safe = Number.isFinite(value) ? value : 0;
+  const prefix = currency === "USD" ? "US$" : "R$";
+  const formattedNumber = new Intl.NumberFormat("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(Math.abs(safe));
+  const signChunk = safe < 0 ? " -" : " ";
+  return `${prefix}${signChunk}${formattedNumber}`;
+}
+
 
 
 
@@ -7322,22 +7333,15 @@ export default function Dashboard() {
             <div className="heatmap-controls">
               <div className="heatmap-legend">
                 <div className="heatmap-legend-bar">
-                  <span className="legend-min">
-                    {heatmapMetric === "profit"
-                      ? (() => {
-                          const absVal = Math.abs(heatmapMinMax.min || 0);
-                          if (absVal === 0) return formatCurrency(0, currency);
-                          const formatter = new Intl.NumberFormat("pt-BR", {
-                            style: "currency",
-                            currency,
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                            signDisplay: "always"
-                          });
-                          return formatter.format(-absVal); // força sinal antes do símbolo
-                        })()
-                      : "0%"}
-                  </span>
+                    <span className="legend-min">
+                      {heatmapMetric === "profit"
+                        ? (() => {
+                            const minVal = heatmapMinMax.min || 0;
+                            if (minVal === 0) return formatCurrency(0, currency);
+                            return formatCurrencySignAfterSymbol(minVal, currency);
+                          })()
+                        : "0%"}
+                    </span>
                   <div className="heatmap-legend-gradient">
                     <span className="heatmap-legend-zero">
                       {heatmapMetric === "profit" ? "0" : "50%"}

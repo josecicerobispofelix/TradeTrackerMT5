@@ -14,6 +14,8 @@ type RiskParams = {
   monthlyGoalPct: number;
   stopDistance: number;
   valuePerPoint: number;
+  minLot: number;
+  lotStep: number;
 };
 
 const defaultParams: RiskParams = {
@@ -25,7 +27,9 @@ const defaultParams: RiskParams = {
   dailyGoalPct: 1,
   monthlyGoalPct: 8,
   stopDistance: 200,
-  valuePerPoint: 0.1
+  valuePerPoint: 0.1,
+  minLot: 0.01,
+  lotStep: 0.01
 };
 
 function loadParams(): RiskParams {
@@ -33,10 +37,17 @@ function loadParams(): RiskParams {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (!stored) return defaultParams;
     const parsed = JSON.parse(stored) as Partial<RiskParams>;
-    return { ...defaultParams, ...parsed };
+    return sanitizeParams({ ...defaultParams, ...parsed });
   } catch {
     return defaultParams;
   }
+}
+
+function sanitizeParams(params: RiskParams): RiskParams {
+  const minLot = Math.max(params.minLot ?? 0.01, 0.01);
+  const lotStep = Math.max(params.lotStep ?? 0.01, 0.01);
+  const balance = Number.isFinite(params.balance) ? params.balance : defaultParams.balance;
+  return { ...params, currency: "USD", minLot, lotStep, balance };
 }
 
 function formatCurrency(value: number, currency: Currency) {
@@ -51,7 +62,8 @@ export default function Risk() {
   const [params, setParams] = useState<RiskParams>(() => loadParams());
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(params));
+    const sanitized = sanitizeParams(params);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(sanitized));
   }, [params]);
 
   const riskValues = useMemo(() => {
@@ -67,6 +79,13 @@ export default function Risk() {
         ? riskTrade / (params.stopDistance * params.valuePerPoint)
         : 0;
 
+    const step = Math.max(params.lotStep, 0.0001);
+    let lotRounded = 0;
+    if (lot > 0) {
+      lotRounded = Math.round(lot / step) * step;
+      if (lotRounded < params.minLot) lotRounded = params.minLot;
+    }
+
     const maxConsecutiveLoss =
       riskTrade > 0 ? Math.floor(dailyLoss / riskTrade) || 1 : 0;
 
@@ -78,15 +97,26 @@ export default function Risk() {
       dailyGoal,
       monthlyGoal,
       lot,
+      lotRounded,
       maxConsecutiveLoss
     };
   }, [params]);
 
   const handleChange = (field: keyof RiskParams, value: number | string) => {
-    setParams((prev) => ({
-      ...prev,
-      [field]: typeof value === "string" ? value : Number.isFinite(value) ? value : 0
-    }));
+    if (field === "balance") {
+      setParams((prev) => {
+        const numeric = Number.isFinite(value as number) ? (value as number) : 0;
+        return sanitizeParams({ ...prev, balance: numeric });
+      });
+      return;
+    }
+
+    setParams((prev) =>
+      sanitizeParams({
+        ...prev,
+        [field]: typeof value === "string" ? value : Number.isFinite(value) ? value : 0
+      })
+    );
   };
 
   const resetDefaults = () => setParams(defaultParams);
@@ -109,32 +139,13 @@ export default function Risk() {
 
         <div className="form-row">
           <label>
-            Saldo da conta ({params.currency})
+            Saldo da conta (USD)
             <input
               type="number"
               min={0}
               value={params.balance}
               onChange={(e) => handleChange("balance", Number(e.target.value))}
             />
-          </label>
-          <label>
-            Moeda
-            <div className="toggle-row">
-              <button
-                type="button"
-                className={`chip ${params.currency === "USD" ? "active" : ""}`}
-                onClick={() => handleChange("currency", "USD")}
-              >
-                USD
-              </button>
-              <button
-                type="button"
-                className={`chip ${params.currency === "BRL" ? "active" : ""}`}
-                onClick={() => handleChange("currency", "BRL")}
-              >
-                BRL
-              </button>
-            </div>
           </label>
           <label>
             Risco por trade (%)
@@ -165,6 +176,29 @@ export default function Risk() {
               value={params.valuePerPoint}
               onChange={(e) => handleChange("valuePerPoint", Number(e.target.value))}
             />
+            <span className="helper compact">Ex.: 0,10 ≈ US$0.10 por pip em par major</span>
+          </label>
+          <label>
+            Lote mínimo
+            <input
+              type="number"
+              min={0.01}
+              step="0.01"
+              value={params.minLot}
+              onChange={(e) => handleChange("minLot", Number(e.target.value))}
+            />
+            <span className="helper compact">Ex.: Tickmill Raw começa em 0.01</span>
+          </label>
+          <label>
+            Incremento do lote
+            <input
+              type="number"
+              min={0.01}
+              step="0.01"
+              value={params.lotStep}
+              onChange={(e) => handleChange("lotStep", Number(e.target.value))}
+            />
+            <span className="helper compact">Passo de arredondamento (ex.: 0.01)</span>
           </label>
         </div>
 
@@ -248,11 +282,17 @@ export default function Risk() {
           <div className="risk-card">
             <div className="risk-title">Tamanho do lote sugerido</div>
             <div className="risk-value">
-              {riskValues.lot > 0 ? `${riskValues.lot.toFixed(3)} lote(s)` : "--"}
+              {riskValues.lot > 0
+                ? `${riskValues.lotRounded.toFixed(3)} lote(s)` +
+                  (riskValues.lotRounded > params.minLot
+                    ? ` (cálculo: ${riskValues.lot.toFixed(3)})`
+                    : " (mínimo da corretora)")
+                : "--"}
             </div>
             <div className="risk-note">
-              Calculado com base no risco por trade, stop de {params.stopDistance} pts e valor por
-              ponto de {formatCurrency(params.valuePerPoint, params.currency)}.
+              Calculado com base no risco por trade, stop de {params.stopDistance} pts, valor por
+              ponto de {formatCurrency(params.valuePerPoint, params.currency)} e lote mínimo de{" "}
+              {params.minLot.toFixed(2)}.
             </div>
           </div>
         </div>
