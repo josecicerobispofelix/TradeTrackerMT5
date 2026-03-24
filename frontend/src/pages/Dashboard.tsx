@@ -1451,11 +1451,35 @@ function computeMetrics(
 
   const streaks = calculateStreaks(trades, getProfitValue);
 
+  // Novas metricas para day trader
+  const avgDurationMin: number = trades.length > 0
+    ? Math.round(trades.reduce((sum, t) =>
+        sum + (new Date(t.close_time).getTime() - new Date(t.open_time).getTime()), 0)
+        / trades.length / 60000)
+    : 0;
 
+  const totalTradingDays = dailyMap.size;
+  const profitableDaysCount = Array.from(dailyMap.values()).filter(d => d.net > 0).length;
+  const profitableDaysPct: number = totalTradingDays > 0 ? profitableDaysCount / totalTradingDays : 0;
 
+  const breakevenWinRate: number = payoff > 0 ? 1 / (1 + payoff) : 0.5;
 
+  const tradedDaysList = dayOfWeek.filter(d => d.trades > 0);
+  const bestDay = tradedDaysList.length > 0
+    ? tradedDaysList.reduce((b, d) => d.net > b.net ? d : b)
+    : null;
+  const worstDay = tradedDaysList.length > 0
+    ? tradedDaysList.reduce((w, d) => d.net < w.net ? d : w)
+    : null;
 
-
+  const hourAggData: { hour: number; net: number; trades: number }[] = [];
+  for (let h = 0; h < 24; h++) {
+    let hNet = 0, hTrades = 0;
+    for (let dw = 0; dw < 7; dw++) { hNet += heatmap[dw][h]; hTrades += heatmapCount[dw][h]; }
+    if (hTrades > 0) hourAggData.push({ hour: h, net: hNet, trades: hTrades });
+  }
+  const bestHour = hourAggData.length > 0 ? hourAggData.reduce((b, h) => h.net > b.net ? h : b) : null;
+  const worstHour = hourAggData.length > 0 ? hourAggData.reduce((w, h) => h.net < w.net ? h : w) : null;
 
   return {
 
@@ -1547,7 +1571,14 @@ function computeMetrics(
 
 
 
-    streakLoss: streaks.maxLoss
+    streakLoss: streaks.maxLoss,
+    avgDurationMin,
+    profitableDaysPct,
+    breakevenWinRate,
+    bestDay,
+    worstDay,
+    bestHour,
+    worstHour
 
 
 
@@ -1582,6 +1613,8 @@ export default function Dashboard() {
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
 
+
+  const [clockNow, setClockNow] = useState(new Date());
 
   const [from, setFrom] = useState(toDateInput(startOfMonth));
 
@@ -1864,6 +1897,11 @@ export default function Dashboard() {
 
 
 
+
+  useEffect(() => {
+    const timer = setInterval(() => setClockNow(new Date()), 60000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
 
@@ -4688,6 +4726,128 @@ export default function Dashboard() {
 
 
 
+
+          {/* ── Relógio de Mercado ───────────────────────────────────── */}
+          {(() => {
+            const tzOff = (tz: string): number => {
+              const utc = new Date(clockNow.toLocaleString('en-US', { timeZone: 'UTC' }));
+              const loc = new Date(clockNow.toLocaleString('en-US', { timeZone: tz }));
+              return Math.round((loc.getTime() - utc.getTime()) / 3600000);
+            };
+
+            const londonOff = tzOff('Europe/London');
+            const nyOff     = tzOff('America/New_York');
+            const sydneyOff = tzOff('Australia/Sydney');
+
+            const toBRT = (lh: number, off: number) => ((lh - off - 3) % 24 + 24) % 24;
+
+            const sydS = toBRT(8,  sydneyOff);
+            const sydE = toBRT(17, sydneyOff);
+            const tokS = 21;
+            const tokE = 6;
+            const lonS = toBRT(7,  londonOff);
+            const lonE = toBRT(16, londonOff);
+            const nyS  = toBRT(8,  nyOff);
+            const nyE  = toBRT(17, nyOff);
+            const ovS  = Math.max(lonS, nyS);
+            const ovE  = Math.min(lonE, nyE);
+
+            const h   = clockNow.getHours();
+            const min = clockNow.getMinutes();
+            const dow = clockNow.getDay();
+
+            const pad = (n: number) => String(n).padStart(2, '0');
+            const timeStr = `${pad(h)}:${pad(min)}`;
+
+            const isOpenRange = (s: number, e: number) =>
+              s < e ? h >= s && h < e : h >= s || h < e;
+
+            const forexOpen =
+              dow !== 6 &&
+              !(dow === 0 && h < sydS) &&
+              !(dow === 5 && h >= nyE);
+
+            const sessions = [
+              { name: 'Sydney',    emoji: '🦘', start: sydS, end: sydE, color: '#22c55e',
+                desc: 'Asiática' },
+              { name: 'Tóquio',    emoji: '🗼', start: tokS, end: tokE, color: '#22c55e',
+                desc: 'Asiática' },
+              { name: 'Londres',   emoji: '🎡', start: lonS, end: lonE, color: '#3b82f6',
+                desc: londonOff === 1 ? 'Europeia • BST' : 'Europeia • GMT' },
+              { name: 'Nova York', emoji: '🗽', start: nyS,  end: nyE,  color: '#ef4444',
+                desc: nyOff === -4   ? 'Americana • EDT' : 'Americana • EST' },
+            ];
+
+            const overlapOpen = forexOpen && ovS < ovE && isOpenRange(ovS, ovE);
+
+            // Minutos até a próxima abertura de uma hora (BRT)
+            const minsTo = (startH: number) => {
+              const sm = startH * 60, nm = h * 60 + min;
+              return sm > nm ? sm - nm : 24 * 60 - nm + sm;
+            };
+            const fmt = (startH: number) => {
+              const m = minsTo(startH);
+              if (m < 60) return `em ${m}min`;
+              const hh = Math.floor(m / 60), mm = m % 60;
+              return mm > 0 ? `em ${hh}h${pad(mm)}` : `em ${hh}h`;
+            };
+            type Candidate = { key: string; startH: number; open: boolean };
+            const candidates: Candidate[] = [
+              ...sessions.map(s => ({ key: s.name, startH: s.start, open: forexOpen && isOpenRange(s.start, s.end) })),
+              { key: 'overlap', startH: ovS, open: overlapOpen },
+            ];
+            const closed = candidates.filter(c => !c.open);
+            const nextKey = closed.length > 0
+              ? closed.reduce((b, c) => minsTo(c.startH) < minsTo(b.startH) ? c : b).key
+              : null;
+
+            return (
+              <div className="panel market-clock-panel">
+                <div className="panel-header">
+                  <h4>🕒 Horário de mercado</h4>
+                  <span style={{ fontVariantNumeric: 'tabular-nums', fontSize: '15px', fontWeight: 700, opacity: 0.9 }}>
+                    {timeStr} BRT  
+                    <span style={{ fontSize: '12px', fontWeight: 600, color: forexOpen ? 'var(--accent)' : '#94a3b8' }}>
+                      {forexOpen ? '● Forex aberto' : '● Forex fechado'}
+                    </span>
+                  </span>
+                </div>
+
+                <div className="market-sessions">
+                  {sessions.map(s => {
+                    const open = forexOpen && isOpenRange(s.start, s.end);
+                    const isNext = !open && nextKey === s.name;
+                    return (
+                      <div key={s.name} className={`market-session ${open ? 'open' : 'closed'}${isNext ? ' next' : ''}`}>
+                        <div className="ms-header">
+                          <span className="ms-flag">{s.emoji}</span>
+                          <span className="ms-name">{s.name}</span>
+                          <span className="ms-badge" style={{ background: open ? s.color + '33' : isNext ? 'rgba(251,191,36,0.15)' : undefined, color: open ? s.color : isNext ? '#fbbf24' : undefined }}>
+                            {open ? 'aberto' : isNext ? 'próximo' : 'fechado'}
+                          </span>
+                        </div>
+                        <div className="ms-hours">{s.start}h → {s.end}h</div>
+                        <div className="ms-desc">{open ? s.desc : isNext ? fmt(s.start) : s.desc}</div>
+                      </div>
+                    );
+                  })}
+
+                  <div className={`market-session overlap ${overlapOpen ? 'open' : 'closed'}${nextKey === 'overlap' ? ' next' : ''}`}>
+                    <div className="ms-header">
+                      <span className="ms-flag">🔥</span>
+                      <span className="ms-name">Londres + NY</span>
+                      <span className="ms-badge" style={{ background: overlapOpen ? '#f59e0b33' : 'rgba(148,163,184,0.1)', color: overlapOpen ? '#f59e0b' : '#94a3b8' }}>
+                        {overlapOpen ? 'AGORA' : fmt(ovS)}
+                      </span>
+                    </div>
+                    <div className="ms-hours">{ovS}h → {ovE}h</div>
+                    <div className="ms-desc">Melhor horário • +50% do volume</div>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
           {error ? <div className="panel">Erro: {error}</div> : null}
 
 
@@ -4764,7 +4924,13 @@ export default function Dashboard() {
 
 
 
-              <div className="card-value">{formatNumber(metrics.profitFactor, 2)}</div>
+              <div className="card-value">{formatNumber(metrics.profitFactor, 2)}
+                <span style={{
+                  marginLeft: 6, fontSize: '11px', fontWeight: 700,
+                  color: metrics.profitFactor >= 1.5 ? 'var(--accent)' : metrics.profitFactor >= 1.0 ? '#f59e0b' : '#ef4444'
+                }}>
+                  {metrics.profitFactor >= 1.5 ? 'otimo' : metrics.profitFactor >= 1.0 ? 'ok' : 'ruim'}
+                </span></div>
 
 
 
@@ -4891,7 +5057,13 @@ export default function Dashboard() {
 
 
 
-              <div className="card-value">{formatNumber(metrics.payoff, 2)}</div>
+              <div className="card-value">{formatNumber(metrics.payoff, 2)}
+                <span style={{
+                  marginLeft: 6, fontSize: '11px', fontWeight: 700,
+                  color: metrics.payoff >= 1.5 ? 'var(--accent)' : metrics.payoff >= 1.0 ? '#f59e0b' : '#ef4444'
+                }}>
+                  {metrics.payoff >= 1.5 ? 'otimo' : metrics.payoff >= 1.0 ? 'ok' : 'ruim'}
+                </span></div>
 
 
 
@@ -4964,9 +5136,117 @@ export default function Dashboard() {
 
 
 
+          
+
+            <div
+              className="card small"
+              title="Tempo medio entre abertura e fechamento de cada operacao."
+            >
+              <div className="card-title">Duracao media</div>
+              <div className="card-value">
+                {metrics.avgDurationMin < 60
+                  ? `${metrics.avgDurationMin}min`
+                  : `${Math.floor(metrics.avgDurationMin / 60)}h ${metrics.avgDurationMin % 60}min`}
+              </div>
+            </div>
+
+            <div
+              className="card small"
+              title="Percentual de dias operados com resultado positivo. Acima de 60% indica boa consistencia."
+            >
+              <div className="card-title">Dias lucrativos</div>
+              <div className="card-value" style={{
+                color: metrics.profitableDaysPct >= 0.6 ? 'var(--accent)' : metrics.profitableDaysPct >= 0.4 ? '#f59e0b' : '#ef4444'
+              }}>
+                {formatPercent(metrics.profitableDaysPct)}
+              </div>
+            </div>
+
+            <div
+              className="card small"
+              title="Taxa de acerto minima para a estrategia ser lucrativa dado o payoff atual. Se sua taxa real for menor, voce perde no longo prazo."
+            >
+              <div className="card-title">Breakeven</div>
+              <div className="card-value" style={{
+                color: metrics.winRate >= metrics.breakevenWinRate ? 'var(--accent)' : '#ef4444'
+              }}>
+                {formatPercent(metrics.breakevenWinRate)}
+                <span style={{ fontSize: '11px', opacity: 0.7, marginLeft: 4 }}>
+                  {metrics.winRate >= metrics.breakevenWinRate ? 'ok' : 'atencao'}
+                </span>
+              </div>
+            </div>
+</div>
+
+
+
+
+          <div className="panel insights-panel">
+            <div className="panel-header">
+              <h4>Insights da estrategia</h4>
+              <span>Pontos fortes e fracos identificados automaticamente nos seus dados.</span>
+            </div>
+            <div className="insights-grid">
+              <div className="insight-card">
+                <div className="insight-label">Melhor dia</div>
+                <div className="insight-value text-success">
+                  {metrics.bestDay ? metrics.bestDay.label : '—'}
+                </div>
+                <div className="insight-sub">
+                  {metrics.bestDay ? formatCurrency(metrics.bestDay.net, currency) : 'Sem dados'}
+                </div>
+              </div>
+              <div className="insight-card">
+                <div className="insight-label">Pior dia</div>
+                <div className="insight-value text-danger">
+                  {metrics.worstDay ? metrics.worstDay.label : '—'}
+                </div>
+                <div className="insight-sub">
+                  {metrics.worstDay ? formatCurrency(metrics.worstDay.net, currency) : 'Sem dados'}
+                </div>
+              </div>
+              <div className="insight-card">
+                <div className="insight-label">Melhor horario</div>
+                <div className="insight-value text-success">
+                  {metrics.bestHour != null ? `${metrics.bestHour.hour}h` : '—'}
+                </div>
+                <div className="insight-sub">
+                  {metrics.bestHour != null ? formatCurrency(metrics.bestHour.net, currency) : 'Sem dados'}
+                </div>
+              </div>
+              <div className="insight-card">
+                <div className="insight-label">Pior horario</div>
+                <div className="insight-value text-danger">
+                  {metrics.worstHour != null ? `${metrics.worstHour.hour}h` : '—'}
+                </div>
+                <div className="insight-sub">
+                  {metrics.worstHour != null ? formatCurrency(metrics.worstHour.net, currency) : 'Sem dados'}
+                </div>
+              </div>
+              <div className="insight-card">
+                <div className="insight-label">Taxa de acerto</div>
+                <div className="insight-value" style={{
+                  color: metrics.winRate >= metrics.breakevenWinRate ? 'var(--accent)' : '#ef4444'
+                }}>
+                  {formatPercent(metrics.winRate)}
+                </div>
+                <div className="insight-sub">
+                  {metrics.winRate >= metrics.breakevenWinRate
+                    ? `Acima do minimo (${formatPercent(metrics.breakevenWinRate)})`
+                    : `Abaixo do minimo (${formatPercent(metrics.breakevenWinRate)})`}
+                </div>
+              </div>
+              <div className="insight-card">
+                <div className="insight-label">Consistencia</div>
+                <div className="insight-value" style={{
+                  color: metrics.profitableDaysPct >= 0.6 ? 'var(--accent)' : metrics.profitableDaysPct >= 0.4 ? '#f59e0b' : '#ef4444'
+                }}>
+                  {formatPercent(metrics.profitableDaysPct)}
+                </div>
+                <div className="insight-sub">dias positivos</div>
+              </div>
+            </div>
           </div>
-
-
 
           <div className="panel-grid">
 
@@ -5188,986 +5468,6 @@ export default function Dashboard() {
 
 
 
-
-
-
-            <div className="panel">
-
-
-
-              <div className="panel-header">
-
-
-
-                <h4>Taxa USD/BRL</h4>
-
-
-
-                <span>Use a taxa diária para converter resultados em BRL.</span>
-
-
-
-              </div>
-
-
-
-              <div className="form-row">
-
-
-
-                <label>
-
-
-
-                  Data
-
-
-
-                  <input
-
-
-
-                    type="date"
-
-
-
-                    value={fxDate}
-
-
-
-                    onChange={(event) => setFxDate(event.target.value)}
-
-
-
-                  />
-
-
-
-                </label>
-
-
-
-                <label>
-
-
-
-                  USD/BRL
-
-
-
-                  <input
-
-
-
-                    type="number"
-
-
-
-                    step="0.0001"
-
-
-
-                    value={fxRateInput}
-
-
-
-                    onChange={(event) => setFxRateInput(event.target.value)}
-
-
-
-                  />
-
-
-
-                </label>
-
-
-
-                <button type="button" onClick={handleSaveFx} disabled={fxLoading}>
-
-
-
-                  {fxLoading ? "Salvando..." : "Salvar taxa"}
-
-
-
-                </button>
-
-
-
-                <button
-
-
-
-                  type="button"
-
-
-
-                  className="secondary"
-
-
-
-                  onClick={handleAutoFx}
-
-
-
-                  disabled={fxLoading}
-
-
-
-                >
-
-
-
-                  Buscar automático
-
-
-
-                </button>
-
-
-
-              </div>
-
-
-
-              <div className="fx-status-row">
-                <span className="fx-hint">
-                  {fxStatus
-                    ? fxStatus
-                    : fxRate
-                      ? `Última taxa salva: ${fxRate.toFixed(4)}`
-                      : "Sem taxa definida"}
-                </span>
-                <span className="fx-hint">Cotação atualizada automaticamente.</span>
-              </div>
-
-              {fxHistory.length ? (
-                <div className="fx-stat-grid">
-                  <div className="fx-stat-card">
-                    <span className="fx-stat-label">Máxima (janela)</span>
-                    <span className="fx-stat-value">
-                      {fxStats.max != null ? fxStats.max.toFixed(4) : "--"}
-                    </span>
-                  </div>
-                  <div className="fx-stat-card">
-                    <span className="fx-stat-label">Mínima (janela)</span>
-                    <span className="fx-stat-value">
-                      {fxStats.min != null ? fxStats.min.toFixed(4) : "--"}
-                    </span>
-                  </div>
-                  <div className="fx-stat-card">
-                    <span className="fx-stat-label">Variação</span>
-                    <span
-                      className={`fx-stat-value ${fxStats.changeAbs != null && fxStats.changeAbs >= 0 ? "text-success" : "text-danger"}`}
-                    >
-                      {fxStats.changeAbs != null ? fxStats.changeAbs.toFixed(4) : "--"}{" "}
-                      {fxStats.changePct != null ? `(${fxStats.changePct.toFixed(2)}%)` : ""}
-                    </span>
-                  </div>
-                </div>
-              ) : null}
-
-              <div className="chart-body fx-chart" style={{ height: 200, marginTop: 16 }}>
-
-
-
-                <ResponsiveContainer width="100%" height="100%">
-
-
-
-                  <LineChart data={fxHistory}>
-
-
-
-                    <CartesianGrid stroke="rgba(148, 163, 184, 0.12)" />
-
-
-
-                    <XAxis
-
-
-
-                      dataKey="date"
-
-
-
-                      tick={{ fill: "#9aa4b2", fontSize: 11 }}
-
-
-
-                      tickFormatter={(value) =>
-
-
-
-                        new Intl.DateTimeFormat("pt-BR", {
-
-
-
-                          day: "2-digit",
-
-
-
-                          month: "2-digit"
-
-
-
-                        }).format(new Date(`${value}T00:00:00`))
-
-
-
-                      }
-
-
-
-                    />
-
-
-
-                    <YAxis
-
-
-
-                      tick={{ fill: "#9aa4b2", fontSize: 11 }}
-
-
-
-                      tickFormatter={(value) => value.toFixed(2)}
-
-
-
-                    />
-
-
-
-                    <Tooltip
-                      contentStyle={chartTooltipStyle}
-                      formatter={(value: number) => value.toFixed(4)}
-                      labelFormatter={(label) => {
-                        const date = new Date(`${label}T00:00:00`);
-                        return new Intl.DateTimeFormat("pt-BR", {
-                          day: "2-digit",
-                          month: "long",
-                          year: "numeric"
-                        }).format(date);
-                      }}
-                    />
-
-                    <defs>
-                      <linearGradient id="fxGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#38bdf8" stopOpacity={0.32} />
-                        <stop offset="100%" stopColor="#38bdf8" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-
-                    <Area
-                      type="monotone"
-                      dataKey="usd_brl_rate"
-                      stroke="none"
-                      fill="url(#fxGradient)"
-                      isAnimationActive
-                      animationDuration={700}
-                    />
-
-                    <Line
-
-
-
-                      type="monotone"
-
-
-
-                      dataKey="usd_brl_rate"
-
-
-
-                      stroke="#38bdf8"
-
-
-
-                      strokeWidth={2}
-
-
-
-                      dot={fxLineDot}
-
-
-
-                      isAnimationActive
-
-
-
-                      animationDuration={700}
-
-
-
-                      name="USD/BRL"
-
-
-
-                    />
-
-
-
-                  </LineChart>
-
-
-
-                </ResponsiveContainer>
-
-
-
-              </div>
-
-
-
-              {fxHistoryLoading ? (
-
-
-
-                <div className="helper">Carregando histórico...</div>
-
-
-
-              ) : fxHistory.length === 0 ? (
-
-
-
-                <div className="helper">
-
-
-
-                  Sem histórico recente. Salve uma taxa ou use "Buscar automático" para preencher o gráfico.
-
-
-
-                </div>
-
-
-
-              ) : null}
-
-
-
-            </div>
-
-
-
-            <div className="panel darf-panel">
-
-
-
-              <div className="panel-header">
-
-
-
-                <h4>DARF / Imposto</h4>
-
-
-
-                <span>Calcule o imposto do Mês e gere o PDF da DARF.</span>
-
-
-
-              </div>
-
-
-
-
-
-
-
-              <div
-
-
-
-                className={`darf-highlight ${currentDarf && currentDarf.tax_due > 0 ? "due" : "clear"}`}
-
-
-
-              >
-
-
-
-                {currentDarf ? (
-
-
-
-                  currentDarf.tax_due > 0 ? (
-
-
-
-                    <>
-
-
-
-                      <strong>Imposto a pagar:</strong>{" "}
-
-
-
-                      {formatCurrency(currentDarf.tax_due, "BRL")}  Alíquota {(
-
-
-
-                        currentDarf.tax_rate * 100
-
-
-
-                      ).toFixed(2)}%
-
-
-
-                    </>
-
-
-
-                  ) : (
-
-
-
-                    <>
-
-
-
-                      <strong>Sem imposto a pagar</strong>{" "}
-
-
-
-                      {`(${currentDarf.month.toString().padStart(2, "0")}/${currentDarf.year})`}
-
-
-
-                    </>
-
-
-
-                  )
-
-
-
-                ) : (
-
-
-
-                  <>Calcule para ver se há imposto.</>
-
-
-
-                )}
-
-
-
-              </div>
-
-
-
-
-
-
-
-              <div className="form-row">
-
-
-
-                <label>
-
-
-
-                  Mês
-
-
-
-                  <select
-
-
-
-                    value={darfMonth}
-
-
-
-                    onChange={(event) => setDarfMonth(Number(event.target.value))}
-
-
-
-                  >
-
-
-
-                    {Array.from({ length: 12 }, (_, idx) => idx + 1).map((month) => (
-
-
-
-                      <option key={month} value={month}>
-
-
-
-                        {month.toString().padStart(2, "0")}
-
-
-
-                      </option>
-
-
-
-                    ))}
-
-
-
-                  </select>
-
-
-
-                </label>
-
-
-
-                <label>
-
-
-
-                  Ano
-
-
-
-                  <input
-
-
-
-                    type="number"
-
-
-
-                    min="2000"
-
-
-
-                    max="2100"
-
-
-
-                    value={darfYear}
-
-
-
-                    onChange={(event) => setDarfYear(Number(event.target.value))}
-
-
-
-                  />
-
-
-
-                </label>
-
-
-
-                <label>
-
-
-
-                  USD/BRL (opcional)
-
-
-
-                  <input
-
-
-
-                    type="number"
-
-
-
-                    step="0.0001"
-
-
-
-                    value={darfFx}
-
-
-
-                    onChange={(event) => setDarfFx(event.target.value)}
-
-
-
-                  />
-
-
-
-                </label>
-
-
-
-                <label>
-
-
-
-                  Alíquota % (opcional)
-
-
-
-                  <input
-
-
-
-                    type="number"
-
-
-
-                    step="0.01"
-
-
-
-                    value={darfTax}
-
-
-
-                    onChange={(event) => setDarfTax(event.target.value)}
-
-
-
-                  />
-
-
-
-                </label>
-
-
-
-                <button type="button" onClick={handleCalcDarf} disabled={darfLoading}>
-
-
-
-                  {darfLoading ? "Calculando..." : "Calcular"}
-
-
-
-                </button>
-
-
-
-                <button
-
-
-
-                  type="button"
-
-
-
-                  className="secondary"
-
-
-
-                  onClick={handlePdfDarf}
-
-
-
-                  disabled={darfLoading}
-
-
-
-                >
-
-
-
-                  {darfLoading ? "Gerando..." : "Gerar PDF"}
-
-
-
-                </button>
-
-
-
-              </div>
-
-
-
-              {darfResult ? (
-
-
-
-                <div className="helper">
-
-
-
-                  {(() => {
-
-
-
-                    const monthLabel = `${darfResult.month.toString().padStart(2, "0")}/${darfResult.year}`;
-
-
-
-                    const brl = formatCurrency(Math.abs(darfResult.profit_brl), "BRL");
-
-
-
-                    const usd = formatCurrency(darfResult.profit_usd, "USD");
-
-
-
-                    const isProfit = darfResult.profit_brl >= 0;
-
-
-
-                    const resumo = `Fechamento ${monthLabel}: ${isProfit ? "lucro" : "prejuízo"} de ${brl} (${usd}).`;
-
-
-                    const aliquota = `Alíquota ${(darfResult.tax_rate * 100).toFixed(2)}%.`;
-
-
-                    const imposto =
-
-
-                      darfResult.tax_due > 0
-
-
-                        ? `Imposto devido: ${formatCurrency(darfResult.tax_due, "BRL")}.`
-
-
-                        : "Imposto devido: R$ 0,00. Nada a pagar neste mês.";
-
-
-
-
-
-                    let extraMessage = (darfResult.message || "").trim();
-
-
-                    const extraLower = extraMessage.toLowerCase();
-
-
-                    const mentionsNoTax = extraLower.includes("não há imposto a pagar");
-
-
-                    const mentionsProfile = extraLower.includes("perfil fiscal");
-
-
-                    if (darfResult.tax_due <= 0 && mentionsNoTax) {
-
-
-                      extraMessage = "";
-
-
-                    }
-
-
-                    if (hasFiscalProfile && mentionsProfile) {
-
-
-                      extraMessage = "";
-
-
-                    }
-
-
-
-
-
-                    const extra = extraMessage ? ` ${extraMessage}` : "";
-
-
-                    return `${resumo} ${aliquota} ${imposto}${extra}`;
-
-
-                  })()}
-
-
-                </div>
-
-
-              ) : null}
-
-
-
-              {darfStatus ? (
-                <div
-                  className="helper"
-                  title={darfStatus}
-                  style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
-                >
-                  {darfStatus}
-                </div>
-              ) : null}
-
-
-
-              {lastPdfPath ? (
-
-
-                <div
-                  className="helper compact"
-                  style={{
-                    display: "flex",
-                    gap: 8,
-                    alignItems: "center",
-                    marginTop: 16,
-                    justifyContent: "flex-start",
-                    alignSelf: "flex-start"
-                  }}
-                >
-
-
-                  <span
-                    style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
-                    title={lastPdfPath}
-                  >
-                    Último PDF: {lastPdfPath}
-                  </span>
-
-                  <button
-                    type="button"
-                    className="secondary"
-                    onClick={handleOpenPdfFolder}
-                    style={{ padding: "6px 10px", minWidth: "96px", fontSize: "12px" }}
-                  >
-                    Abrir pasta do PDF
-                  </button>
-
-                  <span title="PDF gerado com sucesso" aria-label="PDF gerado">✔</span>
-
-
-                </div>
-
-
-              ) : null}
-
-
-              {profileLoaded && !hasFiscalProfile ? (
-
-
-                <div className="helper">
-
-
-                  Preencha o perfil fiscal (no canto superior direito) para gerar a DARF.
-
-
-                </div>
-
-
-              ) : null}
-
-
-              {darfHistory.length ? (
-
-
-
-                <div className="table-wrap" style={{ marginTop: 12 }}>
-
-
-
-                  <table className="table">
-
-
-
-                    <thead>
-
-
-
-                      <tr>
-
-
-
-                        <th>Mês</th>
-
-
-
-                        <th className="th-num">Lucro BRL</th>
-
-
-
-                        <th className="th-num">Imposto</th>
-
-
-
-                        <th className="th-num">Câmbio</th>
-
-
-
-                        <th className="th-num">Alíquota</th>
-
-
-
-                        <th className="th-num">Trades</th>
-
-
-
-                      </tr>
-
-
-
-                    </thead>
-
-
-
-                    <tbody>
-
-
-
-                      {darfHistory.map((item) => (
-
-
-
-                        <tr key={`${item.year}-${item.month}`}>
-
-
-
-                          <td>{`${item.month.toString().padStart(2, "0")}/${item.year}`}</td>
-
-
-
-                          <td className="td-num">{formatCurrency(item.profit_brl, "BRL")}</td>
-
-
-
-                          <td className="td-num">{formatCurrency(item.tax_due, "BRL")}</td>
-
-
-
-                          <td className="td-num">{item.fx_rate.toFixed(4)}</td>
-
-
-
-                          <td className="td-num">{(item.tax_rate * 100).toFixed(2)}%</td>
-
-
-
-                          <td className="td-num">{item.trades_count}</td>
-
-
-
-                        </tr>
-
-
-
-                      ))}
-
-
-
-                    </tbody>
-
-
-
-                  </table>
-
-
-
-                </div>
-
-
-
-              ) : profileLoaded && !hasFiscalProfile ? (
-
-
-
-                <div className="helper">Nenhum cálculo salvo ainda.</div>
-
-
-
-              ) : null}
-
-
-
-            </div>
 
 
 

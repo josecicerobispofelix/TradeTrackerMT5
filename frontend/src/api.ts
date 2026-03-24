@@ -51,11 +51,31 @@ export type Trade = {
   fx_rate?: number | null;
   currency?: string | null;
   deal_id?: string | null;
+  note?: string | null;
 };
 
 export type TradeListResponse = {
   trades: Trade[];
   total: number;
+  page: number;
+  page_size: number;
+};
+
+export type TradeTotalsResponse = {
+  total_usd: number;
+  total_brl: number | null;
+  count: number;
+};
+
+export type TradeChartDay = {
+  date: string;
+  profit_usd: number;
+  cumulative_usd: number;
+  trades_count: number;
+};
+
+export type TradeChartResponse = {
+  daily: TradeChartDay[];
 };
 
 export type TradeMetaResponse = {
@@ -234,13 +254,86 @@ export async function fetchTrades(params: {
   to?: string;
   symbol?: string;
   account?: string;
+  page?: number;
+  page_size?: number;
+  sort_by?: string;
+  sort_dir?: "asc" | "desc";
 }): Promise<TradeListResponse> {
   const search = new URLSearchParams();
   if (params.from) search.append("from", params.from);
   if (params.to) search.append("to", params.to);
   if (params.symbol) search.append("symbol", params.symbol);
   if (params.account) search.append("account", params.account);
+  if (params.page) search.append("page", String(params.page));
+  if (params.page_size) search.append("page_size", String(params.page_size));
+  if (params.sort_by) search.append("sort_by", params.sort_by);
+  if (params.sort_dir) search.append("sort_dir", params.sort_dir);
   return apiFetch<TradeListResponse>(`/api/trades?${search.toString()}`);
+}
+
+export async function fetchTradeTotals(params: {
+  from?: string;
+  to?: string;
+  symbol?: string;
+  account?: string;
+}): Promise<TradeTotalsResponse> {
+  const search = new URLSearchParams();
+  if (params.from) search.append("from", params.from);
+  if (params.to) search.append("to", params.to);
+  if (params.symbol) search.append("symbol", params.symbol);
+  if (params.account) search.append("account", params.account);
+  return apiFetch<TradeTotalsResponse>(`/api/trades/totals?${search.toString()}`);
+}
+
+export async function fetchTradeChart(params: {
+  from?: string;
+  to?: string;
+  symbol?: string;
+  account?: string;
+}): Promise<TradeChartResponse> {
+  const search = new URLSearchParams();
+  if (params.from) search.append("from", params.from);
+  if (params.to) search.append("to", params.to);
+  if (params.symbol) search.append("symbol", params.symbol);
+  if (params.account) search.append("account", params.account);
+  return apiFetch<TradeChartResponse>(`/api/trades/chart?${search.toString()}`);
+}
+
+export async function updateTradeNote(tradeId: number, note: string | null): Promise<void> {
+  await apiFetch<{ ok: boolean }>(`/api/trades/${tradeId}/note`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ note }),
+  });
+}
+
+export async function downloadBackup(): Promise<Blob> {
+  const response = await fetch(`${API_URL}/api/backup/db`, { credentials: "include" });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || "Erro ao baixar backup");
+  }
+  return response.blob();
+}
+
+export async function exportTradesCsv(params: {
+  from?: string;
+  to?: string;
+  symbol?: string;
+  account?: string;
+}): Promise<Blob> {
+  const search = new URLSearchParams();
+  if (params.from) search.append("from", params.from);
+  if (params.to) search.append("to", params.to);
+  if (params.symbol) search.append("symbol", params.symbol);
+  if (params.account) search.append("account", params.account);
+  const response = await fetch(`${API_URL}/api/trades/export?${search.toString()}`, {
+    credentials: "include"
+  });
+  if (!response.ok) {
+    throw new Error("Erro ao exportar CSV");
+  }
+  return response.blob();
 }
 
 export async function fetchTradeMeta(params?: {

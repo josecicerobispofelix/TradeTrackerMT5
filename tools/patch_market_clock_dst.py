@@ -1,0 +1,126 @@
+# -*- coding: utf-8 -*-
+path = 'frontend/src/pages/Dashboard.tsx'
+with open(path, 'r', encoding='utf-8') as f:
+    content = f.read()
+
+START_MARKER = '          {/* \u2500\u2500 Rel\u00f3gio de Mercado'
+END_MARKER   = '          })()}'
+
+start_idx = content.find(START_MARKER)
+assert start_idx != -1, "Start marker not found"
+
+end_idx = content.find(END_MARKER, start_idx)
+assert end_idx != -1, "End marker not found"
+end_idx += len(END_MARKER)
+
+print(f"Replacing chars {start_idx}..{end_idx}")
+
+NEW = (
+    "          {/* \u2500\u2500 Rel\u00f3gio de Mercado \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */}\n"
+    "          {(() => {\n"
+    "            // UTC offset de um timezone no instante atual (ex: +1 para BST, -4 para EDT)\n"
+    "            const tzOff = (tz: string): number => {\n"
+    "              const utc = new Date(clockNow.toLocaleString('en-US', { timeZone: 'UTC' }));\n"
+    "              const loc = new Date(clockNow.toLocaleString('en-US', { timeZone: tz }));\n"
+    "              return Math.round((loc.getTime() - utc.getTime()) / 3600000);\n"
+    "            };\n"
+    "\n"
+    "            const londonOff = tzOff('Europe/London');    // 0=GMT  | 1=BST (mar\u00e7o-outubro)\n"
+    "            const nyOff     = tzOff('America/New_York'); // -5=EST | -4=EDT (mar\u00e7o-novembro)\n"
+    "            const sydneyOff = tzOff('Australia/Sydney'); // +10=AEST | +11=AEDT (outubro-abril)\n"
+    "\n"
+    "            // Converte hora local de um fuso para BRT (UTC-3, fixo desde 2019)\n"
+    "            const toBRT = (lh: number, off: number) => ((lh - off - 3) % 24 + 24) % 24;\n"
+    "\n"
+    "            const sydS = toBRT(8,  sydneyOff);\n"
+    "            const sydE = toBRT(17, sydneyOff);\n"
+    "            const tokS = 21; // T\u00f3quio JST UTC+9, sem DST\n"
+    "            const tokE = 6;\n"
+    "            const lonS = toBRT(7,  londonOff);\n"
+    "            const lonE = toBRT(16, londonOff);\n"
+    "            const nyS  = toBRT(8,  nyOff);\n"
+    "            const nyE  = toBRT(17, nyOff);\n"
+    "            const ovS  = Math.max(lonS, nyS);\n"
+    "            const ovE  = Math.min(lonE, nyE);\n"
+    "\n"
+    "            const h   = clockNow.getHours();\n"
+    "            const min = clockNow.getMinutes();\n"
+    "            const dow = clockNow.getDay();\n"
+    "\n"
+    "            const pad = (n: number) => String(n).padStart(2, '0');\n"
+    "            const timeStr = `${pad(h)}:${pad(min)}`;\n"
+    "\n"
+    "            const isOpenRange = (s: number, e: number) =>\n"
+    "              s < e ? h >= s && h < e : h >= s || h < e;\n"
+    "\n"
+    "            const forexOpen =\n"
+    "              dow !== 6 &&\n"
+    "              !(dow === 0 && h < sydS) &&\n"
+    "              !(dow === 5 && h >= nyE);\n"
+    "\n"
+    "            const sessions = [\n"
+    "              { name: 'Sydney',    emoji: '\U0001F998', start: sydS, end: sydE, color: '#22c55e',\n"
+    "                desc: 'Asi\u00e1tica' },\n"
+    "              { name: 'T\u00f3quio',    emoji: '\U0001F5FC', start: tokS, end: tokE, color: '#22c55e',\n"
+    "                desc: 'Asi\u00e1tica' },\n"
+    "              { name: 'Londres',   emoji: '\U0001F3A1', start: lonS, end: lonE, color: '#3b82f6',\n"
+    "                desc: londonOff === 1 ? 'Europeia \u2022 BST' : 'Europeia \u2022 GMT' },\n"
+    "              { name: 'Nova York', emoji: '\U0001F5FD', start: nyS,  end: nyE,  color: '#ef4444',\n"
+    "                desc: nyOff === -4   ? 'Americana \u2022 EDT' : 'Americana \u2022 EST' },\n"
+    "            ];\n"
+    "\n"
+    "            const overlapOpen = forexOpen && ovS < ovE && isOpenRange(ovS, ovE);\n"
+    "\n"
+    "            return (\n"
+    "              <div className=\"panel market-clock-panel\">\n"
+    "                <div className=\"panel-header\">\n"
+    "                  <h4>\U0001F552 Hor\u00e1rio de mercado</h4>\n"
+    "                  <span style={{ fontVariantNumeric: 'tabular-nums', fontSize: '15px', fontWeight: 700, opacity: 0.9 }}>\n"
+    "                    {timeStr} BRT\u00a0\u00a0\n"
+    "                    <span style={{ fontSize: '12px', fontWeight: 600, color: forexOpen ? 'var(--accent)' : '#94a3b8' }}>\n"
+    "                      {forexOpen ? '\u25cf Forex aberto' : '\u25cf Forex fechado'}\n"
+    "                    </span>\n"
+    "                  </span>\n"
+    "                </div>\n"
+    "\n"
+    "                <div className=\"market-sessions\">\n"
+    "                  {sessions.map(s => {\n"
+    "                    const open = forexOpen && isOpenRange(s.start, s.end);\n"
+    "                    return (\n"
+    "                      <div key={s.name} className={`market-session ${open ? 'open' : 'closed'}`}>\n"
+    "                        <div className=\"ms-header\">\n"
+    "                          <span className=\"ms-flag\">{s.emoji}</span>\n"
+    "                          <span className=\"ms-name\">{s.name}</span>\n"
+    "                          <span className=\"ms-badge\" style={{ background: open ? s.color + '33' : undefined, color: open ? s.color : undefined }}>\n"
+    "                            {open ? 'aberto' : 'fechado'}\n"
+    "                          </span>\n"
+    "                        </div>\n"
+    "                        <div className=\"ms-hours\">{s.start}h \u2192 {s.end}h</div>\n"
+    "                        <div className=\"ms-desc\">{s.desc}</div>\n"
+    "                      </div>\n"
+    "                    );\n"
+    "                  })}\n"
+    "\n"
+    "                  <div className={`market-session overlap ${overlapOpen ? 'open' : 'closed'}`}>\n"
+    "                    <div className=\"ms-header\">\n"
+    "                      <span className=\"ms-flag\">\U0001F525</span>\n"
+    "                      <span className=\"ms-name\">Londres + NY</span>\n"
+    "                      <span className=\"ms-badge\" style={{ background: overlapOpen ? '#f59e0b33' : undefined, color: overlapOpen ? '#f59e0b' : undefined }}>\n"
+    "                        {overlapOpen ? 'AGORA' : 'aguardando'}\n"
+    "                      </span>\n"
+    "                    </div>\n"
+    "                    <div className=\"ms-hours\">{ovS}h \u2192 {ovE}h</div>\n"
+    "                    <div className=\"ms-desc\">Melhor hor\u00e1rio \u2022 +50% do volume</div>\n"
+    "                  </div>\n"
+    "                </div>\n"
+    "              </div>\n"
+    "            );\n"
+    "          })()}"
+)
+
+content = content[:start_idx] + NEW + content[end_idx:]
+
+with open(path, 'w', encoding='utf-8') as f:
+    f.write(content)
+
+print(f"Done! DST-aware market clock applied. Size: {len(content)} chars")

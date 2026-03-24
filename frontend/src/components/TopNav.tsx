@@ -39,7 +39,6 @@ export default function TopNav({ onLogout, showNav = true, theme = "aqua", onThe
             <NavLink to="/upload">UPLOAD</NavLink>
             <NavLink to="/history">HISTÓRICO</NavLink>
             <NavLink to="/profile">PERFIL FISCAL</NavLink>
-            <NavLink to="/risk">GERENCIAMENTO DE RISCO</NavLink>
             <div className="settings-wrapper">
               <button type="button" className="settings-btn" onClick={() => setOpenSettings((v) => !v)}>
                 ⚙

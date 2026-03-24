@@ -16,6 +16,7 @@ from fastapi.responses import JSONResponse
 from .license import is_activated
 from .routes import (
     auth,
+    backup,
     dashboard,
     darf,
     fx_rate,
@@ -136,6 +137,7 @@ app.include_router(auth.router, prefix="/api", tags=["auth"])
 app.include_router(license_routes.router, prefix="/api", tags=["license"])
 app.include_router(dashboard.router, prefix="/api", tags=["dashboard"])
 app.include_router(diag.router, prefix="/api", tags=["diag"])
+app.include_router(backup.router, prefix="/api", tags=["backup"])
 
 
 @app.middleware("http")

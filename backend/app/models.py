@@ -61,6 +61,7 @@ class Trade(Base):
     deal_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     trade_uid: Mapped[str] = mapped_column(String(128), unique=True, index=True)
     close_date: Mapped[dt.date] = mapped_column(Date, index=True)
+    note: Mapped[str | None] = mapped_column(String(1000), nullable=True)
     created_at: Mapped[dt.datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

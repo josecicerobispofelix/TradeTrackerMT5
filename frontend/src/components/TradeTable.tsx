@@ -1,10 +1,22 @@
-﻿import { useState } from "react";
-import { Trade } from "../api";
+import { useState } from "react";
+import { Trade, updateTradeNote } from "../api";
 
-type SortKey = keyof Trade | "duration" | "net_profit_brl";
+type SortKey =
+  | "close_time" | "symbol" | "side" | "volume"
+  | "open_price" | "close_price" | "profit" | "commission"
+  | "swap" | "net_profit";
 
 type TradeTableProps = {
   trades: Trade[];
+  total: number;
+  page: number;
+  pageSize: number;
+  sortKey: SortKey;
+  sortDir: "asc" | "desc";
+  onSort: (key: SortKey) => void;
+  onPageChange: (page: number) => void;
+  onExportCsv: () => void;
+  exporting?: boolean;
 };
 
 function formatDateTime(value: string) {
@@ -19,9 +31,7 @@ function formatDateTime(value: string) {
 }
 
 function formatDuration(openTime: string, closeTime: string) {
-  const start = new Date(openTime).getTime();
-  const end = new Date(closeTime).getTime();
-  const diff = Math.max(0, end - start);
+  const diff = Math.max(0, new Date(closeTime).getTime() - new Date(openTime).getTime());
   const minutes = Math.floor(diff / 60000);
   const hours = Math.floor(minutes / 60);
   const mins = minutes % 60;
@@ -36,78 +46,94 @@ function formatNumber(value: number, digits = 2) {
   });
 }
 
-export default function TradeTable({ trades }: TradeTableProps) {
-  const [sortKey, setSortKey] = useState<SortKey>("close_time");
-  const [direction, setDirection] = useState<"asc" | "desc">("desc");
+function NoteCell({ tradeId, initialNote }: { tradeId: number; initialNote: string | null | undefined }) {
+  const [value, setValue] = useState(initialNote ?? "");
+  const [saved, setSaved] = useState(true);
 
-  const sorted = [...trades].sort((a, b) => {
-    const dir = direction === "asc" ? 1 : -1;
-    if (sortKey === "duration") {
-      const aDur = new Date(a.close_time).getTime() - new Date(a.open_time).getTime();
-      const bDur = new Date(b.close_time).getTime() - new Date(b.open_time).getTime();
-      return (aDur - bDur) * dir;
-    }
-    const aVal = (a as any)[sortKey];
-    const bVal = (b as any)[sortKey];
-    if (typeof aVal === "number" && typeof bVal === "number") {
-      return (aVal - bVal) * dir;
-    }
-    return String(aVal ?? "").localeCompare(String(bVal ?? "")) * dir;
-  });
-
-  const toggleSort = (key: SortKey) => {
-    if (key === sortKey) {
-      setDirection(direction === "asc" ? "desc" : "asc");
-    } else {
-      setSortKey(key);
-      setDirection("desc");
+  const handleBlur = async () => {
+    const trimmed = value.trim();
+    const original = (initialNote ?? "").trim();
+    if (trimmed === original) return;
+    try {
+      await updateTradeNote(tradeId, trimmed || null);
+      setSaved(true);
+    } catch {
+      // silently ignore
     }
   };
 
   return (
+    <textarea
+      className="note-cell"
+      value={value}
+      onChange={(e) => { setValue(e.target.value); setSaved(false); }}
+      onBlur={handleBlur}
+      placeholder="Nota..."
+      rows={1}
+      title={saved ? "Clique para editar nota" : "Não salvo"}
+    />
+  );
+}
+
+export default function TradeTable({
+  trades,
+  total,
+  page,
+  pageSize,
+  sortKey,
+  sortDir,
+  onSort,
+  onPageChange,
+  onExportCsv,
+  exporting = false,
+}: TradeTableProps) {
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+
+  const sortIcon = (key: SortKey) => {
+    if (sortKey !== key) return <span className="sort-icon">⇅</span>;
+    return <span className="sort-icon active">{sortDir === "asc" ? "▲" : "▼"}</span>;
+  };
+
+  const from = (page - 1) * pageSize + 1;
+  const to = Math.min(page * pageSize, total);
+
+  return (
     <div className="panel">
       <div className="panel-header">
-        <h4>Trades ({trades.length})</h4>
-        <span>Ordene clicando nos títulos</span>
+        <h4>Trades ({total.toLocaleString("pt-BR")})</h4>
+        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+          <span style={{ fontSize: "13px", opacity: 0.7 }}>Clique no título para ordenar</span>
+          <button
+            type="button"
+            onClick={onExportCsv}
+            disabled={exporting || total === 0}
+            style={{ padding: "6px 12px", fontSize: "13px" }}
+          >
+            {exporting ? "Exportando..." : "Exportar CSV"}
+          </button>
+        </div>
       </div>
       <div className="table-wrap">
         <table className="table">
           <thead>
             <tr>
-              <th onClick={() => toggleSort("close_time")}>Fechamento</th>
-              <th onClick={() => toggleSort("symbol")}>Ativo</th>
-              <th onClick={() => toggleSort("side")}>Tipo</th>
-              <th className="th-num" onClick={() => toggleSort("volume")}>
-                Volume
-              </th>
-              <th className="th-num" onClick={() => toggleSort("open_price")}>
-                Preço Abertura
-              </th>
-              <th className="th-num" onClick={() => toggleSort("close_price")}>
-                Preço Fechamento
-              </th>
-              <th className="th-num" onClick={() => toggleSort("profit")}>
-                Lucro (USD)
-              </th>
-              <th className="th-num" onClick={() => toggleSort("commission")}>
-                Comissão
-              </th>
-              <th className="th-num" onClick={() => toggleSort("swap")}>
-                Swap
-              </th>
-              <th className="th-num" onClick={() => toggleSort("duration")}>
-                Duração
-              </th>
-              <th className="th-num" onClick={() => toggleSort("net_profit")}>
-                Líquido (USD)
-              </th>
-              <th className="th-num" onClick={() => toggleSort("net_profit_brl")}>
-                Líquido (BRL)
-              </th>
+              <th onClick={() => onSort("close_time")}>Fechamento {sortIcon("close_time")}</th>
+              <th onClick={() => onSort("symbol")}>Ativo {sortIcon("symbol")}</th>
+              <th onClick={() => onSort("side")}>Tipo {sortIcon("side")}</th>
+              <th className="th-num" onClick={() => onSort("volume")}>Volume {sortIcon("volume")}</th>
+              <th className="th-num" onClick={() => onSort("open_price")}>Preço Ab. {sortIcon("open_price")}</th>
+              <th className="th-num" onClick={() => onSort("close_price")}>Preço Fch. {sortIcon("close_price")}</th>
+              <th className="th-num" onClick={() => onSort("profit")}>Lucro (USD) {sortIcon("profit")}</th>
+              <th className="th-num" onClick={() => onSort("commission")}>Comissão {sortIcon("commission")}</th>
+              <th className="th-num" onClick={() => onSort("swap")}>Swap {sortIcon("swap")}</th>
+              <th className="th-num">Duração</th>
+              <th className="th-num" onClick={() => onSort("net_profit")}>Líq. (USD) {sortIcon("net_profit")}</th>
+              <th className="th-num">Líq. (BRL)</th>
+              <th>Nota</th>
             </tr>
           </thead>
           <tbody>
-            {sorted.map((trade) => {
+            {trades.map((trade) => {
               const net = trade.net_profit;
               const netBrl = trade.net_profit_brl;
               return (
@@ -115,9 +141,7 @@ export default function TradeTable({ trades }: TradeTableProps) {
                   <td>{formatDateTime(trade.close_time)}</td>
                   <td>{trade.symbol}</td>
                   <td>
-                    <span
-                      className={`tag ${net >= 0 ? "success" : "danger"}`}
-                    >
+                    <span className={`tag ${net >= 0 ? "success" : "danger"}`}>
                       {trade.side.toUpperCase()}
                     </span>
                   </td>
@@ -127,22 +151,31 @@ export default function TradeTable({ trades }: TradeTableProps) {
                   <td className="td-num">{formatNumber(trade.profit, 2)}</td>
                   <td className="td-num">{formatNumber(trade.commission, 2)}</td>
                   <td className="td-num">{formatNumber(trade.swap, 2)}</td>
-                  <td className="td-num">
-                    {formatDuration(trade.open_time, trade.close_time)}
-                  </td>
+                  <td className="td-num">{formatDuration(trade.open_time, trade.close_time)}</td>
                   <td className="td-num">{formatNumber(net, 2)}</td>
-                  <td className="td-num">
-                    {netBrl != null ? formatNumber(netBrl, 2) : "-"}
-                  </td>
+                  <td className="td-num">{netBrl != null ? formatNumber(netBrl, 2) : "-"}</td>
+                  <td><NoteCell tradeId={trade.id} initialNote={trade.note} /></td>
                 </tr>
               );
             })}
           </tbody>
         </table>
       </div>
+
+      {totalPages > 1 && (
+        <div className="pagination">
+          <span className="pagination-info">
+            {from}–{to} de {total.toLocaleString("pt-BR")}
+          </span>
+          <div className="pagination-controls">
+            <button type="button" className="pagination-btn" onClick={() => onPageChange(1)} disabled={page === 1}>«</button>
+            <button type="button" className="pagination-btn" onClick={() => onPageChange(page - 1)} disabled={page === 1}>‹</button>
+            <span className="pagination-pages">Pág. {page} / {totalPages}</span>
+            <button type="button" className="pagination-btn" onClick={() => onPageChange(page + 1)} disabled={page === totalPages}>›</button>
+            <button type="button" className="pagination-btn" onClick={() => onPageChange(totalPages)} disabled={page === totalPages}>»</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
-
-
-

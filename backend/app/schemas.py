@@ -33,11 +33,35 @@ class TradeOut(BaseModel):
     fx_rate: Optional[float] = None
     currency: Optional[str] = None
     deal_id: Optional[str] = None
+    note: Optional[str] = None
 
 
 class TradeListResponse(BaseModel):
     trades: List[TradeOut]
     total: int
+    page: int
+    page_size: int
+
+
+class TradeTotalsResponse(BaseModel):
+    total_usd: float
+    total_brl: Optional[float]
+    count: int
+
+
+class TradeChartDay(BaseModel):
+    date: dt.date
+    profit_usd: float
+    cumulative_usd: float
+    trades_count: int
+
+
+class TradeChartResponse(BaseModel):
+    daily: List[TradeChartDay]
+
+
+class TradeNoteUpdate(BaseModel):
+    note: Optional[str] = None
 
 
 class TradeMetaResponse(BaseModel):

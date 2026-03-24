@@ -1820,3 +1820,210 @@ button:hover:not(:disabled) {
   border: 1px solid rgba(34, 197, 94, 0.30);
   color: #bbf7d0;
 }
+
+/* Pagination */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px 4px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pagination-info {
+  font-size: 13px;
+  opacity: 0.7;
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pagination-btn {
+  padding: 5px 10px;
+  font-size: 14px;
+  min-width: 32px;
+  background: color-mix(in srgb, var(--surface) 80%, transparent);
+  color: var(--ink);
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, opacity 0.15s ease;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 20%, var(--surface));
+}
+
+.pagination-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.pagination-pages {
+  font-size: 13px;
+  padding: 0 6px;
+  white-space: nowrap;
+}
+
+/* Note cell in trade table */
+.note-cell {
+  width: 140px;
+  min-height: 28px;
+  max-height: 80px;
+  padding: 4px 6px;
+  font-size: 12px;
+  font-family: inherit;
+  background: color-mix(in srgb, var(--surface) 60%, transparent);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 6px;
+  color: var(--ink);
+  resize: vertical;
+  transition: border-color 0.2s ease;
+}
+
+.note-cell:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+  background: color-mix(in srgb, var(--surface) 90%, transparent);
+}
+
+.note-cell::placeholder {
+  opacity: 0.4;
+  font-style: italic;
+}
+
+/* Sort icons in table headers */
+.sort-icon {
+  font-size: 10px;
+  opacity: 0.35;
+  margin-left: 3px;
+}
+
+.sort-icon.active {
+  opacity: 1;
+  color: var(--accent);
+}
+
+/* Insights panel */
+.insights-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+  padding-top: 4px;
+}
+
+.insight-card {
+  background: color-mix(in srgb, var(--surface) 70%, transparent);
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.insight-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  opacity: 0.55;
+}
+
+.insight-value {
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.insight-sub {
+  font-size: 11px;
+  opacity: 0.6;
+  margin-top: 2px;
+}
+
+/* Market clock panel */
+.market-clock-panel .panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.market-sessions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px;
+  padding-top: 8px;
+}
+
+.market-session {
+  background: color-mix(in srgb, var(--surface) 70%, transparent);
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  border-radius: 12px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: border-color 0.2s;
+}
+
+.market-session.open {
+  border-color: rgba(34, 197, 94, 0.35);
+  background: color-mix(in srgb, rgba(34,197,94,0.06) 100%, transparent);
+}
+
+.market-session.overlap.open {
+  border-color: rgba(245, 158, 11, 0.45);
+  background: color-mix(in srgb, rgba(245,158,11,0.06) 100%, transparent);
+}
+
+.market-session.closed {
+  opacity: 0.55;
+}
+
+.ms-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ms-flag {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.ms-name {
+  font-size: 13px;
+  font-weight: 700;
+  flex: 1;
+}
+
+.ms-badge {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 2px 6px;
+  border-radius: 20px;
+  background: rgba(148, 163, 184, 0.12);
+  color: rgba(148, 163, 184, 0.7);
+}
+
+.ms-hours {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.7;
+  margin-top: 2px;
+}
+
+.ms-desc {
+  font-size: 11px;
+  opacity: 0.5;
+}
