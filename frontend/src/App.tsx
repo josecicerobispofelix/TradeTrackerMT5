@@ -354,38 +354,43 @@ export default function App() {
 
   if (!license.activated) {
     return (
-      <div className="app-shell">
-        <TopNav showNav={false} />
-        <main className="content">
-          <div className="panel activation-card">
-            <div className="panel-header">
-              <h4>Ativação necessária</h4>
-              <span>Informe a chave de licença para liberar o uso.</span>
-            </div>
-            <div className="form-row">
-              <label>
-                Código da máquina
-                <input type="text" value={license.machine_code} readOnly />
-              </label>
-              <label>
-                Chave de licença
-                <input
-                  type="text"
-                  value={licenseKey}
-                  onChange={(event) => setLicenseKey(event.target.value)}
-                  placeholder="XXXX-XXXX-XXXX-XXXX-XXXX-XXXX"
-                />
-              </label>
-              <button type="button" onClick={handleActivate} disabled={licenseLoading}>
-                {licenseLoading ? "Ativando..." : "Ativar"}
-              </button>
-            </div>
-            {licenseError ? <div className="helper">{licenseError}</div> : null}
-            <div className="helper">
-              Envie o código da máquina para receber sua chave de licença.
-            </div>
-          </div>
-        </main>
+      <div className="activation-screen">
+        <canvas ref={bgCanvasRef} className="bg-chart" aria-hidden />
+        <div className="activation-card">
+          <div className="activation-logo">📊</div>
+          <h1 className="activation-title">TradeTracker MT5</h1>
+          <p className="activation-subtitle">
+            Digite sua chave de licença para ativar o software.
+          </p>
+          <input
+            className="activation-input"
+            type="text"
+            placeholder="TRKR-XXXX-XXXX-XXXX"
+            value={licenseKey}
+            onChange={(e) => setLicenseKey(e.target.value.toUpperCase())}
+            onKeyDown={(e) => e.key === "Enter" && handleActivate()}
+            maxLength={19}
+            autoFocus
+            spellCheck={false}
+          />
+          {licenseError ? (
+            <div className="activation-error">{licenseError}</div>
+          ) : null}
+          <button
+            className="activation-btn"
+            type="button"
+            onClick={handleActivate}
+            disabled={licenseLoading || !licenseKey.trim()}
+          >
+            {licenseLoading ? "Verificando..." : "Ativar licença"}
+          </button>
+          <p className="activation-help">
+            Ainda não tem uma chave?{" "}
+            <a href="https://hotmart.com" target="_blank" rel="noreferrer">
+              Comprar agora
+            </a>
+          </p>
+        </div>
       </div>
     );
   }

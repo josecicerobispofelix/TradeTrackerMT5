@@ -2121,3 +2121,130 @@ button:hover:not(:disabled) {
   font-size: 11px;
   opacity: 0.5;
 }
+
+/* ── Activation screen ───────────────────────────────────────────────────── */
+.activation-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.activation-card {
+  position: relative;
+  z-index: 1;
+  background: rgba(13, 17, 26, 0.82);
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(0, 229, 255, 0.2);
+  border-radius: 24px;
+  padding: 48px 44px;
+  width: 100%;
+  max-width: 440px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 32px 80px rgba(0, 0, 0, 0.7), 0 0 60px rgba(0, 229, 255, 0.08);
+}
+
+.activation-logo {
+  font-size: 48px;
+  line-height: 1;
+  filter: drop-shadow(0 0 12px rgba(0, 229, 255, 0.6));
+}
+
+.activation-title {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--ink);
+  margin: 0;
+  letter-spacing: -0.5px;
+}
+
+.activation-subtitle {
+  font-size: 14px;
+  color: var(--muted);
+  text-align: center;
+  margin: 0;
+  opacity: 0.8;
+}
+
+.activation-input {
+  width: 100%;
+  text-align: center;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  font-variant-numeric: tabular-nums;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 2px solid rgba(0, 229, 255, 0.25);
+  background: rgba(0, 0, 0, 0.3);
+  color: var(--ink);
+  outline: none;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+
+.activation-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(0, 229, 255, 0.12);
+}
+
+.activation-input::placeholder {
+  opacity: 0.35;
+  letter-spacing: 2px;
+}
+
+.activation-btn {
+  width: 100%;
+  padding: 14px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 700;
+  background: var(--accent);
+  color: #000;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.1s;
+}
+
+.activation-btn:hover:not(:disabled) {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.activation-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.activation-error {
+  font-size: 13px;
+  color: var(--danger);
+  text-align: center;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
+  padding: 8px 12px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.activation-help {
+  font-size: 13px;
+  color: var(--muted);
+  opacity: 0.7;
+  margin: 0;
+}
+
+.activation-help a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.activation-help a:hover {
+  text-decoration: underline;
+}
