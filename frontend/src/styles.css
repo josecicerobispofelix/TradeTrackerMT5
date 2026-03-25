@@ -2150,9 +2150,13 @@ button:hover:not(:disabled) {
 }
 
 .activation-logo {
-  font-size: 48px;
   line-height: 1;
-  filter: drop-shadow(0 0 12px rgba(0, 229, 255, 0.6));
+}
+.activation-logo img {
+  width: 120px;
+  height: 120px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 16px rgba(0, 229, 255, 0.5));
 }
 
 .activation-title {

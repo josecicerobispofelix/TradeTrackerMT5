@@ -357,7 +357,7 @@ export default function App() {
       <div className="activation-screen">
         <canvas ref={bgCanvasRef} className="bg-chart" aria-hidden />
         <div className="activation-card">
-          <div className="activation-logo">📊</div>
+          <div className="activation-logo"><img src="/logo.png" alt="TradeTracker MT5" /></div>
           <h1 className="activation-title">TradeTracker MT5</h1>
           <p className="activation-subtitle">
             Digite sua chave de licença para ativar o software.

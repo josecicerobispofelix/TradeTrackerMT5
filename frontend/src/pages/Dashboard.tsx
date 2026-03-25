@@ -6637,7 +6637,7 @@ export default function Dashboard() {
           </div>
 
           <div className="dashboard-footer">
-            Desenvolvido por Cicero Bispo
+            Desenvolvido por TecnoHuby
           </div>
 
         </div>

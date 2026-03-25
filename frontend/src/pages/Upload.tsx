@@ -1,5 +1,5 @@
 ﻿import { useState } from "react";
-import { deleteAllUploads, downloadBackup, uploadReport, UploadResponse } from "../api";
+import { deleteAllUploads, uploadReport, UploadResponse } from "../api";
 import Dropzone from "../components/Dropzone";
 
 export default function Upload() {
@@ -8,8 +8,6 @@ export default function Upload() {
   const [error, setError] = useState<string | null>(null);
   const [clearing, setClearing] = useState(false);
   const [clearMessage, setClearMessage] = useState<string | null>(null);
-  const [backingUp, setBackingUp] = useState(false);
-
   const handleFile = async (file: File) => {
     setLoading(true);
     setError(null);
@@ -21,23 +19,6 @@ export default function Upload() {
       setError((err as Error).message);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleBackup = async () => {
-    setBackingUp(true);
-    try {
-      const blob = await downloadBackup();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `backup_${new Date().toISOString().slice(0, 10)}.db`;
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      setError((err as Error).message);
-    } finally {
-      setBackingUp(false);
     }
   };
 
@@ -74,13 +55,6 @@ export default function Upload() {
       <div className="upload-actions">
         <Dropzone onFile={handleFile} isLoading={loading} />
         <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-          <button
-            type="button"
-            onClick={handleBackup}
-            disabled={backingUp || loading}
-          >
-            {backingUp ? "Baixando..." : "Baixar backup do banco"}
-          </button>
           <button
             type="button"
             className="danger"

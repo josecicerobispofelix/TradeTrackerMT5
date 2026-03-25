@@ -31,7 +31,7 @@ export default function TopNav({ onLogout, showNav = true, theme = "aqua", onThe
       <div className="topnav-inner">
         <div className="brand">
           <h1>TradersTrackerMT5</h1>
-          <span className="brand-sub">DESENVOLVIDO POR CICERO BISPO</span>
+          <span className="brand-sub">DESENVOLVIDO POR TECNOHUBY</span>
         </div>
         {showNav ? (
           <nav className="nav-links">
