@@ -33,6 +33,7 @@ function normalizeProfile(data?: FiscalProfile | null): FiscalProfile {
 
 export default function Profile() {
   const [profile, setProfile] = useState<FiscalProfile>(() => normalizeProfile());
+  const [accounts, setAccounts] = useState<string[]>([]);
   const [status, setStatus] = useState<string | null>(null);
   const [cepStatus, setCepStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -44,13 +45,13 @@ export default function Profile() {
       const response = await fetchFiscalProfile();
       const normalized = normalizeProfile(response);
 
-      // Busca sugestões a partir dos uploads (conta/corretora)
       try {
         const meta = await fetchTradeMeta();
+        setAccounts(meta.accounts ?? []);
         normalized.broker = normalized.broker || meta.suggested_broker || "";
         normalized.trading_account = normalized.trading_account || meta.suggested_account || "";
       } catch {
-        // ignora falha silenciosa para não quebrar o carregamento do perfil
+        // ignora falha silenciosa
       }
 
       setProfile(normalized);
@@ -231,11 +232,23 @@ export default function Profile() {
           </label>
           <label>
             Conta
-            <input
-              type="text"
-              value={profile.trading_account}
-              onChange={(event) => setProfile((prev) => ({ ...prev, trading_account: event.target.value }))}
-            />
+            {accounts.length > 0 ? (
+              <select
+                value={profile.trading_account}
+                onChange={(event) => setProfile((prev) => ({ ...prev, trading_account: event.target.value }))}
+              >
+                <option value="">Selecione a conta</option>
+                {accounts.map((acc) => (
+                  <option key={acc} value={acc}>{acc}</option>
+                ))}
+              </select>
+            ) : (
+              <input
+                type="text"
+                value={profile.trading_account}
+                onChange={(event) => setProfile((prev) => ({ ...prev, trading_account: event.target.value }))}
+              />
+            )}
           </label>
           <label>
             Moeda da conta

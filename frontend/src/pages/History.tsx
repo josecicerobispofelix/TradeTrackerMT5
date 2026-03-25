@@ -292,26 +292,21 @@ export default function History() {
               </div>
               <div className="progress-row">
                 <div>
-                  <strong>Total (USD):</strong> {formatCurrency(totals.total_usd, "USD")}
-                </div>
-                <div>
-                  <strong>Total (BRL):</strong>{" "}
-                  {totals.total_brl != null ? formatCurrency(totals.total_brl, "BRL") : "Indisponível"}
-                </div>
-                <div>
-                  <strong>Resultado (USD):</strong>{" "}
+                  <strong>Total (USD):</strong>{" "}
+                  {formatCurrency(totals.total_usd, "USD")}{" "}
                   <span className={usdPositive ? "tag success" : "tag danger"}>
                     {usdPositive ? "Positivo" : "Negativo"}
                   </span>
                 </div>
-                <div>
-                  <strong>Resultado (BRL):</strong>{" "}
-                  {totals.total_brl != null ? (
+                {totals.total_brl != null && (
+                  <div>
+                    <strong>Total (BRL):</strong>{" "}
+                    {formatCurrency(totals.total_brl, "BRL")}{" "}
                     <span className={brlPositive ? "tag success" : "tag danger"}>
                       {brlPositive ? "Positivo" : "Negativo"}
                     </span>
-                  ) : "Indisponível"}
-                </div>
+                  </div>
+                )}
               </div>
             </div>
           ) : null}

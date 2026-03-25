@@ -15,7 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..auth import get_current_user
 from ..db import get_session
-from ..models import Import, Trade, User
+from ..models import FiscalProfile, Import, Trade, User
 from ..parser_mt5_xlsx import normalize_deal_id, parse_mt5_xlsx
 from ..schemas import UploadResponse
 
@@ -252,6 +252,17 @@ async def upload_report(
             meta_json=meta,
         )
         session.add(import_record)
+
+        # Auto-preenche perfil fiscal com conta e moeda do arquivo, se ainda não preenchidos
+        profile = await session.scalar(select(FiscalProfile).where(FiscalProfile.user_id == user.id))
+        if profile is None:
+            profile = FiscalProfile(user_id=user.id)
+            session.add(profile)
+        if not profile.trading_account and account and account != "unknown":
+            profile.trading_account = account
+        if not profile.account_currency and currency:
+            profile.account_currency = currency
+
         await session.commit()
 
         return UploadResponse(
