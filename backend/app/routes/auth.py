@@ -378,7 +378,7 @@ async def login(
         total_users = await session.scalar(select(func.count(User.id)))
 
 
-        if total_users == 0:
+        if total_users == 0 and email and payload.password:
 
 
             user = User(email=email, password_hash=hash_password(payload.password))

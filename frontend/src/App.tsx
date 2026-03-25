@@ -250,6 +250,10 @@ export default function App() {
   const handleLogin = async () => {
     setAuthError(null);
     setAuthMessage(null);
+    if (!authEmail.trim() || !authPassword) {
+      setAuthError("Preencha o e-mail e a senha.");
+      return;
+    }
     try {
       const me = await loginUser({ email: authEmail, password: authPassword });
       if (authEmail.trim()) {
@@ -525,7 +529,7 @@ export default function App() {
                   </>
                 ) : null}
               {authMode === "login" ? (
-                <button type="button" onClick={handleLogin}>
+                <button type="button" onClick={handleLogin} disabled={!authEmail.trim() || !authPassword}>
                   Entrar
                 </button>
               ) : null}
