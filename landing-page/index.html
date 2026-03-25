@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TradeTracker MT5 — Controle total das suas operações</title>
+  <title>TradersTracker MT5 — Controle total das suas operações</title>
 
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -58,7 +58,7 @@
       background:
         radial-gradient(ellipse 80% 60% at 50% 0%, rgba(245,184,0,0.08) 0%, transparent 70%),
         radial-gradient(ellipse 50% 40% at 80% 80%, rgba(0,229,255,0.05) 0%, transparent 60%);
-      position: relative; overflow: hidden;
+      position: relative;
     }
     .hero::before {
       content: '';
@@ -134,6 +134,7 @@
 
     /* ── SECTION ── */
     section { padding: 96px 24px; }
+    #funcionalidades, #screenshots, #comprar, #faq { scroll-margin-top: 72px; }
     .container { max-width: 1100px; margin: 0 auto; }
     .section-tag {
       font-size: 12px; font-weight: 700; letter-spacing: .12em;
@@ -147,7 +148,10 @@
     .section-sub { color: var(--muted); font-size: 17px; max-width: 560px; }
 
     /* ── FEATURES ── */
-    .features-bg { background: var(--dark2); }
+    .features-bg {
+      background: var(--dark2);
+      border-top: 2px solid rgba(245,184,0,0.2);
+    }
     .features-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -297,8 +301,8 @@
 <!-- NAV -->
 <nav>
   <div class="nav-logo">
-    <img src="logo.png" alt="TradeTracker MT5" />
-    <span>TradeTracker MT5</span>
+    <img src="logo.png" alt="TradersTracker MT5" />
+    <span>TradersTracker MT5</span>
   </div>
   <a href="#comprar" class="nav-cta">Comprar agora</a>
 </nav>
@@ -306,12 +310,11 @@
 <!-- HERO -->
 <section class="hero">
   <div class="hero-badge">Software para traders do MetaTrader 5</div>
-  <img src="logo.png" alt="TradeTracker MT5" class="hero-logo" />
+  <img src="logo.png" alt="TradersTracker MT5" class="hero-logo" />
   <h1>Pare de operar no <span>escuro</span>.<br/>Conheça seus números.</h1>
   <p>Importe seus relatórios do MT5 e veja de forma clara onde você ganha, onde você perde e como melhorar.</p>
   <div class="hero-buttons">
-    <a href="#comprar" class="btn-primary">Quero o TradeTracker — R$ 97,00</a>
-    <a href="#funcionalidades" class="btn-secondary">Ver funcionalidades</a>
+    <a href="#comprar" class="btn-primary">Quero o TradersTracker — R$ 97,00</a>
   </div>
   <p class="hero-note">Pagamento único · Sem mensalidade · Licença vitalícia</p>
 </section>
@@ -360,9 +363,9 @@
         <p>Filtre suas operações por período, ativo, conta, dia da semana e horário. Descubra seus padrões de lucro e prejuízo.</p>
       </div>
       <div class="feature-card">
-        <div class="feature-icon">⚠️</div>
-        <h3>Gerenciamento de risco</h3>
-        <p>Configure seus limites de perda diária, semanal e mensal. Receba alertas antes de ultrapassar seu limite.</p>
+        <div class="feature-icon">🌡️</div>
+        <h3>Mapa de calor</h3>
+        <p>Visualize seus resultados por dia e horário. Identifique de forma rápida os melhores e piores momentos para operar.</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon">💡</div>
@@ -387,16 +390,28 @@
 
     <div class="screenshots-grid">
       <div class="screenshot-card">
-        <div class="screenshot-placeholder">[ Screenshot — Dashboard ]</div>
-        <div class="screenshot-label">Dashboard de performance</div>
+        <img src="print-dashboard.png" alt="Dashboard com KPIs e relógio de mercado" />
+        <div class="screenshot-label">Dashboard — KPIs e relógio de mercado</div>
       </div>
       <div class="screenshot-card">
-        <div class="screenshot-placeholder">[ Screenshot — Histórico ]</div>
-        <div class="screenshot-label">Histórico de operações</div>
+        <img src="print-meta.png" alt="Meta mensal e gráficos" />
+        <div class="screenshot-label">Meta mensal e evolução patrimonial</div>
       </div>
       <div class="screenshot-card">
-        <div class="screenshot-placeholder">[ Screenshot — Risco ]</div>
-        <div class="screenshot-label">Gerenciamento de risco</div>
+        <img src="print-heatmap.png" alt="Mapa de calor dia x horário" />
+        <div class="screenshot-label">Mapa de calor — melhores horários</div>
+      </div>
+      <div class="screenshot-card">
+        <img src="print-historico.png" alt="Histórico de operações" />
+        <div class="screenshot-label">Histórico completo de operações</div>
+      </div>
+      <div class="screenshot-card">
+        <img src="print-fiscal.png" alt="Perfil fiscal" />
+        <div class="screenshot-label">Perfil fiscal para DARF</div>
+      </div>
+      <div class="screenshot-card">
+        <img src="print-upload.png" alt="Upload do relatório MT5" />
+        <div class="screenshot-label">Upload do relatório MetaTrader 5</div>
       </div>
     </div>
   </div>
@@ -412,7 +427,7 @@
     <div class="pricing-wrapper">
       <div class="pricing-card">
         <div class="pricing-badge">Mais popular</div>
-        <div class="pricing-name">TradeTracker MT5</div>
+        <div class="pricing-name">TradersTracker MT5</div>
         <div class="pricing-desc">Licença vitalícia para 1 computador</div>
         <div class="pricing-price">
           <span class="pricing-currency">R$</span>
@@ -424,13 +439,13 @@
           <li>Dashboard completo com +20 indicadores</li>
           <li>Relógio de mercado com DST automático</li>
           <li>Histórico com filtros avançados</li>
-          <li>Gerenciamento de risco</li>
+          <li>Mapa de calor por dia e horário</li>
           <li>Insights automáticos da estratégia</li>
           <li>7 temas visuais</li>
           <li>Funciona 100% offline após ativação</li>
           <li>Atualizações gratuitas</li>
         </ul>
-        <a href="LINK_HOTMART_AQUI" class="btn-buy">Comprar agora — R$ 97,00</a>
+        <a href="https://pay.hotmart.com/T105066597L" class="btn-buy">Comprar agora — R$ 97,00</a>
         <div class="pricing-guarantee">🔒 Pagamento seguro via Hotmart</div>
       </div>
     </div>
@@ -471,16 +486,16 @@
 <!-- CTA FINAL -->
 <div class="cta-final">
   <h2>Pronto para operar com <span>mais clareza</span>?</h2>
-  <p>Junte-se a traders que já controlam seus resultados com o TradeTracker MT5.</p>
-  <a href="LINK_HOTMART_AQUI" class="btn-primary">Quero o TradeTracker — R$ 97,00</a>
+  <p>Junte-se a traders que já controlam seus resultados com o TradersTracker MT5.</p>
+  <a href="https://pay.hotmart.com/T105066597L" class="btn-primary">Quero o TradersTracker — R$ 97,00</a>
   <p style="margin-top:16px; font-size:13px; color:var(--muted)">Pagamento único · Licença vitalícia · Suporte incluído</p>
 </div>
 
 <!-- FOOTER -->
 <footer>
   <div class="footer-logo">
-    <img src="logo.png" alt="TradeTracker MT5" />
-    <span>TradeTracker MT5</span>
+    <img src="logo.png" alt="TradersTracker MT5" />
+    <span>TradersTracker MT5</span>
   </div>
   <p>Desenvolvido por TecnoHuby · 2026 · <a href="mailto:contato@tecnohuby.com.br" style="color:var(--gold);text-decoration:none;">contato@tecnohuby.com.br</a></p>
 </footer>

@@ -102,15 +102,36 @@ def save_license(key: str, machine_code: str) -> None:
     _save(existing)
 
 
+# Cache em memória: evita chamar o Railway em toda requisição
+_cache_result: Optional[bool] = None
+_cache_until: Optional[datetime] = None
+CACHE_MINUTES = int(os.getenv("LICENSE_CACHE_MINUTES", "10"))
+
+
 def is_activated() -> bool:
     """
     Verifica se a licença está ativa.
-    1. Tenta validar online no servidor Railway.
-    2. Se offline, aceita cache local por até GRACE_DAYS dias.
+    1. Usa cache em memória por CACHE_MINUTES (padrão 10min).
+    2. Tenta validar online no servidor Railway.
+    3. Se offline, aceita cache local por até GRACE_DAYS dias.
     """
+    global _cache_result, _cache_until
+
+    now = datetime.now(timezone.utc)
+
+    # Retorna cache em memória se ainda válido
+    if _cache_result is not None and _cache_until and now < _cache_until:
+        return _cache_result
+
+    def _set_cache(value: bool) -> bool:
+        global _cache_result, _cache_until
+        _cache_result = value
+        _cache_until = now + timedelta(minutes=CACHE_MINUTES)
+        return value
+
     data = _load()
     if not data.get("key"):
-        return False
+        return _set_cache(False)
 
     machine_code = get_machine_code()
 
@@ -124,29 +145,29 @@ def is_activated() -> bool:
         result = resp.json()
         if result.get("valid"):
             data["valid"] = True
-            data["last_validated"] = datetime.now(timezone.utc).isoformat()
+            data["last_validated"] = now.isoformat()
             _save(data)
-            return True
+            return _set_cache(True)
         else:
-            # Chave revogada ou invalida — limpa cache
+            # Chave revogada — limpa cache
             _save({})
-            return False
+            return _set_cache(False)
     except Exception:
         pass
 
-    # Offline — usa cache com grace period
+    # Offline — usa cache local com grace period
     last = data.get("last_validated")
     if last and data.get("valid"):
         try:
             last_dt = datetime.fromisoformat(last)
             if last_dt.tzinfo is None:
                 last_dt = last_dt.replace(tzinfo=timezone.utc)
-            if datetime.now(timezone.utc) - last_dt < timedelta(days=GRACE_DAYS):
-                return True
+            if now - last_dt < timedelta(days=GRACE_DAYS):
+                return _set_cache(True)
         except Exception:
             pass
 
-    return False
+    return _set_cache(False)
 
 
 def load_license() -> Optional[dict]:
