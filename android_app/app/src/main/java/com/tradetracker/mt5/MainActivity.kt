@@ -1,4 +1,4 @@
-﻿package com.meucardapio.app
+﻿package com.tradetracker.mt5
 
 import android.annotation.SuppressLint
 import android.content.Intent

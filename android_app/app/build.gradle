@@ -4,11 +4,11 @@
 }
 
 android {
-    namespace "com.meucardapio.app"
+    namespace "com.tradetracker.mt5"
     compileSdk 34
 
     defaultConfig {
-        applicationId "com.meucardapio.app"
+        applicationId "com.tradetracker.mt5"
         minSdk 21
         targetSdk 34
         versionCode 1

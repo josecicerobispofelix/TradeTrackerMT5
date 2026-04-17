@@ -32,3 +32,5 @@ __pycache__/
 .DS_Store
 playwright_*.png
 temp_tail.txt
+
+.env.admin
