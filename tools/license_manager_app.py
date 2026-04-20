@@ -46,10 +46,10 @@ FONT_TITLE = ("Segoe UI", 14, "bold")
 
 # ── API ──────────────────────────────────────────────────────────────────────
 
-def api_generate(email: str, transaction_id: str | None) -> dict:
-    payload = {"email": email, "quantity": 1}
-    if transaction_id:
-        payload["transaction_id"] = transaction_id
+def api_generate(email: str | None) -> dict:
+    payload: dict = {"quantity": 1}
+    if email:
+        payload["email"] = email
 
     req = urllib.request.Request(
         f"{SERVER}/admin/licenses/generate",
@@ -150,8 +150,9 @@ class App(tk.Tk):
         wrap = tk.Frame(parent, bg=BG, padx=40, pady=30)
         wrap.pack(fill="both", expand=True)
 
-        # Email
-        tk.Label(wrap, text="Email do cliente", font=FONT_BOLD, bg=BG, fg=TEXT2).grid(
+        # Identificacao opcional
+        tk.Label(wrap, text="Identificacao do cliente  (opcional — nome, WhatsApp, pedido...)",
+                 font=FONT_BOLD, bg=BG, fg=TEXT2).grid(
             row=0, column=0, sticky="w", pady=(0, 4))
         self.var_email = tk.StringVar()
         e_email = tk.Entry(wrap, textvariable=self.var_email, font=FONT_MAIN,
@@ -160,18 +161,6 @@ class App(tk.Tk):
                            highlightbackground=BG3, highlightcolor=ACCENT)
         e_email.grid(row=1, column=0, columnspan=2, sticky="ew", ipady=8, padx=(0, 0))
         e_email.bind("<Return>", lambda e: self._gerar())
-
-        # Transaction ID
-        tk.Label(wrap, text="ID da transacao Hotmart  (opcional — deixe em branco para testes)",
-                 font=FONT_BOLD, bg=BG, fg=TEXT2).grid(
-            row=2, column=0, sticky="w", pady=(18, 4))
-        self.var_txn = tk.StringVar()
-        e_txn = tk.Entry(wrap, textvariable=self.var_txn, font=FONT_MAIN,
-                         bg=BG2, fg=TEXT, insertbackground=TEXT,
-                         relief="flat", bd=0, highlightthickness=1,
-                         highlightbackground=BG3, highlightcolor=ACCENT)
-        e_txn.grid(row=3, column=0, columnspan=2, sticky="ew", ipady=8)
-        e_txn.bind("<Return>", lambda e: self._gerar())
 
         wrap.columnconfigure(0, weight=1)
 
@@ -236,12 +225,9 @@ class App(tk.Tk):
         self._last_email = None
 
     def _gerar(self):
-        email = self.var_email.get().strip()
-        txn = self.var_txn.get().strip() or None
+        email = self.var_email.get().strip() or None
+        txn = None
 
-        if not email:
-            messagebox.showwarning("Campo obrigatorio", "Informe o email do cliente.")
-            return
         if not ADMIN_TOKEN:
             messagebox.showerror("Configuracao", "ADMIN_TOKEN nao encontrado.\nVerifique o arquivo .env.admin.")
             return
@@ -250,7 +236,7 @@ class App(tk.Tk):
         self.update()
 
         try:
-            data = api_generate(email, txn)
+            data = api_generate(email)
         except urllib.error.HTTPError as e:
             body = e.read().decode()
             self.var_status.set("")
@@ -263,14 +249,13 @@ class App(tk.Tk):
 
         self._last_key = data["key"]
         self._last_email = email
-        self._last_txn = txn
 
         self.var_key.set(data["key"])
         self.btn_copy.config(state="normal")
         self.btn_msg.config(state="normal")
 
-        tipo = "VENDA" if txn else "TESTE"
-        self.var_status.set(f"[{tipo}] Chave gerada com sucesso em {datetime.now().strftime('%H:%M:%S')}")
+        ref = f"  ({email})" if email else ""
+        self.var_status.set(f"Chave gerada com sucesso{ref}  —  {datetime.now().strftime('%H:%M:%S')}")
 
     def _copiar_chave(self):
         if self._last_key:

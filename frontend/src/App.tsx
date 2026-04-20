@@ -7,8 +7,6 @@ import {
   LicenseStatus,
   loginUser,
   registerUser,
-  requestPasswordReset,
-  resetPassword,
   logoutUser,
   User
 } from "./api";
@@ -18,10 +16,10 @@ const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Upload = lazy(() => import("./pages/Upload"));
 const History = lazy(() => import("./pages/History"));
 const Profile = lazy(() => import("./pages/Profile"));
+const RobotTests = lazy(() => import("./pages/RobotTests"));
 
 export default function App() {
   const MIN_PASSWORD_LEN = 6;
-  const AUTH_EMAIL_KEY = "ttmt5_auth_email";
   const THEME_KEY = "ttmt5_theme";
   const [license, setLicense] = useState<LicenseStatus | null>(null);
   const [licenseKey, setLicenseKey] = useState("");
@@ -30,21 +28,13 @@ export default function App() {
 
   const [user, setUser] = useState<User | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
-  const [authMode, setAuthMode] = useState<"login" | "register" | "reset">(
-    "login"
-  );
-  const [authEmail, setAuthEmail] = useState(
-    () => localStorage.getItem(AUTH_EMAIL_KEY) ?? ""
-  );
+  const [authMode, setAuthMode] = useState<"login" | "register">("login");
   const [authPassword, setAuthPassword] = useState("");
   const [authPassword2, setAuthPassword2] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showPassword2, setShowPassword2] = useState(false);
-  const [showResetPassword, setShowResetPassword] = useState(false);
-  const [authToken, setAuthToken] = useState("");
   const [authMessage, setAuthMessage] = useState<string | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
-  const [resetTokenHint, setResetTokenHint] = useState<string | null>(null);
   const [theme, setTheme] = useState<string>(() => localStorage.getItem(THEME_KEY) ?? "aqua");
   const bgCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -183,20 +173,6 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    const trimmed = authEmail.trim();
-    if (trimmed) {
-      localStorage.setItem(AUTH_EMAIL_KEY, trimmed);
-    }
-  }, [authEmail]);
-
-  useEffect(() => {
-    if (user?.email) {
-      setAuthEmail(user.email);
-      localStorage.setItem(AUTH_EMAIL_KEY, user.email);
-    }
-  }, [user?.email]);
-
-  useEffect(() => {
     const loadLicense = async () => {
       try {
         const status = await getLicenseStatus();
@@ -219,10 +195,6 @@ export default function App() {
       try {
         const me = await fetchMe();
         setUser(me);
-        if (me?.email) {
-          setAuthEmail(me.email);
-          localStorage.setItem(AUTH_EMAIL_KEY, me.email);
-        }
       } catch {
         setUser(null);
       } finally {
@@ -250,19 +222,13 @@ export default function App() {
   const handleLogin = async () => {
     setAuthError(null);
     setAuthMessage(null);
-    if (!authEmail.trim() || !authPassword) {
-      setAuthError("Preencha o e-mail e a senha.");
+    if (!authPassword) {
+      setAuthError("Preencha a senha.");
       return;
     }
     try {
-      const me = await loginUser({ email: authEmail, password: authPassword });
-      if (authEmail.trim()) {
-        localStorage.setItem(AUTH_EMAIL_KEY, authEmail.trim());
-      }
+      const me = await loginUser({ password: authPassword });
       setUser(me);
-      if (me?.email) {
-        setAuthEmail(me.email);
-      }
     } catch (err) {
       setAuthError((err as Error).message);
     }
@@ -271,10 +237,6 @@ export default function App() {
   const handleRegister = async () => {
     setAuthError(null);
     setAuthMessage(null);
-    if (!authEmail.trim()) {
-      setAuthError("Informe o e-mail.");
-      return;
-    }
     if (authPassword.length < MIN_PASSWORD_LEN) {
       setAuthError("A senha deve ter no mínimo 6 caracteres.");
       return;
@@ -284,49 +246,8 @@ export default function App() {
       return;
     }
     try {
-      const me = await registerUser({
-        email: authEmail,
-        password: authPassword
-      });
-      if (authEmail.trim()) {
-        localStorage.setItem(AUTH_EMAIL_KEY, authEmail.trim());
-      }
+      const me = await registerUser({ email: "admin", password: authPassword });
       setUser(me);
-      if (me?.email) {
-        setAuthEmail(me.email);
-      }
-    } catch (err) {
-      setAuthError((err as Error).message);
-    }
-  };
-
-  const handleRequestReset = async () => {
-    setAuthError(null);
-    setAuthMessage(null);
-    try {
-      const res = await requestPasswordReset(authEmail);
-      setAuthMessage(res.message);
-      if (res.reset_token) {
-        setResetTokenHint(res.reset_token);
-      }
-    } catch (err) {
-      setAuthError((err as Error).message);
-    }
-  };
-
-  const handleResetPassword = async () => {
-    setAuthError(null);
-    setAuthMessage(null);
-    if (authPassword.length < MIN_PASSWORD_LEN) {
-      setAuthError("A nova senha deve ter no mínimo 6 caracteres.");
-      return;
-    }
-    try {
-      await resetPassword({ token: authToken, new_password: authPassword });
-      setAuthMessage("Senha redefinida. Faça login.");
-      setAuthMode("login");
-      setAuthPassword("");
-      setAuthToken("");
     } catch (err) {
       setAuthError((err as Error).message);
     }
@@ -338,11 +259,6 @@ export default function App() {
     setAuthMode("login");
     setAuthPassword("");
     setAuthPassword2("");
-    setAuthToken("");
-    const savedEmail = localStorage.getItem(AUTH_EMAIL_KEY);
-    if (savedEmail) {
-      setAuthEmail(savedEmail);
-    }
   };
 
   if (!license) {
@@ -417,149 +333,69 @@ export default function App() {
         <main className="content">
           <div className="panel activation-card">
             <div className="panel-header">
-              <h4>Login obrigatório</h4>
-              <span>Crie seu login ou entre para continuar.</span>
+              <h4>{authMode === "register" ? "Configurar senha" : "Entrar"}</h4>
+              <span>{authMode === "register" ? "Defina a senha de acesso ao sistema." : "Digite sua senha para continuar."}</span>
             </div>
-            <div className="auth-tabs">
-              <button
-                type="button"
-                className={authMode === "login" ? "active" : ""}
-                onClick={() => setAuthMode("login")}
-              >
-                Entrar
-              </button>
-              <button
-                type="button"
-                className={authMode === "register" ? "active" : ""}
-                onClick={() => setAuthMode("register")}
-              >
-                Criar conta
-              </button>
-              <button
-                type="button"
-                className={authMode === "reset" ? "active" : ""}
-                onClick={() => setAuthMode("reset")}
-              >
-                Recuperar senha
-              </button>
-            </div>
-
-              <div className="form-row">
-                <label>
-                  E-mail
+            <div className="form-row">
+              <label>
+                Senha
+                <div className="input-with-toggle">
                   <input
-                    type="email"
-                    value={authEmail}
-                    onChange={(event) => setAuthEmail(event.target.value)}
-                    placeholder="seu@email.com"
+                    type={showPassword ? "text" : "password"}
+                    value={authPassword}
+                    onChange={(event) => setAuthPassword(event.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && authMode === "login" && handleLogin()}
+                    autoFocus
                   />
-                </label>
-                {authMode !== "reset" ? (
-                  <label>
-                    Senha
-                    <div className="input-with-toggle">
-                      <input
-                        type={showPassword ? "text" : "password"}
-                        value={authPassword}
-                        onChange={(event) => setAuthPassword(event.target.value)}
-                      />
-                      <button
-                        type="button"
-                        className="toggle-eye"
-                        onClick={() => setShowPassword((v) => !v)}
-                        aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
-                        title={showPassword ? "Ocultar senha" : "Mostrar senha"}
-                      >
-                        {/* ícone via CSS; texto oculto */}
-                      </button>
-                    </div>
-                  </label>
-                ) : null}
-                {authMode === "register" ? (
-                  <label>
-                    Confirmar senha
-                    <div className="input-with-toggle">
-                      <input
-                        type={showPassword2 ? "text" : "password"}
-                        value={authPassword2}
-                        onChange={(event) => setAuthPassword2(event.target.value)}
-                      />
-                      <button
-                        type="button"
-                        className="toggle-eye"
-                        onClick={() => setShowPassword2((v) => !v)}
-                        aria-label={showPassword2 ? "Ocultar senha" : "Mostrar senha"}
-                        title={showPassword2 ? "Ocultar senha" : "Mostrar senha"}
-                      >
-                        {/* ícone via CSS */}
-                      </button>
-                    </div>
-                  </label>
-                ) : null}
-                {authMode === "reset" ? (
-                  <>
-                    <label>
-                    Token de recuperação
+                  <button
+                    type="button"
+                    className="toggle-eye"
+                    onClick={() => setShowPassword((v) => !v)}
+                    aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                    title={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                  >
+                  </button>
+                </div>
+              </label>
+              {authMode === "register" ? (
+                <label>
+                  Confirmar senha
+                  <div className="input-with-toggle">
                     <input
-                      type="text"
-                      value={authToken}
-                      onChange={(event) => setAuthToken(event.target.value)}
-                      placeholder="TOKEN"
+                      type={showPassword2 ? "text" : "password"}
+                      value={authPassword2}
+                      onChange={(event) => setAuthPassword2(event.target.value)}
                     />
-                    </label>
-                    <label>
-                      Nova senha
-                      <div className="input-with-toggle">
-                        <input
-                          type={showResetPassword ? "text" : "password"}
-                          value={authPassword}
-                          onChange={(event) => setAuthPassword(event.target.value)}
-                        />
-                        <button
-                          type="button"
-                          className="toggle-eye"
-                          onClick={() => setShowResetPassword((v) => !v)}
-                          aria-label={showResetPassword ? "Ocultar senha" : "Mostrar senha"}
-                          title={showResetPassword ? "Ocultar senha" : "Mostrar senha"}
-                        >
-                          {/* ícone via CSS */}
-                        </button>
-                      </div>
-                    </label>
-                  </>
-                ) : null}
+                    <button
+                      type="button"
+                      className="toggle-eye"
+                      onClick={() => setShowPassword2((v) => !v)}
+                      aria-label={showPassword2 ? "Ocultar senha" : "Mostrar senha"}
+                      title={showPassword2 ? "Ocultar senha" : "Mostrar senha"}
+                    >
+                    </button>
+                  </div>
+                </label>
+              ) : null}
               {authMode === "login" ? (
-                <button type="button" onClick={handleLogin} disabled={!authEmail.trim() || !authPassword}>
+                <button type="button" onClick={handleLogin} disabled={!authPassword}>
                   Entrar
                 </button>
-              ) : null}
-              {authMode === "register" ? (
+              ) : (
                 <button type="button" onClick={handleRegister}>
-                  Criar conta
+                  Salvar senha
                 </button>
-              ) : null}
-              {authMode === "reset" ? (
-                <>
-                  <button type="button" onClick={handleRequestReset}>
-                    Enviar token
-                  </button>
-                  <button type="button" onClick={handleResetPassword}>
-                    Redefinir senha
-                  </button>
-                </>
-              ) : null}
+              )}
+              <button
+                type="button"
+                className="btn-link"
+                onClick={() => setAuthMode(authMode === "login" ? "register" : "login")}
+              >
+                {authMode === "login" ? "Configurar senha" : "Voltar ao login"}
+              </button>
             </div>
-
-            {authMode === "login" && authEmail.trim() ? (
-              <div className="helper">
-                E-mail salvo. Preencha apenas a senha para entrar.
-              </div>
-            ) : null}
             {authError ? <div className="helper">{authError}</div> : null}
             {authMessage ? <div className="helper">{authMessage}</div> : null}
-            {resetTokenHint ? (
-              <div className="helper">Token gerado: {resetTokenHint}</div>
-            ) : null}
           </div>
         </main>
       </div>
@@ -577,6 +413,7 @@ export default function App() {
             <Route path="/upload" element={<Upload />} />
             <Route path="/history" element={<History />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/robot-tests" element={<RobotTests />} />
           </Routes>
         </Suspense>
       </main>

@@ -1796,7 +1796,7 @@ export default function Dashboard() {
     const max = Math.max(...values);
     const min = Math.min(...values);
     const changeAbs = first ? latest - first : null;
-    const changePct = first ? (changeAbs / first) * 100 : null;
+    const changePct = (first && changeAbs != null) ? (changeAbs / first) * 100 : null;
     return { latest, max, min, changeAbs, changePct };
   }, [fxHistory]);
 
@@ -5432,7 +5432,7 @@ export default function Dashboard() {
                   </span>
                   <span className="goal-note">
                     {needPerDayAlt
-                      ? `${formatCurrency(needPerDayAlt.value, needPerDayAlt.currency)} / dia`
+                      ? `${formatCurrency(needPerDayAlt.value, needPerDayAlt.currency as "USD" | "BRL")} / dia`
                       : "Defina a taxa USD/BRL para ver na outra moeda"}
                   </span>
                 </div>
@@ -5447,7 +5447,7 @@ export default function Dashboard() {
                     </span>
                   </div>
                   <div className="goal-bar-track">
-                    <span style={{ ["--progress" as const]: goalProgressNet }} />
+                    <span style={{ "--progress": goalProgressNet } as React.CSSProperties} />
                   </div>
                 </div>
 
@@ -5459,7 +5459,7 @@ export default function Dashboard() {
                     </span>
                   </div>
                   <div className="goal-bar-track">
-                    <span style={{ ["--progress" as const]: goalProgressGross }} />
+                    <span style={{ "--progress": goalProgressGross } as React.CSSProperties} />
                   </div>
                 </div>
               </div>

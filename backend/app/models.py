@@ -3,11 +3,13 @@ import datetime as dt
 from sqlalchemy import (
     Date,
     DateTime,
+    Float,
     ForeignKey,
     Integer,
     JSON,
     Numeric,
     String,
+    Text,
     UniqueConstraint,
     func,
 )
@@ -167,6 +169,28 @@ class PasswordReset(Base):
     used_at: Mapped[dt.datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    created_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
+class RobotTest(Base):
+    __tablename__ = "robot_tests"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), index=True)
+    robot_name: Mapped[str] = mapped_column(String(100), nullable=False)
+    test_date: Mapped[str] = mapped_column(String(10), nullable=False)
+    session: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    start_time: Mapped[str | None] = mapped_column(String(5), nullable=True)
+    end_time: Mapped[str | None] = mapped_column(String(5), nullable=True)
+    total_trades: Mapped[int] = mapped_column(Integer, default=0)
+    take_profits: Mapped[int] = mapped_column(Integer, default=0)
+    stop_losses: Mapped[int] = mapped_column(Integer, default=0)
+    gross_profit: Mapped[float] = mapped_column(Float, default=0.0)
+    gross_loss: Mapped[float] = mapped_column(Float, default=0.0)
+    currency: Mapped[str] = mapped_column(String(5), default="USD")
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[dt.datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

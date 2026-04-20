@@ -82,6 +82,7 @@ def verify_key(key: str, machine_code: str) -> bool:
         )
         data = resp.json()
         if resp.status_code == 200 and data.get("valid"):
+            global _cache_result, _cache_until
             _save({
                 "key": key.upper().strip(),
                 "machine_code": machine_code,
@@ -89,6 +90,8 @@ def verify_key(key: str, machine_code: str) -> bool:
                 "last_validated": datetime.now(timezone.utc).isoformat(),
                 "expires_at": data.get("expires_at"),
             })
+            _cache_result = True
+            _cache_until = datetime.now(timezone.utc) + timedelta(minutes=CACHE_MINUTES)
             return True
         return False
     except Exception:

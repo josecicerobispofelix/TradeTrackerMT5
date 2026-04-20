@@ -21,6 +21,8 @@ from .routes import (
     darf,
     fx_rate,
     license as license_routes,
+    report,
+    robot_test,
     summary,
     trades,
     upload,
@@ -57,7 +59,7 @@ def _log_trace(prefix: str) -> None:
 
 cors_origins = os.getenv(
     "CORS_ORIGINS",
-    "http://localhost:5173,http://127.0.0.1:5173,http://localhost,http://localhost:8000,http://127.0.0.1:8000",
+    "http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174,http://localhost,http://localhost:8000,http://127.0.0.1:8000",
 )
 # Allow mobile/Flutter (no fixed origin); add * when MOBILE_CORS=1
 mobile_cors = os.getenv("MOBILE_CORS", "").lower() in ("1", "true", "yes")
@@ -138,6 +140,8 @@ app.include_router(license_routes.router, prefix="/api", tags=["license"])
 app.include_router(dashboard.router, prefix="/api", tags=["dashboard"])
 app.include_router(diag.router, prefix="/api", tags=["diag"])
 app.include_router(backup.router, prefix="/api", tags=["backup"])
+app.include_router(robot_test.router, prefix="/api", tags=["robot-test"])
+app.include_router(report.router, prefix="/api", tags=["report"])
 
 
 @app.middleware("http")

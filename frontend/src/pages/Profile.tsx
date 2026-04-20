@@ -127,7 +127,7 @@ export default function Profile() {
             Nome completo
             <input
               type="text"
-              value={profile.full_name}
+              value={profile.full_name ?? ""}
               onChange={(event) => setProfile((prev) => ({ ...prev, full_name: event.target.value }))}
             />
           </label>
@@ -135,7 +135,7 @@ export default function Profile() {
             CPF
             <input
               type="text"
-              value={profile.cpf}
+              value={profile.cpf ?? ""}
               onChange={(event) => setProfile((prev) => ({ ...prev, cpf: event.target.value }))}
             />
           </label>
@@ -172,7 +172,7 @@ export default function Profile() {
             Rua / avenida
             <input
               type="text"
-              value={profile.street}
+              value={profile.street ?? ""}
               onChange={(event) => setProfile((prev) => ({ ...prev, street: event.target.value }))}
             />
           </label>
@@ -180,7 +180,7 @@ export default function Profile() {
             Número
             <input
               type="text"
-              value={profile.number}
+              value={profile.number ?? ""}
               onChange={(event) => setProfile((prev) => ({ ...prev, number: event.target.value }))}
             />
           </label>
@@ -188,7 +188,7 @@ export default function Profile() {
             Complemento
             <input
               type="text"
-              value={profile.complement}
+              value={profile.complement ?? ""}
               onChange={(event) => setProfile((prev) => ({ ...prev, complement: event.target.value }))}
             />
           </label>
@@ -199,7 +199,7 @@ export default function Profile() {
             Bairro
             <input
               type="text"
-              value={profile.neighborhood}
+              value={profile.neighborhood ?? ""}
               onChange={(event) => setProfile((prev) => ({ ...prev, neighborhood: event.target.value }))}
             />
           </label>
@@ -207,7 +207,7 @@ export default function Profile() {
             Cidade
             <input
               type="text"
-              value={profile.city}
+              value={profile.city ?? ""}
               onChange={(event) => setProfile((prev) => ({ ...prev, city: event.target.value }))}
             />
           </label>
@@ -215,7 +215,7 @@ export default function Profile() {
             Estado
             <input
               type="text"
-              value={profile.state}
+              value={profile.state ?? ""}
               onChange={(event) => setProfile((prev) => ({ ...prev, state: event.target.value }))}
             />
           </label>
@@ -226,7 +226,7 @@ export default function Profile() {
             Corretora
             <input
               type="text"
-              value={profile.broker}
+              value={profile.broker ?? ""}
               onChange={(event) => setProfile((prev) => ({ ...prev, broker: event.target.value }))}
             />
           </label>
@@ -234,7 +234,7 @@ export default function Profile() {
             Conta
             {accounts.length > 0 ? (
               <select
-                value={profile.trading_account}
+                value={profile.trading_account ?? ""}
                 onChange={(event) => setProfile((prev) => ({ ...prev, trading_account: event.target.value }))}
               >
                 <option value="">Selecione a conta</option>
@@ -245,7 +245,7 @@ export default function Profile() {
             ) : (
               <input
                 type="text"
-                value={profile.trading_account}
+                value={profile.trading_account ?? ""}
                 onChange={(event) => setProfile((prev) => ({ ...prev, trading_account: event.target.value }))}
               />
             )}
@@ -253,7 +253,7 @@ export default function Profile() {
           <label>
             Moeda da conta
             <select
-              value={profile.account_currency}
+              value={profile.account_currency ?? "USD"}
               onChange={(event) => setProfile((prev) => ({ ...prev, account_currency: event.target.value }))}
             >
               <option value="USD">USD</option>

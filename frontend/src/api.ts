@@ -218,7 +218,7 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
 
 export type User = {
   id: number;
-  email: string;
+  username: string;
 };
 
 export type AuthMessage = {
@@ -482,15 +482,14 @@ export async function registerUser(payload: {
   email: string;
   password: string;
 }): Promise<User> {
-  return apiFetch<User>("/api/auth/register", {
+  return apiFetch<User>("/api/auth/setup", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
+    body: JSON.stringify({ password: payload.password, confirm_password: payload.password })
   });
 }
 
 export async function loginUser(payload: {
-  email: string;
   password: string;
 }): Promise<User> {
   return apiFetch<User>("/api/auth/login", {
@@ -510,21 +509,49 @@ export async function fetchMe(): Promise<User> {
   return apiFetch<User>("/api/auth/me");
 }
 
-export async function requestPasswordReset(email: string): Promise<AuthMessage> {
-  return apiFetch<AuthMessage>("/api/auth/request-reset", {
+export type RobotTestIn = {
+  robot_name: string;
+  test_date: string;
+  session?: string;
+  start_time?: string;
+  end_time?: string;
+  total_trades: number;
+  take_profits: number;
+  stop_losses: number;
+  gross_profit: number;
+  gross_loss: number;
+  currency: string;
+  notes?: string;
+};
+
+export type RobotTestOut = RobotTestIn & {
+  id: number;
+  created_at: string;
+};
+
+export async function listRobotTests(): Promise<RobotTestOut[]> {
+  return apiFetch<RobotTestOut[]>("/api/robot-tests");
+}
+
+export async function createRobotTest(payload: RobotTestIn): Promise<RobotTestOut> {
+  return apiFetch<RobotTestOut>("/api/robot-tests", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email })
+    body: JSON.stringify(payload),
   });
 }
 
-export async function resetPassword(payload: {
-  token: string;
-  new_password: string;
-}): Promise<{ ok: boolean }> {
-  return apiFetch<{ ok: boolean }>("/api/auth/reset", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
-  });
+export async function deleteRobotTest(id: number): Promise<void> {
+  await apiFetch<{ ok: boolean }>(`/api/robot-tests/${id}`, { method: "DELETE" });
 }
+
+export async function exportRobotTestsPdf(): Promise<Blob> {
+  const API_URL = (import.meta.env.PROD ? window.location.origin : "http://localhost:8000");
+  const resp = await fetch(`${API_URL}/api/robot-tests/pdf`, {
+    method: "POST",
+    credentials: "include",
+  });
+  if (!resp.ok) throw new Error("Erro ao gerar PDF");
+  return resp.blob();
+}
+

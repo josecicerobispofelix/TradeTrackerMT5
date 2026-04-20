@@ -342,29 +342,20 @@ class App(tk.Tk):
                  font=FONT_LG, bg=BG2, fg=TEXT).grid(
             row=0, column=0, columnspan=2, sticky="w", pady=(0, 22))
 
-        # E-mail
-        tk.Label(inner, text="E-mail do cliente:", font=FONT_B, bg=BG2, fg=MUTED).grid(
+        # Identificação
+        tk.Label(inner, text="Identificação do cliente (opcional):", font=FONT_B, bg=BG2, fg=MUTED).grid(
             row=1, column=0, sticky="w", padx=(0, 18), pady=7)
         self.email_var = tk.StringVar()
         self._entry(inner, self.email_var, width=40).grid(
             row=1, column=1, sticky="ew", ipady=7, pady=7)
 
-        # ID Hotmart
-        tk.Label(inner, text="ID Hotmart:", font=FONT_B, bg=BG2, fg=MUTED).grid(
-            row=2, column=0, sticky="w", padx=(0, 18), pady=7)
-        txn_frame = tk.Frame(inner, bg=BG2)
-        txn_frame.grid(row=2, column=1, sticky="ew", pady=7)
         self.txn_var = tk.StringVar()
-        self._entry(txn_frame, self.txn_var, width=40).pack(
-            side="left", ipady=7, fill="x", expand=True)
-        tk.Label(txn_frame, text="(opcional para testes)",
-                 font=("Segoe UI", 8), bg=BG2, fg=MUTED).pack(side="left", padx=(8, 0))
 
         # Validade
         tk.Label(inner, text="Validade:", font=FONT_B, bg=BG2, fg=MUTED).grid(
-            row=3, column=0, sticky="w", padx=(0, 18), pady=7)
+            row=2, column=0, sticky="w", padx=(0, 18), pady=7)
         exp_frame = tk.Frame(inner, bg=BG2)
-        exp_frame.grid(row=3, column=1, sticky="w", pady=7)
+        exp_frame.grid(row=2, column=1, sticky="w", pady=7)
 
         self.expires_var = tk.StringVar(value="Vitalício")
         cb = ttk.Combobox(exp_frame, textvariable=self.expires_var,
@@ -384,11 +375,11 @@ class App(tk.Tk):
 
         # Separador
         tk.Frame(inner, bg=BG3, height=1).grid(
-            row=4, column=0, columnspan=2, sticky="ew", pady=(18, 14))
+            row=3, column=0, columnspan=2, sticky="ew", pady=(18, 14))
 
         # Botões de geração
         btn_frame = tk.Frame(inner, bg=BG2)
-        btn_frame.grid(row=5, column=0, columnspan=2, sticky="ew")
+        btn_frame.grid(row=4, column=0, columnspan=2, sticky="ew")
         btn_frame.columnconfigure(0, weight=1)
         btn_frame.columnconfigure(1, weight=1)
 
@@ -657,10 +648,6 @@ class App(tk.Tk):
         email = self.email_var.get().strip()
         txn   = self.txn_var.get().strip()
         token = self.token_var.get().strip()
-
-        if not email:
-            messagebox.showerror("Erro", "Informe o e-mail do cliente.")
-            return
 
         if is_test and txn:
             if not messagebox.askyesno(

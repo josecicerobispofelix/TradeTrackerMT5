@@ -167,3 +167,37 @@ class DarfHistoryItem(BaseModel):
 
 class DarfHistoryResponse(BaseModel):
     items: List[DarfHistoryItem]
+
+
+class RobotTestIn(BaseModel):
+    robot_name: str
+    test_date: str
+    session: Optional[str] = None
+    start_time: Optional[str] = None
+    end_time: Optional[str] = None
+    total_trades: int = 0
+    take_profits: int = 0
+    stop_losses: int = 0
+    gross_profit: float = 0.0
+    gross_loss: float = 0.0
+    currency: str = "USD"
+    notes: Optional[str] = None
+
+
+class RobotTestOut(BaseModel):
+    id: int
+    robot_name: str
+    test_date: str
+    session: Optional[str] = None
+    start_time: Optional[str] = None
+    end_time: Optional[str] = None
+    total_trades: int
+    take_profits: int
+    stop_losses: int
+    gross_profit: float
+    gross_loss: float
+    currency: str
+    notes: Optional[str] = None
+    created_at: str
+
+    model_config = ConfigDict(from_attributes=True)

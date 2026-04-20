@@ -15,6 +15,8 @@ type TradeTableProps = {
   sortDir: "asc" | "desc";
   onSort: (key: SortKey) => void;
   onPageChange: (page: number) => void;
+  onExportCsv?: () => Promise<void>;
+  exporting?: boolean;
 };
 
 function formatDateTime(value: string) {
@@ -82,7 +84,8 @@ export default function TradeTable({
   sortDir,
   onSort,
   onPageChange,
-
+  onExportCsv,
+  exporting,
 }: TradeTableProps) {
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
@@ -98,7 +101,14 @@ export default function TradeTable({
     <div className="panel">
       <div className="panel-header">
         <h4>Trades ({total.toLocaleString("pt-BR")})</h4>
-        <span style={{ fontSize: "13px", opacity: 0.7 }}>Clique no título para ordenar</span>
+        <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+          <span style={{ fontSize: "13px", opacity: 0.7 }}>Clique no título para ordenar</span>
+          {onExportCsv && (
+            <button className="btn-secondary" onClick={onExportCsv} disabled={exporting}>
+              {exporting ? "Exportando..." : "Exportar CSV"}
+            </button>
+          )}
+        </div>
       </div>
       <div className="table-wrap">
         <table className="table">

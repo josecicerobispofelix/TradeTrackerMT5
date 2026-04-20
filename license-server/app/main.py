@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .database import engine, Base
-from .routes import licenses, admin
+from .routes import licenses, admin, webhook
 
 # Cria tabelas na primeira execução
 Base.metadata.create_all(bind=engine)
@@ -23,6 +23,7 @@ app.add_middleware(
 
 app.include_router(licenses.router)
 app.include_router(admin.router)
+app.include_router(webhook.router)
 
 
 @app.get("/health")
