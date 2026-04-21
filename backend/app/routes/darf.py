@@ -4,9 +4,9 @@ from io import BytesIO
 from pathlib import Path
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
-from sqlalchemy import func, select
+from sqlalchemy import extract, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..auth import get_current_user
@@ -305,6 +305,96 @@ async def generate_darf_pdf(
     filename = f"DARF_{payload.month:02d}_{payload.year}.pdf"
     headers = {"Content-Disposition": f"attachment; filename={filename}"}
     return StreamingResponse(BytesIO(pdf_bytes), media_type="application/pdf", headers=headers)
+
+
+MONTH_NAMES = [
+    "", "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+    "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
+]
+FOREX_RATE = 0.15   # ganhos de capital no exterior (corretora estrangeira, forex/CFD)
+
+
+def _last_biz_day(year: int, month: int) -> dt.date:
+    last = dt.date(year, month, calendar.monthrange(year, month)[1])
+    while last.weekday() >= 5:
+        last -= dt.timedelta(days=1)
+    return last
+
+
+async def _fx_for_month(session: AsyncSession, year: int, month: int) -> Optional[float]:
+    last_day = dt.date(year, month, calendar.monthrange(year, month)[1])
+    row = await session.scalar(
+        select(FXRate).where(FXRate.date <= last_day).order_by(FXRate.date.desc())
+    )
+    return float(row.usd_brl_rate) if row else None
+
+
+@router.get("/darf/annual")
+async def darf_annual(
+    year: int = Query(..., ge=2000, le=2100),
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(get_current_user),
+):
+    """Calcula DARF mês a mês para o ano, separando day trade (20%) e swing (15%) com carryforward."""
+    stmt = select(Trade).where(
+        Trade.user_id == user.id,
+        extract("year", Trade.close_time) == year,
+    ).order_by(Trade.close_time)
+
+    trades = (await session.execute(stmt)).scalars().all()
+
+    # Agrupa por mês (forex exterior: sem distinção day/swing, 15% flat)
+    monthly: dict[int, dict] = {m: {"net": 0.0, "count": 0} for m in range(1, 13)}
+    for t in trades:
+        m = t.close_date.month
+        net = float(t.profit) + float(t.commission) + float(t.swap)
+        monthly[m]["net"] += net
+        monthly[m]["count"] += 1
+
+    carryforward = 0.0
+    months_out = []
+    total_tax = 0.0
+
+    for m in range(1, 13):
+        fx    = await _fx_for_month(session, year, m)
+        net_usd = monthly[m]["net"]
+        count   = monthly[m]["count"]
+
+        net_brl = round(net_usd * fx, 2) if fx else None
+        base    = (net_brl or 0) + carryforward
+        taxable = max(0.0, base)
+        carryforward = round(min(0.0, base), 2)
+
+        tax = round(taxable * FOREX_RATE, 2)
+        total_tax = round(total_tax + tax, 2)
+
+        due_year  = year if m < 12 else year + 1
+        due_month = m + 1 if m < 12 else 1
+        due_date  = _last_biz_day(due_year, due_month)
+
+        months_out.append({
+            "month":           m,
+            "month_name":      MONTH_NAMES[m],
+            "fx_rate":         fx,
+            "trades_count":    count,
+            "net_usd":         round(net_usd, 2),
+            "net_brl":         net_brl,
+            "carryforward":    carryforward,
+            "taxable_brl":     round(taxable, 2),
+            "tax_brl":         tax,
+            "total_tax_brl":   tax,
+            "due_date":        due_date.strftime("%d/%m/%Y"),
+            "has_trades":      count > 0,
+        })
+
+    return {
+        "year":          year,
+        "months":        months_out,
+        "total_tax_brl": total_tax,
+        "rate":          FOREX_RATE,
+        "darf_code":     "8523",
+        "note":          "Ganhos de capital no exterior (corretora estrangeira, forex/CFD) – DARF código 8523",
+    }
 
 
 @router.post("/darf/pdf/save")

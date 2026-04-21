@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { fetchFiscalProfile, fetchTradeMeta, saveFiscalProfile, FiscalProfile } from "../api";
+import { fetchFiscalProfile, fetchTradeMeta, saveFiscalProfile, FiscalProfile, fetchDarfAnnual, DarfAnnual, DarfMonth } from "../api";
 
 function onlyDigits(value: string) {
   return value.replace(/\D/g, "");
@@ -37,6 +37,11 @@ export default function Profile() {
   const [status, setStatus] = useState<string | null>(null);
   const [cepStatus, setCepStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const [darfYear, setDarfYear] = useState(new Date().getFullYear());
+  const [darfData, setDarfData] = useState<DarfAnnual | null>(null);
+  const [darfLoading, setDarfLoading] = useState(false);
+  const [darfError, setDarfError] = useState<string | null>(null);
 
   const loadProfile = useCallback(async () => {
     setLoading(true);
@@ -97,6 +102,18 @@ export default function Profile() {
       setCepStatus((err as Error).message);
     }
   }, []);
+
+  const handleCalcDarf = useCallback(async () => {
+    setDarfLoading(true);
+    setDarfError(null);
+    try {
+      setDarfData(await fetchDarfAnnual(darfYear));
+    } catch (err) {
+      setDarfError((err as Error).message);
+    } finally {
+      setDarfLoading(false);
+    }
+  }, [darfYear]);
 
   const handleSaveProfile = async () => {
     setLoading(true);
@@ -279,6 +296,111 @@ export default function Profile() {
 
         {status ? <div className="helper">{status}</div> : null}
         {cepStatus ? <div className="helper">{cepStatus}</div> : null}
+      </div>
+
+      {/* ── DARF ─────────────────────────────────────────── */}
+      <div className="panel" style={{ marginTop: "1.5rem" }}>
+        <div className="panel-header">
+          <h4>Apuração de DARF</h4>
+          <span>Forex/CFD em corretora estrangeira (ex: Tickmill) — IR 15% sobre lucro líquido · Cód. 8523</span>
+        </div>
+
+        <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", marginTop: "0.5rem" }}>
+          <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 13 }}>
+            Ano
+            <input
+              type="number"
+              min={2020}
+              max={2100}
+              value={darfYear}
+              onChange={e => setDarfYear(Number(e.target.value))}
+              style={{ width: 90 }}
+            />
+          </label>
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={handleCalcDarf}
+            disabled={darfLoading}
+            style={{ marginTop: 18 }}
+          >
+            {darfLoading ? "Calculando..." : "Calcular DARF"}
+          </button>
+        </div>
+
+        {darfError && <div className="helper" style={{ color: "#ef4444", marginTop: 8 }}>{darfError}</div>}
+
+        {darfData && (
+          <>
+            <div className="cards kpi-grid" style={{ marginTop: "1.25rem", marginBottom: "1.25rem" }}>
+              <div className="card">
+                <div style={{ fontSize: 12, opacity: 0.6, marginBottom: 4 }}>Ano</div>
+                <div style={{ fontSize: 24, fontWeight: 700 }}>{darfData.year}</div>
+              </div>
+              <div className="card">
+                <div style={{ fontSize: 12, opacity: 0.6, marginBottom: 4 }}>Total DARF a pagar</div>
+                <div style={{ fontSize: 24, fontWeight: 700, color: darfData.total_tax_brl > 0 ? "#ef4444" : "#22c55e" }}>
+                  {darfData.total_tax_brl > 0 ? `R$ ${darfData.total_tax_brl.toFixed(2).replace(".", ",")}` : "R$ 0,00"}
+                </div>
+              </div>
+              <div className="card">
+                <div style={{ fontSize: 12, opacity: 0.6, marginBottom: 4 }}>Código DARF</div>
+                <div style={{ fontSize: 24, fontWeight: 700 }}>{darfData.darf_code}</div>
+              </div>
+              <div className="card">
+                <div style={{ fontSize: 12, opacity: 0.6, marginBottom: 4 }}>Alíquota</div>
+                <div style={{ fontSize: 24, fontWeight: 700 }}>{(darfData.rate * 100).toFixed(0)}%</div>
+              </div>
+            </div>
+
+            <div style={{ overflowX: "auto" }}>
+              <table className="trades-table">
+                <thead>
+                  <tr>
+                    <th>Mês</th>
+                    <th>Trades</th>
+                    <th>Lucro Líq. (USD)</th>
+                    <th>Lucro Líq. (BRL)</th>
+                    <th>Prejuízo acum.</th>
+                    <th>Base de cálculo</th>
+                    <th style={{ color: "#ef4444" }}>DARF 15%</th>
+                    <th>Vencimento</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {darfData.months.map((m: DarfMonth) => {
+                    const hasTax = m.tax_brl > 0;
+                    const brl = (v: number) => `R$ ${v.toFixed(2).replace(".", ",")}`;
+                    return (
+                      <tr key={m.month} style={{ opacity: m.has_trades ? 1 : 0.4 }}>
+                        <td style={{ fontWeight: 600 }}>{m.month_name}</td>
+                        <td>{m.trades_count}</td>
+                        <td style={{ color: m.net_usd >= 0 ? "#22c55e" : "#ef4444" }}>
+                          {m.has_trades ? `US$ ${m.net_usd.toFixed(2).replace(".", ",")}` : "—"}
+                        </td>
+                        <td style={{ color: (m.net_brl ?? 0) >= 0 ? "#22c55e" : "#ef4444" }}>
+                          {m.net_brl != null && m.has_trades ? brl(m.net_brl) : "—"}
+                        </td>
+                        <td style={{ color: m.carryforward < 0 ? "#f59e0b" : "inherit" }}>
+                          {m.carryforward < 0 ? brl(m.carryforward) : "—"}
+                        </td>
+                        <td>{m.taxable_brl > 0 ? brl(m.taxable_brl) : "—"}</td>
+                        <td style={{ fontWeight: 700, color: hasTax ? "#ef4444" : "inherit" }}>
+                          {hasTax ? brl(m.tax_brl) : "—"}
+                        </td>
+                        <td style={{ fontSize: 12, opacity: 0.7 }}>{hasTax ? m.due_date : "—"}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <div className="helper" style={{ marginTop: "0.75rem" }}>
+              ⚠️ Valor estimado para forex/CFD em corretora estrangeira (Tickmill). Alíquota 15% — código DARF 8523.
+              Prejuízo acumulado de meses anteriores é abatido automaticamente. Verifique sempre com seu contador.
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

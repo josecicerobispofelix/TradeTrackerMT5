@@ -545,6 +545,34 @@ export async function deleteRobotTest(id: number): Promise<void> {
   await apiFetch<{ ok: boolean }>(`/api/robot-tests/${id}`, { method: "DELETE" });
 }
 
+export type DarfMonth = {
+  month: number;
+  month_name: string;
+  fx_rate: number | null;
+  trades_count: number;
+  net_usd: number;
+  net_brl: number | null;
+  carryforward: number;
+  taxable_brl: number;
+  tax_brl: number;
+  total_tax_brl: number;
+  due_date: string;
+  has_trades: boolean;
+};
+
+export type DarfAnnual = {
+  year: number;
+  months: DarfMonth[];
+  total_tax_brl: number;
+  rate: number;
+  darf_code: string;
+  note: string;
+};
+
+export async function fetchDarfAnnual(year: number): Promise<DarfAnnual> {
+  return apiFetch<DarfAnnual>(`/api/darf/annual?year=${year}`);
+}
+
 export async function exportRobotTestsPdf(): Promise<Blob> {
   const API_URL = (import.meta.env.PROD ? window.location.origin : "http://localhost:8000");
   const resp = await fetch(`${API_URL}/api/robot-tests/pdf`, {
