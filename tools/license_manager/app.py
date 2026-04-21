@@ -142,11 +142,34 @@ def local_mark_synced(key: str):
     con.close()
 
 
+def local_update_status(key: str, status: str):
+    con = sqlite3.connect(LOCAL_DB)
+    con.execute("UPDATE licenses SET status=?, synced=1 WHERE key=?", (status, key))
+    con.commit()
+    con.close()
+
+
 def local_delete(key: str):
     con = sqlite3.connect(LOCAL_DB)
     con.execute("DELETE FROM licenses WHERE key=?", (key,))
     con.commit()
     con.close()
+
+
+def _compute_status(status: str, expires_at: str | None) -> str:
+    """Deriva status final: se a data expirou, retorna 'expired' independente do status."""
+    if status in ("revoked",):
+        return status
+    if expires_at:
+        try:
+            exp = datetime.fromisoformat(expires_at)
+            if exp.tzinfo is None:
+                exp = exp.replace(tzinfo=timezone.utc)
+            if datetime.now(timezone.utc) > exp:
+                return "expired"
+        except Exception:
+            pass
+    return status
 
 
 # ── API HTTP ──────────────────────────────────────────────────────────────────
@@ -482,15 +505,16 @@ class App(tk.Tk):
             ).pack(side="left", padx=6)
 
         # Tabela
-        cols = ("key", "status", "email", "transaction", "expires", "created", "sync")
+        cols = ("key", "status", "tipo", "email", "transaction", "expires", "created", "sync")
         heads = {
             "key":         ("Chave",      185),
-            "status":      ("Status",      82),
-            "email":       ("E-mail",     195),
-            "transaction": ("ID Hotmart", 130),
-            "expires":     ("Validade",   110),
-            "created":     ("Criado em",  140),
-            "sync":        ("Sync",        80),
+            "status":      ("Status",      90),
+            "tipo":        ("Tipo",        75),
+            "email":       ("Cliente",    180),
+            "transaction": ("ID Hotmart", 120),
+            "expires":     ("Validade",   115),
+            "created":     ("Criado em",  135),
+            "sync":        ("Sync",        70),
         }
 
         style = ttk.Style()
@@ -794,6 +818,12 @@ class App(tk.Tk):
             try:
                 rows = api_list(token)
                 self._server_rows = rows
+                # Sincroniza status do servidor de volta ao banco local
+                for r in rows:
+                    key = r.get("key")
+                    status = r.get("status", "inactive")
+                    if key:
+                        local_update_status(key, status)
                 self.after(0, lambda: self.conn_var.set("● Online"))
             except Exception:
                 self.after(0, lambda: self.conn_var.set("● Offline"))
@@ -811,34 +841,49 @@ class App(tk.Tk):
         self.tree.delete(*self.tree.get_children())
         count = 0
 
+        STATUS_LABEL = {
+            "active":   "✓ Ativa",
+            "inactive": "○ Inativa",
+            "revoked":  "✕ Revogada",
+            "expired":  "⌛ Expirada",
+            "pending":  "⟳ Pendente",
+        }
+
         for r in rows:
-            exp = r.get("expires_at") or ""
-            if exp and "T" in exp:
-                exp = exp[:10]
+            raw_exp = r.get("expires_at") or ""
+            exp_display = raw_exp[:10] if raw_exp and "T" in raw_exp else (raw_exp or "Vitalício")
+
+            raw_status = r.get("status", "inactive")
+            if "synced" in r and not r.get("synced"):
+                computed = "pending"
+            else:
+                computed = _compute_status(raw_status, raw_exp or None)
 
             sync = ""
             if "synced" in r:
-                sync = "✓ sync" if r.get("synced") else "⚠ pendente"
+                sync = "✓" if r.get("synced") else "⚠"
+
+            tipo = r.get("note", "") or ""
 
             vals = (
                 r.get("key", ""),
-                r.get("status", ""),
+                STATUS_LABEL.get(computed, computed),
+                tipo,
                 r.get("email", "") or "",
                 r.get("transaction_id", "") or "",
-                exp or "Vitalício",
+                exp_display,
                 (r.get("created_at", "") or "")[:16].replace("T", " "),
                 sync,
             )
             if not q or any(q in str(v).lower() for v in vals):
-                tag = r.get("status", "inactive")
-                if "synced" in r and not r.get("synced"):
-                    tag = "pending"
-                self.tree.insert("", "end", values=vals, tags=(tag,))
+                self.tree.insert("", "end", values=vals, tags=(computed,))
                 count += 1
 
+        ORANGE = "#f59e0b"
         self.tree.tag_configure("active",   foreground=GREEN)
         self.tree.tag_configure("inactive", foreground=MUTED)
         self.tree.tag_configure("revoked",  foreground=RED)
+        self.tree.tag_configure("expired",  foreground=ORANGE)
         self.tree.tag_configure("pending",  foreground=BLUE)
         self.list_status_var.set(f"{count} licenças exibidas")
 
