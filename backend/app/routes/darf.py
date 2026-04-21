@@ -355,11 +355,31 @@ async def darf_annual(
     carryforward = 0.0
     months_out = []
     total_tax = 0.0
+    today = dt.date.today()
 
     for m in range(1, 13):
-        fx    = await _fx_for_month(session, year, m)
+        is_future = (year > today.year) or (year == today.year and m > today.month)
+
+        fx      = await _fx_for_month(session, year, m)
         net_usd = monthly[m]["net"]
         count   = monthly[m]["count"]
+
+        if is_future and count == 0:
+            months_out.append({
+                "month":        m,
+                "month_name":   MONTH_NAMES[m],
+                "fx_rate":      None,
+                "trades_count": 0,
+                "net_usd":      0.0,
+                "net_brl":      None,
+                "carryforward": 0.0,
+                "taxable_brl":  0.0,
+                "tax_brl":      0.0,
+                "total_tax_brl": 0.0,
+                "due_date":     "",
+                "has_trades":   False,
+            })
+            continue
 
         net_brl = round(net_usd * fx, 2) if fx else None
         base    = (net_brl or 0) + carryforward

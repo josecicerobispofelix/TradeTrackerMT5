@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { fetchFiscalProfile, fetchTradeMeta, saveFiscalProfile, FiscalProfile, fetchDarfAnnual, DarfAnnual, DarfMonth } from "../api";
 
 function onlyDigits(value: string) {
@@ -353,42 +353,51 @@ export default function Profile() {
               </div>
             </div>
 
-            <div style={{ overflowX: "auto" }}>
-              <table className="trades-table">
+            <div style={{ overflowX: "auto", marginTop: "0.5rem" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
                 <thead>
-                  <tr>
-                    <th>Mês</th>
-                    <th>Trades</th>
-                    <th>Lucro Líq. (USD)</th>
-                    <th>Lucro Líq. (BRL)</th>
-                    <th>Prejuízo acum.</th>
-                    <th>Base de cálculo</th>
-                    <th style={{ color: "#ef4444" }}>DARF 15%</th>
-                    <th>Vencimento</th>
+                  <tr style={{ borderBottom: "2px solid rgba(255,255,255,0.1)" }}>
+                    {["Mês", "Trades", "Lucro Líq. (USD)", "Lucro Líq. (BRL)", "Prejuízo acum.", "Base de cálculo", "DARF 15%", "Vencimento"].map((h, i) => (
+                      <th key={h} style={{
+                        padding: "10px 14px",
+                        textAlign: i === 0 ? "left" : "right",
+                        fontWeight: 600,
+                        opacity: 0.7,
+                        whiteSpace: "nowrap",
+                        color: h === "DARF 15%" ? "#ef4444" : "inherit"
+                      }}>{h}</th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
                   {darfData.months.map((m: DarfMonth) => {
                     const hasTax = m.tax_brl > 0;
                     const brl = (v: number) => `R$ ${v.toFixed(2).replace(".", ",")}`;
+                    const cellStyle = (align?: string): React.CSSProperties => ({
+                      padding: "11px 14px",
+                      textAlign: (align as React.CSSProperties["textAlign"]) ?? "right",
+                      borderBottom: "1px solid rgba(255,255,255,0.05)",
+                    });
                     return (
-                      <tr key={m.month} style={{ opacity: m.has_trades ? 1 : 0.4 }}>
-                        <td style={{ fontWeight: 600 }}>{m.month_name}</td>
-                        <td>{m.trades_count}</td>
-                        <td style={{ color: m.net_usd >= 0 ? "#22c55e" : "#ef4444" }}>
+                      <tr key={m.month} style={{ opacity: m.has_trades ? 1 : 0.35 }}>
+                        <td style={{ ...cellStyle("left"), fontWeight: 700, minWidth: 90 }}>{m.month_name}</td>
+                        <td style={cellStyle()}>{m.has_trades ? m.trades_count : "—"}</td>
+                        <td style={{ ...cellStyle(), color: m.net_usd >= 0 ? "#22c55e" : "#ef4444" }}>
                           {m.has_trades ? `US$ ${m.net_usd.toFixed(2).replace(".", ",")}` : "—"}
                         </td>
-                        <td style={{ color: (m.net_brl ?? 0) >= 0 ? "#22c55e" : "#ef4444" }}>
+                        <td style={{ ...cellStyle(), color: (m.net_brl ?? 0) >= 0 ? "#22c55e" : "#ef4444" }}>
                           {m.net_brl != null && m.has_trades ? brl(m.net_brl) : "—"}
                         </td>
-                        <td style={{ color: m.carryforward < 0 ? "#f59e0b" : "inherit" }}>
+                        <td style={{ ...cellStyle(), color: m.carryforward < 0 ? "#f59e0b" : "inherit" }}>
                           {m.carryforward < 0 ? brl(m.carryforward) : "—"}
                         </td>
-                        <td>{m.taxable_brl > 0 ? brl(m.taxable_brl) : "—"}</td>
-                        <td style={{ fontWeight: 700, color: hasTax ? "#ef4444" : "inherit" }}>
+                        <td style={cellStyle()}>{m.taxable_brl > 0 ? brl(m.taxable_brl) : "—"}</td>
+                        <td style={{ ...cellStyle(), fontWeight: 700, color: hasTax ? "#ef4444" : "inherit" }}>
                           {hasTax ? brl(m.tax_brl) : "—"}
                         </td>
-                        <td style={{ fontSize: 12, opacity: 0.7 }}>{hasTax ? m.due_date : "—"}</td>
+                        <td style={{ ...cellStyle(), fontSize: 12, opacity: hasTax ? 0.8 : 0.4, whiteSpace: "nowrap" }}>
+                          {hasTax ? m.due_date : "—"}
+                        </td>
                       </tr>
                     );
                   })}
