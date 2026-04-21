@@ -9,16 +9,15 @@ type TopNavProps = {
 };
 
 const themeOptions = [
-  { id: "aqua", label: "Aqua (padrão)" },
-  { id: "sunset", label: "Sunset" },
-  { id: "forest", label: "Forest" },
-  { id: "neon", label: "Neon Blue" },
-  { id: "violet", label: "Violet" },
-  { id: "sand", label: "Desert Sand" },
-  { id: "light", label: "Branco" }
+  { id: "neon",  label: "🔵 Neon Blue"  },
+  { id: "dark",  label: "⚫ Dark"        },
+  { id: "ocean", label: "🌊 Ocean"       },
+  { id: "rose",  label: "🌸 Rose Gold"   },
+  { id: "amber", label: "🟡 Amber"       },
+  { id: "light", label: "⚪ Branco"      },
 ];
 
-export default function TopNav({ onLogout, showNav = true, theme = "aqua", onThemeChange }: TopNavProps) {
+export default function TopNav({ onLogout, showNav = true, theme = "neon", onThemeChange }: TopNavProps) {
   const [openSettings, setOpenSettings] = useState(false);
 
   const handleTheme = (id: string) => {

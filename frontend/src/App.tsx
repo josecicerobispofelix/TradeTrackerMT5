@@ -35,7 +35,7 @@ export default function App() {
   const [showPassword2, setShowPassword2] = useState(false);
   const [authMessage, setAuthMessage] = useState<string | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
-  const [theme, setTheme] = useState<string>(() => localStorage.getItem(THEME_KEY) ?? "aqua");
+  const [theme, setTheme] = useState<string>(() => localStorage.getItem(THEME_KEY) ?? "neon");
   const bgCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
