@@ -40,7 +40,7 @@ async def _fetch_from_exchangerate_host(target: dt.date | None) -> float | None:
     return None
 
 
-async def _fetch_from_open_er_api() -> float | None:
+async def _fetch_from_open_er_api(target: dt.date | None = None) -> float | None:
     url = "https://open.er-api.com/v6/latest/USD"
     try:
         async with httpx.AsyncClient(timeout=10) as client:
