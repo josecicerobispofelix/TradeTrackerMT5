@@ -11,6 +11,7 @@ import {
   User
 } from "./api";
 import TopNav from "./components/TopNav";
+import { LangProvider, useLang } from "./LangContext";
 
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Upload = lazy(() => import("./pages/Upload"));
@@ -19,6 +20,15 @@ const Profile = lazy(() => import("./pages/Profile"));
 const RobotTests = lazy(() => import("./pages/RobotTests"));
 
 export default function App() {
+  return (
+    <LangProvider>
+      <AppInner />
+    </LangProvider>
+  );
+}
+
+function AppInner() {
+  const { t } = useLang();
   const MIN_PASSWORD_LEN = 6;
   const THEME_KEY = "ttmt5_theme";
   const [license, setLicense] = useState<LicenseStatus | null>(null);
@@ -266,7 +276,7 @@ export default function App() {
       <div className="app-shell">
         <TopNav showNav={false} />
         <main className="content">
-          <div className="panel">Carregando licença...</div>
+          <div className="panel">{t("app_loading_license")}</div>
         </main>
       </div>
     );
@@ -278,14 +288,12 @@ export default function App() {
         <canvas ref={bgCanvasRef} className="bg-chart" aria-hidden />
         <div className="activation-card">
           <div className="activation-logo"><img src="/logo.png" alt="TradeTracker MT5" /></div>
-          <h1 className="activation-title">TradeTracker MT5</h1>
-          <p className="activation-subtitle">
-            Digite sua chave de licença para ativar o software.
-          </p>
+          <h1 className="activation-title">{t("license_title")}</h1>
+          <p className="activation-subtitle">{t("license_subtitle")}</p>
           <input
             className="activation-input"
             type="text"
-            placeholder="TRKR-XXXX-XXXX-XXXX"
+            placeholder={t("license_placeholder")}
             value={licenseKey}
             onChange={(e) => setLicenseKey(e.target.value.toUpperCase())}
             onKeyDown={(e) => e.key === "Enter" && handleActivate()}
@@ -302,12 +310,11 @@ export default function App() {
             onClick={handleActivate}
             disabled={licenseLoading || !licenseKey.trim()}
           >
-            {licenseLoading ? "Verificando..." : "Ativar licença"}
+            {licenseLoading ? t("license_checking") : t("license_activate")}
           </button>
           <p className="activation-help">
-            Ainda não tem uma chave?{" "}
             <a href="https://hotmart.com" target="_blank" rel="noreferrer">
-              Comprar agora
+              {t("license_buy")}
             </a>
           </p>
         </div>
@@ -320,7 +327,7 @@ export default function App() {
       <div className="app-shell">
         <TopNav showNav={false} />
         <main className="content">
-          <div className="panel">Carregando usuário...</div>
+          <div className="panel">{t("app_loading_user")}</div>
         </main>
       </div>
     );
@@ -333,12 +340,12 @@ export default function App() {
         <main className="content">
           <div className="panel activation-card">
             <div className="panel-header">
-              <h4>{authMode === "register" ? "Configurar senha" : "Entrar"}</h4>
-              <span>{authMode === "register" ? "Defina a senha de acesso ao sistema." : "Digite sua senha para continuar."}</span>
+              <h4>{authMode === "register" ? t("auth_setup_title") : t("auth_login_title")}</h4>
+              <span>{authMode === "register" ? t("auth_setup_sub") : t("auth_login_sub")}</span>
             </div>
             <div className="form-row">
               <label>
-                Senha
+                {t("auth_password")}
                 <div className="input-with-toggle">
                   <input
                     type={showPassword ? "text" : "password"}
@@ -351,15 +358,15 @@ export default function App() {
                     type="button"
                     className="toggle-eye"
                     onClick={() => setShowPassword((v) => !v)}
-                    aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
-                    title={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                    aria-label={showPassword ? t("auth_hide_pass") : t("auth_show_pass")}
+                    title={showPassword ? t("auth_hide_pass") : t("auth_show_pass")}
                   >
                   </button>
                 </div>
               </label>
               {authMode === "register" ? (
                 <label>
-                  Confirmar senha
+                  {t("auth_confirm")}
                   <div className="input-with-toggle">
                     <input
                       type={showPassword2 ? "text" : "password"}
@@ -379,11 +386,11 @@ export default function App() {
               ) : null}
               {authMode === "login" ? (
                 <button type="button" onClick={handleLogin} disabled={!authPassword}>
-                  Entrar
+                  {t("auth_enter")}
                 </button>
               ) : (
                 <button type="button" onClick={handleRegister}>
-                  Salvar senha
+                  {t("auth_save_pass")}
                 </button>
               )}
               <button
@@ -391,7 +398,7 @@ export default function App() {
                 className="btn-link"
                 onClick={() => setAuthMode(authMode === "login" ? "register" : "login")}
               >
-                {authMode === "login" ? "Configurar senha" : "Voltar ao login"}
+                {authMode === "login" ? t("auth_setup_link") : t("auth_back_login")}
               </button>
             </div>
             {authError ? <div className="helper">{authError}</div> : null}
@@ -407,7 +414,7 @@ export default function App() {
       <canvas ref={bgCanvasRef} className="bg-chart" aria-hidden />
       <TopNav onLogout={handleLogout} showNav theme={theme} onThemeChange={setTheme} />
       <main className="content">
-        <Suspense fallback={<div className="panel">Carregando...</div>}>
+        <Suspense fallback={<div className="panel">{t("app_loading")}</div>}>
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/upload" element={<Upload />} />

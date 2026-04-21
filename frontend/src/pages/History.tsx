@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { useLang } from "../LangContext";
 import {
   Area,
   Bar,
@@ -38,6 +39,7 @@ const hasFilters = (from: string, to: string, symbol: string, account: string) =
   !!(from || to || symbol || account);
 
 export default function History() {
+  const { t } = useLang();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [from, setFrom] = useState(searchParams.get("from") ?? "");
@@ -177,18 +179,18 @@ export default function History() {
   return (
     <div className="section">
       <div className="hero">
-        <h2>Histórico de operações</h2>
-        <p>Filtre por período, ativo ou conta para analisar as operações.</p>
+        <h2>{t("history_title")}</h2>
+        <p>{t("history_subtitle")}</p>
       </div>
 
       <div className="panel">
         <div className="panel-header">
-          <h4>Filtros</h4>
-          <span>Use os filtros abaixo.</span>
+          <h4>{t("history_filters")}</h4>
+          <span>{t("history_filter_hint")}</span>
         </div>
         <div className="form-row">
           <label>
-            De
+            {t("history_from")}
             <input
               type="date"
               value={from}
@@ -196,7 +198,7 @@ export default function History() {
             />
           </label>
           <label>
-            Até
+            {t("history_to")}
             <input
               type="date"
               value={to}
@@ -204,31 +206,31 @@ export default function History() {
             />
           </label>
           <label>
-            Ativo
+            {t("history_asset")}
             <select value={symbol} onChange={(e) => setSymbol(e.target.value)}>
-              <option value="">{metaLoading ? "Carregando..." : "Todos"}</option>
+              <option value="">{metaLoading ? t("history_loading") : t("history_all_assets")}</option>
               {symbols.map((item) => <option key={item} value={item}>{item}</option>)}
             </select>
           </label>
           <label>
-            Conta
+            {t("history_account")}
             <select value={account} onChange={(e) => setAccount(e.target.value)}>
-              <option value="">{metaLoading ? "Carregando..." : "Todas"}</option>
+              <option value="">{metaLoading ? t("history_loading") : t("history_all_accs")}</option>
               {accounts.map((item) => <option key={item} value={item}>{item}</option>)}
             </select>
           </label>
-          <button type="button" onClick={() => handlePageChange(1)}>Aplicar filtros</button>
+          <button type="button" onClick={() => handlePageChange(1)}>{t("history_apply")}</button>
         </div>
       </div>
 
-      {loading ? <div className="panel">Carregando...</div> : null}
-      {error ? <div className="panel">Erro: {error}</div> : null}
+      {loading ? <div className="panel">{t("history_loading")}</div> : null}
+      {error ? <div className="panel">{t("common_error")} {error}</div> : null}
 
       {!loading && chartData.length > 1 ? (
         <div className="panel">
           <div className="panel-header">
-            <h4>Evolução do resultado</h4>
-            <span>Lucro diário (barras) e acumulado (linha)</span>
+            <h4>{t("history_chart")}</h4>
+            <span>{t("history_chart_sub")}</span>
           </div>
           <div style={{ height: 220 }}>
             <ResponsiveContainer width="100%" height="100%">
@@ -244,7 +246,7 @@ export default function History() {
                 <Tooltip
                   formatter={(value: number, name: string) => [
                     value.toLocaleString("pt-BR", { minimumFractionDigits: 2 }),
-                    name === "profit_usd" ? "Diário (USD)" : "Acumulado (USD)"
+                    name === "profit_usd" ? t("history_daily_usd") : t("history_accum_usd")
                   ]}
                   labelFormatter={(label) => new Date(label + "T00:00:00").toLocaleDateString("pt-BR")}
                   contentStyle={{ background: "var(--surface)", border: "1px solid rgba(148,163,184,0.2)", borderRadius: 8 }}
@@ -254,7 +256,6 @@ export default function History() {
                   dataKey="profit_usd"
                   fill="rgba(34,197,94,0.6)"
                   radius={[3, 3, 0, 0]}
-                  // color bars red if negative
                 />
                 <Area
                   type="monotone"
@@ -287,23 +288,23 @@ export default function History() {
           {totals ? (
             <div className="panel">
               <div className="panel-header">
-                <h4>{sameDay ? "Resumo do dia" : "Resumo do período"}</h4>
-                <span>{totals.count.toLocaleString("pt-BR")} operações no total</span>
+                <h4>{sameDay ? t("history_day_summary") : t("history_period_sum")}</h4>
+                <span>{totals.count.toLocaleString("pt-BR")} {t("history_ops_total")}</span>
               </div>
               <div className="progress-row">
                 <div>
-                  <strong>Total (USD):</strong>{" "}
+                  <strong>{t("common_total")}</strong>{" "}
                   {formatCurrency(totals.total_usd, "USD")}{" "}
                   <span className={usdPositive ? "tag success" : "tag danger"}>
-                    {usdPositive ? "Positivo" : "Negativo"}
+                    {usdPositive ? t("history_positive") : t("history_negative")}
                   </span>
                 </div>
                 {totals.total_brl != null && (
                   <div>
-                    <strong>Total (BRL):</strong>{" "}
+                    <strong>{t("common_total_brl")}</strong>{" "}
                     {formatCurrency(totals.total_brl, "BRL")}{" "}
                     <span className={brlPositive ? "tag success" : "tag danger"}>
-                      {brlPositive ? "Positivo" : "Negativo"}
+                      {brlPositive ? t("history_positive") : t("history_negative")}
                     </span>
                   </div>
                 )}
@@ -312,7 +313,7 @@ export default function History() {
           ) : null}
         </>
       ) : !loading ? (
-        <div className="panel">Nenhum trade encontrado.</div>
+        <div className="panel">{t("history_no_trades")}</div>
       ) : null}
     </div>
   );

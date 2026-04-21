@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { fetchFiscalProfile, fetchTradeMeta, saveFiscalProfile, FiscalProfile, fetchDarfAnnual, DarfAnnual, DarfMonth } from "../api";
+import { useLang } from "../LangContext";
 
 function onlyDigits(value: string) {
   return value.replace(/\D/g, "");
@@ -32,6 +33,7 @@ function normalizeProfile(data?: FiscalProfile | null): FiscalProfile {
 }
 
 export default function Profile() {
+  const { t } = useLang();
   const [profile, setProfile] = useState<FiscalProfile>(() => normalizeProfile());
   const [accounts, setAccounts] = useState<string[]>([]);
   const [status, setStatus] = useState<string | null>(null);
@@ -60,7 +62,7 @@ export default function Profile() {
       }
 
       setProfile(normalized);
-      setStatus("Perfil carregado.");
+      setStatus(t("prof_loaded"));
     } catch (err) {
       setStatus((err as Error).message);
     } finally {
@@ -75,10 +77,10 @@ export default function Profile() {
   const lookupCep = useCallback(async (rawCep: string) => {
     const cep = onlyDigits(rawCep);
     if (cep.length !== 8) {
-      setCepStatus("Informe 8 dígitos do CEP.");
+      setCepStatus(t("prof_cep_digits"));
       return;
     }
-    setCepStatus("Buscando CEP...");
+    setCepStatus(t("prof_cep_searching"));
     try {
       const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`, {
         cache: "no-store",
@@ -86,7 +88,7 @@ export default function Profile() {
       });
       const data = await response.json();
       if (data.erro) {
-        setCepStatus("CEP não encontrado.");
+        setCepStatus(t("prof_cep_not_found"));
         return;
       }
       setProfile((prev) => ({
@@ -97,7 +99,7 @@ export default function Profile() {
         city: data.localidade || prev.city,
         state: data.uf || prev.state
       }));
-      setCepStatus("Endereço preenchido pelo CEP.");
+      setCepStatus(t("prof_cep_filled"));
     } catch (err) {
       setCepStatus((err as Error).message);
     }
@@ -121,7 +123,7 @@ export default function Profile() {
     try {
       const response = await saveFiscalProfile(profile);
       setProfile(normalizeProfile(response));
-      setStatus("Perfil fiscal salvo.");
+      setStatus(t("prof_saved"));
     } catch (err) {
       setStatus((err as Error).message);
     } finally {
@@ -133,15 +135,15 @@ export default function Profile() {
     <div className="section">
       <div className="panel">
         <div className="panel-header">
-          <h4>Perfil fiscal do trader</h4>
-          <span>Preencha uma vez. O CEP preenche rua, bairro, cidade e UF automaticamente.</span>
+          <h4>{t("prof_title")}</h4>
+          <span>{t("prof_subtitle")}</span>
         </div>
 
-        <div className="helper">Após salvar, os dados são usados no cálculo e PDF do DARF.</div>
+        <div className="helper">{t("prof_helper")}</div>
 
         <div className="form-row">
           <label>
-            Nome completo
+            {t("prof_full_name")}
             <input
               type="text"
               value={profile.full_name ?? ""}
@@ -149,7 +151,7 @@ export default function Profile() {
             />
           </label>
           <label>
-            CPF
+            {t("prof_cpf")}
             <input
               type="text"
               value={profile.cpf ?? ""}
@@ -157,7 +159,7 @@ export default function Profile() {
             />
           </label>
           <label>
-            Data de nascimento
+            {t("prof_birth")}
             <input
               type="date"
               value={profile.birth_date || ""}
@@ -168,7 +170,7 @@ export default function Profile() {
 
         <div className="form-row">
           <label>
-            CEP
+            {t("prof_cep")}
             <input
               type="text"
               inputMode="numeric"
@@ -186,7 +188,7 @@ export default function Profile() {
             />
           </label>
           <label>
-            Rua / avenida
+            {t("prof_street")}
             <input
               type="text"
               value={profile.street ?? ""}
@@ -194,7 +196,7 @@ export default function Profile() {
             />
           </label>
           <label>
-            Número
+            {t("prof_number")}
             <input
               type="text"
               value={profile.number ?? ""}
@@ -202,7 +204,7 @@ export default function Profile() {
             />
           </label>
           <label>
-            Complemento
+            {t("prof_complement")}
             <input
               type="text"
               value={profile.complement ?? ""}
@@ -213,7 +215,7 @@ export default function Profile() {
 
         <div className="form-row">
           <label>
-            Bairro
+            {t("prof_neighborhood")}
             <input
               type="text"
               value={profile.neighborhood ?? ""}
@@ -221,7 +223,7 @@ export default function Profile() {
             />
           </label>
           <label>
-            Cidade
+            {t("prof_city")}
             <input
               type="text"
               value={profile.city ?? ""}
@@ -229,7 +231,7 @@ export default function Profile() {
             />
           </label>
           <label>
-            Estado
+            {t("prof_state")}
             <input
               type="text"
               value={profile.state ?? ""}
@@ -240,7 +242,7 @@ export default function Profile() {
 
         <div className="form-row">
           <label>
-            Corretora
+            {t("prof_broker")}
             <input
               type="text"
               value={profile.broker ?? ""}
@@ -248,13 +250,13 @@ export default function Profile() {
             />
           </label>
           <label>
-            Conta
+            {t("prof_account")}
             {accounts.length > 0 ? (
               <select
                 value={profile.trading_account ?? ""}
                 onChange={(event) => setProfile((prev) => ({ ...prev, trading_account: event.target.value }))}
               >
-                <option value="">Selecione a conta</option>
+                <option value="">{t("prof_select_account")}</option>
                 {accounts.map((acc) => (
                   <option key={acc} value={acc}>{acc}</option>
                 ))}
@@ -268,7 +270,7 @@ export default function Profile() {
             )}
           </label>
           <label>
-            Moeda da conta
+            {t("prof_currency")}
             <select
               value={profile.account_currency ?? "USD"}
               onChange={(event) => setProfile((prev) => ({ ...prev, account_currency: event.target.value }))}
@@ -278,7 +280,7 @@ export default function Profile() {
             </select>
           </label>
           <label>
-            Alíquota padrão %
+            {t("prof_tax_rate")}
             <input
               type="number"
               step="0.01"
@@ -291,7 +293,7 @@ export default function Profile() {
         </div>
 
         <button type="button" onClick={handleSaveProfile} disabled={loading}>
-          {loading ? "Salvando..." : "Salvar perfil fiscal"}
+          {loading ? t("prof_saving") : t("prof_save")}
         </button>
 
         {status ? <div className="helper">{status}</div> : null}
@@ -301,13 +303,13 @@ export default function Profile() {
       {/* ── DARF ─────────────────────────────────────────── */}
       <div className="panel" style={{ marginTop: "1.5rem" }}>
         <div className="panel-header">
-          <h4>Apuração de DARF</h4>
-          <span>Forex/CFD em corretora estrangeira (ex: Tickmill) — IR 15% sobre lucro líquido · Cód. 8523</span>
+          <h4>{t("darf_title")}</h4>
+          <span>{t("darf_subtitle")}</span>
         </div>
 
         <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", marginTop: "0.5rem" }}>
           <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 13 }}>
-            Ano
+            {t("darf_year")}
             <input
               type="number"
               min={2020}
@@ -324,7 +326,7 @@ export default function Profile() {
             disabled={darfLoading}
             style={{ marginTop: 18 }}
           >
-            {darfLoading ? "Calculando..." : "Calcular DARF"}
+            {darfLoading ? t("darf_calculating") : t("darf_calculate")}
           </button>
         </div>
 
@@ -334,21 +336,21 @@ export default function Profile() {
           <>
             <div className="cards kpi-grid" style={{ marginTop: "1.25rem", marginBottom: "1.25rem" }}>
               <div className="card">
-                <div style={{ fontSize: 12, opacity: 0.6, marginBottom: 4 }}>Ano</div>
+                <div style={{ fontSize: 12, opacity: 0.6, marginBottom: 4 }}>{t("darf_year")}</div>
                 <div style={{ fontSize: 24, fontWeight: 700 }}>{darfData.year}</div>
               </div>
               <div className="card">
-                <div style={{ fontSize: 12, opacity: 0.6, marginBottom: 4 }}>Total DARF a pagar</div>
+                <div style={{ fontSize: 12, opacity: 0.6, marginBottom: 4 }}>{t("darf_total")}</div>
                 <div style={{ fontSize: 24, fontWeight: 700, color: darfData.total_tax_brl > 0 ? "#ef4444" : "#22c55e" }}>
                   {darfData.total_tax_brl > 0 ? `R$ ${darfData.total_tax_brl.toFixed(2).replace(".", ",")}` : "R$ 0,00"}
                 </div>
               </div>
               <div className="card">
-                <div style={{ fontSize: 12, opacity: 0.6, marginBottom: 4 }}>Código DARF</div>
+                <div style={{ fontSize: 12, opacity: 0.6, marginBottom: 4 }}>{t("darf_code")}</div>
                 <div style={{ fontSize: 24, fontWeight: 700 }}>{darfData.darf_code}</div>
               </div>
               <div className="card">
-                <div style={{ fontSize: 12, opacity: 0.6, marginBottom: 4 }}>Alíquota</div>
+                <div style={{ fontSize: 12, opacity: 0.6, marginBottom: 4 }}>{t("darf_rate")}</div>
                 <div style={{ fontSize: 24, fontWeight: 700 }}>{(darfData.rate * 100).toFixed(0)}%</div>
               </div>
             </div>
@@ -357,14 +359,14 @@ export default function Profile() {
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
                 <thead>
                   <tr style={{ borderBottom: "2px solid rgba(255,255,255,0.1)" }}>
-                    {["Mês", "Trades", "Lucro Líq. (USD)", "Lucro Líq. (BRL)", "Prejuízo acum.", "Base de cálculo", "DARF 15%", "Vencimento"].map((h, i) => (
+                    {[t("darf_month"), t("darf_trades"), t("darf_net_usd"), t("darf_net_brl"), t("darf_carryforward"), t("darf_taxable"), t("darf_tax"), t("darf_due")].map((h, i) => (
                       <th key={h} style={{
                         padding: "10px 14px",
                         textAlign: i === 0 ? "left" : "right",
                         fontWeight: 600,
                         opacity: 0.7,
                         whiteSpace: "nowrap",
-                        color: h === "DARF 15%" ? "#ef4444" : "inherit"
+                        color: i === 6 ? "#ef4444" : "inherit"
                       }}>{h}</th>
                     ))}
                   </tr>
@@ -405,8 +407,7 @@ export default function Profile() {
               </table>
             </div>
             <div className="helper" style={{ marginTop: "0.75rem" }}>
-              ⚠️ Valor estimado para forex/CFD em corretora estrangeira (Tickmill). Alíquota 15% — código DARF 8523.
-              Prejuízo acumulado de meses anteriores é abatido automaticamente. Verifique sempre com seu contador.
+              {t("darf_warning")}
             </div>
           </>
         )}

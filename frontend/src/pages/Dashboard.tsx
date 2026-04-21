@@ -1,4 +1,5 @@
 ﻿import { useCallback, useEffect, useMemo, useState } from "react";
+import { useLang } from "../LangContext";
 
 
 
@@ -1595,8 +1596,7 @@ function computeMetrics(
 
 
 export default function Dashboard() {
-
-
+  const { t } = useLang();
 
   const now = new Date();
 
@@ -4086,11 +4086,11 @@ export default function Dashboard() {
 
 
 
-    { label: "Lucro bruto", value: metrics.grossProfit },
+    { label: t("dash_gross_profit"), value: metrics.grossProfit },
 
 
 
-    { label: "Prejuízo bruto", value: Math.abs(metrics.grossLoss) }
+    { label: t("dash_gross_loss"), value: Math.abs(metrics.grossLoss) }
 
 
 
@@ -4166,7 +4166,7 @@ export default function Dashboard() {
 
 
 
-          <h4>Painel de filtros</h4>
+          <h4>{t("dash_filter_panel")}</h4>
 
 
 
@@ -4174,7 +4174,7 @@ export default function Dashboard() {
 
 
 
-          <label>Período</label>
+          <label>{t("dash_period")}</label>
 
 
 
@@ -4252,9 +4252,9 @@ export default function Dashboard() {
 
               />
             <div className="chip-group" style={{ marginTop: 8 }}>
-              <button type="button" className="chip tiny" onClick={() => applyPreset("today")}>Hoje</button>
-              <button type="button" className="chip tiny" onClick={() => applyPreset("week")}>Semana</button>
-              <button type="button" className="chip tiny" onClick={() => applyPreset("month")}>Mês</button>
+              <button type="button" className="chip tiny" onClick={() => applyPreset("today")}>{t("dash_today")}</button>
+              <button type="button" className="chip tiny" onClick={() => applyPreset("week")}>{t("dash_week")}</button>
+              <button type="button" className="chip tiny" onClick={() => applyPreset("month")}>{t("dash_month_btn")}</button>
             </div>
           </div>
 
@@ -4268,7 +4268,7 @@ export default function Dashboard() {
 
 
 
-            <label>Ativo</label>
+            <label>{t("dash_asset")}</label>
 
 
 
@@ -4276,7 +4276,7 @@ export default function Dashboard() {
 
 
 
-              <option value="">{metaLoading ? "Carregando..." : "Todos"}</option>
+              <option value="">{metaLoading ? t("dash_loading") : t("dash_all_assets")}</option>
 
 
 
@@ -4312,7 +4312,7 @@ export default function Dashboard() {
 
 
 
-            <label>Conta</label>
+            <label>{t("dash_account")}</label>
 
 
 
@@ -4320,7 +4320,7 @@ export default function Dashboard() {
 
 
 
-              <option value="">{metaLoading ? "Carregando..." : "Todas"}</option>
+              <option value="">{metaLoading ? t("dash_loading") : t("dash_all_accs")}</option>
 
 
 
@@ -4356,7 +4356,7 @@ export default function Dashboard() {
 
 
 
-            <label>Dias da semana</label>
+            <label>{t("dash_weekdays")}</label>
 
 
 
@@ -4452,7 +4452,7 @@ export default function Dashboard() {
 
 
 
-          <label>Horário</label>
+          <label>{t("dash_hour")}</label>
 
 
 
@@ -4540,7 +4540,7 @@ export default function Dashboard() {
 
 
 
-            <label>Moeda</label>
+            <label>{t("dash_currency")}</label>
 
 
 
@@ -4620,7 +4620,7 @@ export default function Dashboard() {
 
 
 
-              {loading ? "Atualizando..." : "Atualizar"}
+              {loading ? t("dash_updating") : t("dash_refresh")}
 
 
 
@@ -4698,7 +4698,7 @@ export default function Dashboard() {
 
 
 
-            <h2>SUA PERFORMANCE</h2>
+            <h2>{t("dash_performance")}</h2>
 
 
 
@@ -5183,48 +5183,48 @@ export default function Dashboard() {
 
           <div className="panel insights-panel">
             <div className="panel-header">
-              <h4>Insights da estrategia</h4>
-              <span>Pontos fortes e fracos identificados automaticamente nos seus dados.</span>
+              <h4>{t("dash_insights")}</h4>
+              <span>{t("dash_insights_sub")}</span>
             </div>
             <div className="insights-grid">
               <div className="insight-card">
-                <div className="insight-label">Melhor dia</div>
+                <div className="insight-label">{t("dash_best_day")}</div>
                 <div className="insight-value text-success">
                   {metrics.bestDay ? metrics.bestDay.label : '—'}
                 </div>
                 <div className="insight-sub">
-                  {metrics.bestDay ? formatCurrency(metrics.bestDay.net, currency) : 'Sem dados'}
+                  {metrics.bestDay ? formatCurrency(metrics.bestDay.net, currency) : t("dash_no_data_text")}
                 </div>
               </div>
               <div className="insight-card">
-                <div className="insight-label">Pior dia</div>
+                <div className="insight-label">{t("dash_worst_day")}</div>
                 <div className="insight-value text-danger">
                   {metrics.worstDay ? metrics.worstDay.label : '—'}
                 </div>
                 <div className="insight-sub">
-                  {metrics.worstDay ? formatCurrency(metrics.worstDay.net, currency) : 'Sem dados'}
+                  {metrics.worstDay ? formatCurrency(metrics.worstDay.net, currency) : t("dash_no_data_text")}
                 </div>
               </div>
               <div className="insight-card">
-                <div className="insight-label">Melhor horario</div>
+                <div className="insight-label">{t("dash_best_hour")}</div>
                 <div className="insight-value text-success">
                   {metrics.bestHour != null ? `${metrics.bestHour.hour}h` : '—'}
                 </div>
                 <div className="insight-sub">
-                  {metrics.bestHour != null ? formatCurrency(metrics.bestHour.net, currency) : 'Sem dados'}
+                  {metrics.bestHour != null ? formatCurrency(metrics.bestHour.net, currency) : t("dash_no_data_text")}
                 </div>
               </div>
               <div className="insight-card">
-                <div className="insight-label">Pior horario</div>
+                <div className="insight-label">{t("dash_worst_hour")}</div>
                 <div className="insight-value text-danger">
                   {metrics.worstHour != null ? `${metrics.worstHour.hour}h` : '—'}
                 </div>
                 <div className="insight-sub">
-                  {metrics.worstHour != null ? formatCurrency(metrics.worstHour.net, currency) : 'Sem dados'}
+                  {metrics.worstHour != null ? formatCurrency(metrics.worstHour.net, currency) : t("dash_no_data_text")}
                 </div>
               </div>
               <div className="insight-card">
-                <div className="insight-label">Taxa de acerto</div>
+                <div className="insight-label">{t("dash_win_rate")}</div>
                 <div className="insight-value" style={{
                   color: metrics.winRate >= metrics.breakevenWinRate ? 'var(--accent)' : '#ef4444'
                 }}>
@@ -5232,18 +5232,18 @@ export default function Dashboard() {
                 </div>
                 <div className="insight-sub">
                   {metrics.winRate >= metrics.breakevenWinRate
-                    ? `Acima do minimo (${formatPercent(metrics.breakevenWinRate)})`
-                    : `Abaixo do minimo (${formatPercent(metrics.breakevenWinRate)})`}
+                    ? `${t("dash_above_min")} (${formatPercent(metrics.breakevenWinRate)})`
+                    : `${t("dash_below_min")} (${formatPercent(metrics.breakevenWinRate)})`}
                 </div>
               </div>
               <div className="insight-card">
-                <div className="insight-label">Consistencia</div>
+                <div className="insight-label">{t("dash_consistency")}</div>
                 <div className="insight-value" style={{
                   color: metrics.profitableDaysPct >= 0.6 ? 'var(--accent)' : metrics.profitableDaysPct >= 0.4 ? '#f59e0b' : '#ef4444'
                 }}>
                   {formatPercent(metrics.profitableDaysPct)}
                 </div>
-                <div className="insight-sub">dias positivos</div>
+                <div className="insight-sub">{t("dash_pos_days")}</div>
               </div>
             </div>
           </div>
@@ -5260,7 +5260,7 @@ export default function Dashboard() {
 
 
 
-                <h4>Meta mensal</h4>
+                <h4>{t("dash_monthly_goal")}</h4>
 
 
 
@@ -5433,7 +5433,7 @@ export default function Dashboard() {
                   <span className="goal-note">
                     {needPerDayAlt
                       ? `${formatCurrency(needPerDayAlt.value, needPerDayAlt.currency as "USD" | "BRL")} / dia`
-                      : "Defina a taxa USD/BRL para ver na outra moeda"}
+                      : t("dash_no_fx")}
                   </span>
                 </div>
               </div>
@@ -5487,11 +5487,11 @@ export default function Dashboard() {
 
 
 
-                <h4>Evolução patrimonial</h4>
+                <h4>{t("dash_equity")}</h4>
 
 
 
-                <span>Lucro acumulado no período selecionado.</span>
+                <span>{t("dash_equity_sub")}</span>
 
 
 
@@ -5607,7 +5607,7 @@ export default function Dashboard() {
 
 
 
-                      name="Acumulado"
+                      name={t("dash_accum")}
 
 
 
@@ -5643,11 +5643,11 @@ export default function Dashboard() {
 
 
 
-                <h4>Assertividade</h4>
+                <h4>{t("dash_winrate")}</h4>
 
 
 
-                <span>Percentual de trades vencedores.</span>
+                <span>{t("dash_winrate_sub")}</span>
 
 
 
@@ -5831,11 +5831,11 @@ export default function Dashboard() {
 
 
 
-                <h4>Comparativo lucro x Prejuízo</h4>
+                <h4>{t("dash_pnl")}</h4>
 
 
 
-                <span>Somatório de ganhos e perdas.</span>
+                <span>{t("dash_pnl_sub")}</span>
 
 
 
@@ -5935,7 +5935,7 @@ export default function Dashboard() {
 
 
 
-                            entry.label === "Lucro bruto" ? "#22c55e" : "#ef4444"
+                            entry.label === t("dash_gross_profit") ? "#22c55e" : "#ef4444"
 
 
 
@@ -5983,11 +5983,11 @@ export default function Dashboard() {
 
 
 
-                <h4>Lucro diário</h4>
+                <h4>{t("dash_daily")}</h4>
 
 
 
-                <span>Barras diárias com resultado líquido.</span>
+                <span>{t("dash_daily_sub")}</span>
 
 
 
@@ -6103,11 +6103,11 @@ export default function Dashboard() {
 
 
 
-                <h4>Progresso mensal</h4>
+                <h4>{t("dash_monthly_prog")}</h4>
 
 
 
-                <span>Acumulado vs. Meta líquida e bruta.</span>
+                <span>{t("dash_monthly_sub")}</span>
 
 
 
@@ -6203,7 +6203,7 @@ export default function Dashboard() {
 
 
 
-                      name="Acumulado"
+                      name={t("dash_accum")}
 
 
 
@@ -6243,7 +6243,7 @@ export default function Dashboard() {
 
 
 
-                      name="Meta líquida"
+                      name={t("dash_net_goal")}
 
 
 
@@ -6283,7 +6283,7 @@ export default function Dashboard() {
 
 
 
-                      name="Meta bruta"
+                      name={t("dash_gross_goal")}
 
 
 
@@ -6319,11 +6319,11 @@ export default function Dashboard() {
 
 
 
-                <h4>Dia da semana</h4>
+                <h4>{t("dash_weekday")}</h4>
 
 
 
-                <span>resultado líquido por dia.</span>
+                <span>{t("dash_hour_lbl")}</span>
 
 
 
