@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..auth import get_current_user
 from ..db import get_session
+from ..fx_provider import fetch_usd_brl_rate
 from ..models import DarfReport, FiscalProfile, FXRate, Trade, User
 from ..schemas import (
     DarfCalcRequest,
@@ -420,3 +421,100 @@ async def save_darf_pdf(
     target_path.write_bytes(pdf_bytes)
     _log(f"SAVE_PDF ok -> {target_path}")
     return {"path": str(target_path), "filename": filename}
+
+
+MONTH_NAMES = [
+    "", "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+    "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
+]
+FOREX_RATE = 0.15
+
+
+def _last_biz_day(year: int, month: int) -> dt.date:
+    last = dt.date(year, month, calendar.monthrange(year, month)[1])
+    while last.weekday() >= 5:
+        last -= dt.timedelta(days=1)
+    return last
+
+
+async def _fx_for_month(session: AsyncSession, year: int, month: int) -> Optional[float]:
+    last_day = dt.date(year, month, calendar.monthrange(year, month)[1])
+    row = await session.scalar(
+        select(FXRate).where(FXRate.date <= last_day).order_by(FXRate.date.desc())
+    )
+    if row:
+        return float(row.usd_brl_rate)
+    try:
+        value = await fetch_usd_brl_rate(last_day)
+        new_rate = FXRate(date=last_day, usd_brl_rate=value)
+        session.add(new_rate)
+        await session.commit()
+        return value
+    except Exception:
+        return None
+
+
+@router.get("/darf/annual")
+async def darf_annual(
+    year: int = Query(..., ge=2000, le=2100),
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(get_current_user),
+):
+    stmt = select(Trade).where(
+        Trade.user_id == user.id,
+        extract("year", Trade.close_time) == year,
+    ).order_by(Trade.close_time)
+
+    trades = (await session.execute(stmt)).scalars().all()
+
+    monthly: dict[int, dict] = {m: {"net": 0.0, "count": 0} for m in range(1, 13)}
+    for t in trades:
+        m = t.close_date.month
+        net = float(t.profit) + float(t.commission) + float(t.swap)
+        monthly[m]["net"] += net
+        monthly[m]["count"] += 1
+
+    carryforward = 0.0
+    months_out = []
+    total_tax = 0.0
+
+    for m in range(1, 13):
+        fx = await _fx_for_month(session, year, m)
+        net_usd = monthly[m]["net"]
+        count = monthly[m]["count"]
+
+        net_brl = round(net_usd * fx, 2) if fx else None
+        base = (net_brl or 0) + carryforward
+        taxable = max(0.0, base)
+        carryforward = round(min(0.0, base), 2)
+
+        tax = round(taxable * FOREX_RATE, 2)
+        total_tax = round(total_tax + tax, 2)
+
+        due_year = year if m < 12 else year + 1
+        due_month = m + 1 if m < 12 else 1
+        due_date = _last_biz_day(due_year, due_month)
+
+        months_out.append({
+            "month": m,
+            "month_name": MONTH_NAMES[m],
+            "fx_rate": fx,
+            "trades_count": count,
+            "net_usd": round(net_usd, 2),
+            "net_brl": net_brl,
+            "carryforward": carryforward,
+            "taxable_brl": round(taxable, 2),
+            "tax_brl": tax,
+            "total_tax_brl": tax,
+            "due_date": due_date.strftime("%d/%m/%Y"),
+            "has_trades": count > 0,
+        })
+
+    return {
+        "year": year,
+        "months": months_out,
+        "total_tax_brl": total_tax,
+        "rate": FOREX_RATE,
+        "darf_code": "8523",
+        "note": "Ganhos de capital no exterior (corretora estrangeira, forex/CFD) – DARF código 8523",
+    }
