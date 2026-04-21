@@ -167,7 +167,9 @@ def _api_request(method: str, path: str, token: str, payload=None):
 
 
 def api_generate(token: str, email: str, txn, expires_at) -> dict:
-    payload = {"quantity": 1, "email": email, "max_machines": 1}
+    payload: dict = {"quantity": 1, "max_machines": 1}
+    if email:
+        payload["email"] = email
     if txn:
         payload["transaction_id"] = txn
     if expires_at:
