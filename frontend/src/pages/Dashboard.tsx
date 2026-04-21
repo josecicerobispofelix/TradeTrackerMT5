@@ -976,7 +976,11 @@ function computeMetrics(
 
 
 
-  fxFallback: number | null
+  fxFallback: number | null,
+
+
+
+  dayLabels: string[] = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sab"]
 
 
 
@@ -1036,7 +1040,7 @@ function computeMetrics(
 
 
 
-  const dayOfWeek = DAYS.map((label) => ({
+  const dayOfWeek = dayLabels.map((label) => ({
     label,
     net: 0,
     trades: 0
@@ -1597,6 +1601,10 @@ function computeMetrics(
 
 export default function Dashboard() {
   const { t } = useLang();
+  const tDays = [
+    t("day_sun"), t("day_mon"), t("day_tue"), t("day_wed"),
+    t("day_thu"), t("day_fri"), t("day_sat"),
+  ];
 
   const now = new Date();
 
@@ -3712,7 +3720,11 @@ export default function Dashboard() {
 
 
 
-        fxRate
+        fxRate,
+
+
+
+        tDays
 
 
 
@@ -3736,7 +3748,7 @@ export default function Dashboard() {
 
 
 
-    () => computeMetrics(filteredTrades, "BRL", from, to, fxRate),
+    () => computeMetrics(filteredTrades, "BRL", from, to, fxRate, tDays),
 
 
 
@@ -3750,7 +3762,7 @@ export default function Dashboard() {
 
 
 
-    () => computeMetrics(goalFilteredTrades, useBrl ? "BRL" : "USD", goalRange.from, goalRange.to, fxRate),
+    () => computeMetrics(goalFilteredTrades, useBrl ? "BRL" : "USD", goalRange.from, goalRange.to, fxRate, tDays),
 
 
 
@@ -3764,7 +3776,7 @@ export default function Dashboard() {
 
 
 
-    () => computeMetrics(goalFilteredTrades, "BRL", goalRange.from, goalRange.to, fxRate),
+    () => computeMetrics(goalFilteredTrades, "BRL", goalRange.from, goalRange.to, fxRate, tDays),
 
 
 
@@ -4392,7 +4404,7 @@ export default function Dashboard() {
 
 
 
-                Todos
+                {t("dash_all")}
 
 
 
@@ -4400,7 +4412,7 @@ export default function Dashboard() {
 
 
 
-              {DAYS.map((day, index) => (
+              {tDays.map((day, index) => (
 
 
 
@@ -4480,7 +4492,7 @@ export default function Dashboard() {
 
 
 
-                Todos
+                {t("dash_all")}
 
 
 
@@ -4668,7 +4680,7 @@ export default function Dashboard() {
 
 
 
-              Limpar filtros
+              {t("dash_clear")}
 
 
 
@@ -4863,7 +4875,7 @@ export default function Dashboard() {
 
 
 
-              <div className="card-title">Total operações</div>
+              <div className="card-title">{t("dash_stat_total")}</div>
 
 
 
@@ -4882,7 +4894,7 @@ export default function Dashboard() {
 
 
 
-              <div className="card-title">Vencedoras</div>
+              <div className="card-title">{t("dash_stat_winners")}</div>
 
 
 
@@ -4901,7 +4913,7 @@ export default function Dashboard() {
 
 
 
-              <div className="card-title">Perdedoras</div>
+              <div className="card-title">{t("dash_stat_losers")}</div>
 
 
 
@@ -4920,7 +4932,7 @@ export default function Dashboard() {
 
 
 
-              <div className="card-title">Fator de lucro</div>
+              <div className="card-title">{t("dash_stat_pf")}</div>
 
 
 
@@ -4929,7 +4941,7 @@ export default function Dashboard() {
                   marginLeft: 6, fontSize: '11px', fontWeight: 700,
                   color: metrics.profitFactor >= 1.5 ? 'var(--accent)' : metrics.profitFactor >= 1.0 ? '#f59e0b' : '#ef4444'
                 }}>
-                  {metrics.profitFactor >= 1.5 ? 'otimo' : metrics.profitFactor >= 1.0 ? 'ok' : 'ruim'}
+                  {metrics.profitFactor >= 1.5 ? t("dash_rating_great") : metrics.profitFactor >= 1.0 ? t("dash_rating_ok") : t("dash_rating_poor")}
                 </span></div>
 
 
@@ -4945,7 +4957,7 @@ export default function Dashboard() {
 
 
 
-              <div className="card-title">Ganho médio</div>
+              <div className="card-title">{t("dash_stat_avgwin")}</div>
 
 
 
@@ -4972,7 +4984,7 @@ export default function Dashboard() {
 
 
 
-              <div className="card-title">Perda média</div>
+              <div className="card-title">{t("dash_stat_avgloss")}</div>
 
 
 
@@ -4999,7 +5011,7 @@ export default function Dashboard() {
 
 
 
-              <div className="card-title">Maior lucro</div>
+              <div className="card-title">{t("dash_stat_maxwin")}</div>
 
 
 
@@ -5026,7 +5038,7 @@ export default function Dashboard() {
 
 
 
-              <div className="card-title">Maior Prejuízo</div>
+              <div className="card-title">{t("dash_stat_maxloss")}</div>
 
 
 
@@ -5062,7 +5074,7 @@ export default function Dashboard() {
                   marginLeft: 6, fontSize: '11px', fontWeight: 700,
                   color: metrics.payoff >= 1.5 ? 'var(--accent)' : metrics.payoff >= 1.0 ? '#f59e0b' : '#ef4444'
                 }}>
-                  {metrics.payoff >= 1.5 ? 'otimo' : metrics.payoff >= 1.0 ? 'ok' : 'ruim'}
+                  {metrics.payoff >= 1.5 ? t("dash_rating_great") : metrics.payoff >= 1.0 ? t("dash_rating_ok") : t("dash_rating_poor")}
                 </span></div>
 
 
@@ -5078,7 +5090,7 @@ export default function Dashboard() {
 
 
 
-              <div className="card-title">Seq. positiva</div>
+              <div className="card-title">{t("dash_stat_wstreak")}</div>
 
 
 
@@ -5097,7 +5109,7 @@ export default function Dashboard() {
 
 
 
-              <div className="card-title">Seq. negativa</div>
+              <div className="card-title">{t("dash_stat_lstreak")}</div>
 
 
 
@@ -5116,7 +5128,7 @@ export default function Dashboard() {
 
 
 
-              <div className="card-title">Máx. drawdown</div>
+              <div className="card-title">{t("dash_stat_drawdown")}</div>
 
 
 
@@ -5142,7 +5154,7 @@ export default function Dashboard() {
               className="card small"
               title="Tempo medio entre abertura e fechamento de cada operacao."
             >
-              <div className="card-title">Duracao media</div>
+              <div className="card-title">{t("dash_stat_duration")}</div>
               <div className="card-value">
                 {metrics.avgDurationMin < 60
                   ? `${metrics.avgDurationMin}min`
@@ -5154,7 +5166,7 @@ export default function Dashboard() {
               className="card small"
               title="Percentual de dias operados com resultado positivo. Acima de 60% indica boa consistencia."
             >
-              <div className="card-title">Dias lucrativos</div>
+              <div className="card-title">{t("dash_stat_profdays")}</div>
               <div className="card-value" style={{
                 color: metrics.profitableDaysPct >= 0.6 ? 'var(--accent)' : metrics.profitableDaysPct >= 0.4 ? '#f59e0b' : '#ef4444'
               }}>
@@ -5166,13 +5178,13 @@ export default function Dashboard() {
               className="card small"
               title="Taxa de acerto minima para a estrategia ser lucrativa dado o payoff atual. Se sua taxa real for menor, voce perde no longo prazo."
             >
-              <div className="card-title">Breakeven</div>
+              <div className="card-title">{t("dash_stat_breakeven")}</div>
               <div className="card-value" style={{
                 color: metrics.winRate >= metrics.breakevenWinRate ? 'var(--accent)' : '#ef4444'
               }}>
                 {formatPercent(metrics.breakevenWinRate)}
                 <span style={{ fontSize: '11px', opacity: 0.7, marginLeft: 4 }}>
-                  {metrics.winRate >= metrics.breakevenWinRate ? 'ok' : 'atencao'}
+                  {metrics.winRate >= metrics.breakevenWinRate ? t("dash_rating_ok") : t("dash_rating_watch")}
                 </span>
               </div>
             </div>
@@ -5268,7 +5280,7 @@ export default function Dashboard() {
 
 
 
-                  Meta de {goalMonthLabel || "mês selecionado"}. Atualize a meta e o painel recalcula automaticamente. {goalUpdatedAt ? `Atualizado às ${goalUpdatedAt}.` : ""}
+                  {t("dash_goal_of")} {goalMonthLabel || t("dash_goal_month_sel")}. {t("dash_goal_hint")} {goalUpdatedAt ? `${t("dash_updated_at")} ${goalUpdatedAt}.` : ""}
 
 
 
@@ -5288,7 +5300,7 @@ export default function Dashboard() {
 
 
 
-                  Mês da meta
+                  {t("dash_goal_month")}
 
 
 
@@ -5320,7 +5332,7 @@ export default function Dashboard() {
 
 
 
-                  Meta líquida (BRL)
+                  {t("dash_net_target")}
 
 
 
@@ -5356,7 +5368,7 @@ export default function Dashboard() {
 
 
 
-                  Meta bruta (BRL)
+                  {t("dash_gross_target")}
 
 
 
@@ -5388,7 +5400,7 @@ export default function Dashboard() {
 
 
 
-                  Dias restantes no Mês
+                  {t("dash_days_left")}
 
 
 
@@ -5407,28 +5419,28 @@ export default function Dashboard() {
 
               <div className="goal-summary">
                 <div className="goal-chip">
-                  <span className="goal-label">Meta líquida</span>
+                  <span className="goal-label">{t("dash_net_label")}</span>
                   <span className="goal-value">
                     {formatCurrency(goalNetTarget, currency)}
                   </span>
                 </div>
 
                 <div className="goal-chip">
-                  <span className="goal-label">Já realizado</span>
+                  <span className="goal-label">{t("dash_achieved")}</span>
                   <span
                     className={`goal-value ${goalProgressValue >= 0 ? "text-success" : "text-danger"}`}
                   >
                     {formatCurrency(goalProgressValue, currency)}
                   </span>
-                  <span className="goal-note">{(goalProgressNet * 100).toFixed(0)}% da meta</span>
+                  <span className="goal-note">{(goalProgressNet * 100).toFixed(0)}% {t("dash_of_goal")}</span>
                 </div>
 
                 <div className="goal-chip">
-                  <span className="goal-label">Por atingir</span>
+                  <span className="goal-label">{t("dash_to_reach")}</span>
                   <span className="goal-value">{formatCurrency(goalRemainingNet, currency)}</span>
                   <span className="goal-note">
-                    {formatCurrency(needPerDayBase, currency)} / dia • {daysRemaining}{" "}
-                    {daysRemaining === 1 ? "dia" : "dias"} restantes
+                    {formatCurrency(needPerDayBase, currency)} {t("dash_per_day")} • {daysRemaining}{" "}
+                    {daysRemaining === 1 ? t("dash_day") : t("dash_days")} {t("dash_remaining")}
                   </span>
                   <span className="goal-note">
                     {needPerDayAlt
@@ -5441,7 +5453,7 @@ export default function Dashboard() {
               <div className="goal-bars">
                 <div className="goal-bar">
                   <div className="goal-bar-header">
-                    <span className="goal-bar-label">Progresso líquido</span>
+                    <span className="goal-bar-label">{t("dash_progress_net")}</span>
                     <span className="goal-bar-value">
                       {formatCurrency(goalProgressValue, currency)} / {formatCurrency(goalNetTarget, currency)}
                     </span>
@@ -5453,7 +5465,7 @@ export default function Dashboard() {
 
                 <div className="goal-bar ghost">
                   <div className="goal-bar-header">
-                    <span className="goal-bar-label">Progresso bruto</span>
+                    <span className="goal-bar-label">{t("dash_progress_gross")}</span>
                     <span className="goal-bar-value">
                       {formatCurrency(goalGrossProgressValue, currency)} / {formatCurrency(goalGrossTarget, currency)}
                     </span>
@@ -6541,7 +6553,7 @@ export default function Dashboard() {
 
                 <div key={`row-${rowIndex}`} className="heatmap-row">
 
-                  <div className="heatmap-label">{DAYS[rowIndex]}</div>
+                  <div className="heatmap-label">{tDays[rowIndex]}</div>
 
                   <div className="heatmap-cells">
 
@@ -6583,13 +6595,13 @@ export default function Dashboard() {
 
                           title={
                             visible
-                              ? `${DAYS[rowIndex]} ${colIndex}h\nTrades: ${count}\nLucro médio: ${formatCurrency(
+                              ? `${tDays[rowIndex]} ${colIndex}h\nTrades: ${count}\n${t("dash_heatmap_avg_profit")} ${formatCurrency(
                                   value,
                                   currency
                                 )}\nWin rate: ${
                                   winRate != null ? `${winRate.toFixed(0)}%` : "n/d"
                                 }`
-                              : "Amostra insuficiente para atingir o mínimo de trades."
+                              : t("dash_heatmap_insuf")
                           }
 
                         >
@@ -6606,7 +6618,7 @@ export default function Dashboard() {
 
                   <div
                     className="heatmap-avg"
-                    title={`Média de ${DAYS[rowIndex]}`}
+                    title={`${t("dash_heatmap_avgfor")} ${tDays[rowIndex]}`}
                   >
                     {formatCurrency(heatmapRowAvg[rowIndex] || 0, currency)}
                   </div>
@@ -6616,18 +6628,18 @@ export default function Dashboard() {
               ))}
 
               <div className="heatmap-row heatmap-footer">
-                <div className="heatmap-label">Média</div>
+                <div className="heatmap-label">{t("dash_heatmap_avg")}</div>
                 <div className="heatmap-cells">
                   {heatmapColAvg.map((value, colIndex) => (
                     <div
                       key={`col-avg-${colIndex}`}
                       className="heatmap-cell avg"
                       style={{ backgroundColor: getHeatColor(value, metrics.heatMax) }}
-                      title={`Média das ${colIndex}h: ${formatCurrency(value, currency)}`}
+                      title={`${t("dash_heatmap_colfor")} ${colIndex}h: ${formatCurrency(value, currency)}`}
                     />
                   ))}
                 </div>
-                <div className="heatmap-avg" title="Média geral">
+                <div className="heatmap-avg" title={t("dash_heatmap_overall")}>
                   {formatCurrency(heatmapOverallAvg, currency)}
                 </div>
               </div>
@@ -6637,7 +6649,7 @@ export default function Dashboard() {
           </div>
 
           <div className="dashboard-footer">
-            Desenvolvido por TecnoHuby · contato@tecnohuby.com.br
+            {t("dash_footer")}
           </div>
 
         </div>
