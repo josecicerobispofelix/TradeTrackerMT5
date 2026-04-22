@@ -215,6 +215,8 @@ const translations = {
   // ── DARF ─────────────────────────────────────────────────────────────────
   darf_title:          { pt: "Apuração de DARF",         en: "DARF Tax Calculation", es: "Cálculo de DARF"     },
   darf_subtitle:       { pt: "Forex/CFD em corretora estrangeira (ex: Tickmill) — IR 15% sobre lucro líquido · Cód. 8523", en: "Forex/CFD at foreign broker (e.g. Tickmill) — 15% income tax on net profit · Code 8523", es: "Forex/CFD en corredor extranjero (ej. Tickmill) — IR 15% sobre ganancia neta · Cód. 8523" },
+  darf_brazil_only_title: { pt: "🇧🇷 Exclusivo para traders brasileiros", en: "🇧🇷 Brazilian traders only", es: "🇧🇷 Solo para traders brasileños" },
+  darf_brazil_only_body:  { pt: "O DARF é um tributo federal do Brasil (IR 15% sobre lucro em corretoras estrangeiras). Se você opera de outro país, esta seção não se aplica à sua realidade — cada país tem suas próprias regras fiscais. Consulte sempre um contador local.", en: "DARF is a Brazilian federal tax (15% income tax on profits from foreign brokers). If you trade from another country, this section does not apply to you — each country has its own tax rules. Always consult a local accountant.", es: "El DARF es un impuesto federal brasileño (IR 15% sobre ganancias en corredores extranjeros). Si operas desde otro país, esta sección no aplica para ti — cada país tiene sus propias reglas fiscales. Consulta siempre a un contador local." },
   darf_year:           { pt: "Ano",                      en: "Year",                es: "Año"                  },
   darf_calculating:    { pt: "Calculando...",            en: "Calculating...",      es: "Calculando..."        },
   darf_calculate:      { pt: "Calcular DARF",            en: "Calculate DARF",      es: "Calcular DARF"        },

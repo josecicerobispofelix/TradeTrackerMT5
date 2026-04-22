@@ -307,6 +307,29 @@ export default function Profile() {
           <span>{t("darf_subtitle")}</span>
         </div>
 
+        {/* Aviso: aplicável somente a traders brasileiros */}
+        <div style={{
+          display: "flex",
+          alignItems: "flex-start",
+          gap: "0.75rem",
+          background: "rgba(245,184,0,0.08)",
+          border: "1px solid rgba(245,184,0,0.3)",
+          borderRadius: 8,
+          padding: "0.75rem 1rem",
+          marginTop: "0.75rem",
+          marginBottom: "0.25rem",
+        }}>
+          <span style={{ fontSize: 20, lineHeight: 1.3, flexShrink: 0 }}>⚠️</span>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 13, color: "#f5b800", marginBottom: 4 }}>
+              {t("darf_brazil_only_title")}
+            </div>
+            <div style={{ fontSize: 12, opacity: 0.75, lineHeight: 1.55 }}>
+              {t("darf_brazil_only_body")}
+            </div>
+          </div>
+        </div>
+
         <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", marginTop: "0.5rem" }}>
           <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 13 }}>
             {t("darf_year")}
