@@ -88,42 +88,23 @@ export default function RobotTests() {
     setPdfLoading(true);
     setPdfStatus(null);
     setError(null);
-    const filename = `testes_robo_${new Date().toISOString().slice(0, 10)}.pdf`;
 
     try {
-      // 1) pywebview com diálogo nativo de salvar
-      const api: any = (window as any).pywebview?.api;
-      if (api?.save_pdf_prompt) {
-        const blob = await exportRobotTestsPdf();
-        const buffer = await blob.arrayBuffer();
-        const bytes = new Uint8Array(buffer);
-        let binary = "";
-        for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
-        const base64 = window.btoa(binary);
-        const response = await api.save_pdf_prompt(base64, filename, "");
-        if (response?.success && response.path) {
-          setPdfStatus(`✓ PDF salvo em: ${response.path}`);
-        } else if (response?.cancelled) {
-          setPdfStatus(null);
-        }
-        return;
-      }
-
-      // 2) app desktop sem diálogo — salva em Downloads via backend
       if (import.meta.env.PROD) {
+        // App desktop: salva direto em Downloads e mostra o caminho
         const saved = await saveRobotTestsPdfFile();
         setPdfStatus(`✓ PDF salvo em: ${saved.path}`);
-        return;
+      } else {
+        // Navegador: download direto via blob
+        const filename = `testes_robo_${new Date().toISOString().slice(0, 10)}.pdf`;
+        const blob = await exportRobotTestsPdf();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(url);
       }
-
-      // 3) Navegador — download direto
-      const blob = await exportRobotTestsPdf();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename;
-      a.click();
-      URL.revokeObjectURL(url);
     } catch (e) {
       setError((e as Error).message);
     } finally {
