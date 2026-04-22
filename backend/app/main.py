@@ -145,6 +145,18 @@ app.include_router(report.router, prefix="/api", tags=["report"])
 
 
 @app.middleware("http")
+async def no_cache_assets(request, call_next):
+    """Força no-cache nos assets estáticos para o WebView não usar versões antigas."""
+    response = await call_next(request)
+    path = request.url.path
+    if path.startswith("/assets/") or path in ("/", "/index.html"):
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+    return response
+
+
+@app.middleware("http")
 async def license_guard(request, call_next):
     path = request.url.path
     if path.startswith("/api") and not path.startswith("/api/license"):
