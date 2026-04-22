@@ -807,11 +807,14 @@ class App(tk.Tk):
             self._refresh_server_list()
 
     def _refresh_server_list(self):
+        # Carrega dados locais imediatamente para a tela nunca ficar em branco
+        self._local_rows = local_list()
+        self._server_rows = list(self._local_rows)  # fallback inicial
+        self._apply_filter()
+
         token = self.token_var.get().strip()
         if not token:
-            self.conn_var.set("● Sem token")
-            self._local_rows = local_list()
-            self._apply_filter()
+            self.conn_var.set("● Sem token — exibindo dados locais")
             return
 
         def run():
@@ -826,7 +829,9 @@ class App(tk.Tk):
                         local_update_status(key, status)
                 self.after(0, lambda: self.conn_var.set("● Online"))
             except Exception:
-                self.after(0, lambda: self.conn_var.set("● Offline"))
+                # Offline: mantém dados locais como fallback no modo Servidor
+                self._server_rows = list(self._local_rows)
+                self.after(0, lambda: self.conn_var.set("● Offline — exibindo dados locais"))
             finally:
                 self._local_rows = local_list()
                 self.after(0, self._apply_filter)
