@@ -267,7 +267,7 @@ function toMonthKey(date: Date) {
 
 
 
-function formatMonthLabel(monthKey: string) {
+function formatMonthLabel(monthKey: string, locale_arg = "pt") {
 
 
 
@@ -295,7 +295,8 @@ function formatMonthLabel(monthKey: string) {
 
 
 
-  return new Intl.DateTimeFormat("pt-BR", {
+  const locale = locale_arg === "en" ? "en-US" : locale_arg === "es" ? "es-ES" : "pt-BR";
+  return new Intl.DateTimeFormat(locale, {
 
 
 
@@ -1600,7 +1601,7 @@ function computeMetrics(
 
 
 export default function Dashboard() {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const tDays = [
     t("day_sun"), t("day_mon"), t("day_tue"), t("day_wed"),
     t("day_thu"), t("day_fri"), t("day_sat"),
@@ -3973,7 +3974,7 @@ export default function Dashboard() {
 
 
 
-  const goalMonthLabel = useMemo(() => formatMonthLabel(goalMonth), [goalMonth]);
+  const goalMonthLabel = useMemo(() => formatMonthLabel(goalMonth, lang), [goalMonth, lang]);
 
 
 
@@ -4692,7 +4693,7 @@ export default function Dashboard() {
 
 
 
-          <div className="helper">Trades filtrados: {filteredTrades.length}</div>
+          <div className="helper">{t("dash_filtered")} {filteredTrades.length}</div>
 
 
 
@@ -4714,19 +4715,7 @@ export default function Dashboard() {
 
 
 
-            <p>
-
-
-
-              Analise seus resultados do MetaTrader 5 com filtros completos,
-
-
-
-              indicadores-chave e gráficos animados.
-
-
-
-            </p>
+            <p>{t("dash_hero_sub")}</p>
 
 
 
@@ -4784,7 +4773,7 @@ export default function Dashboard() {
                 desc: t("dash_asian") },
               { name: t("dash_tokyo"),      emoji: '🗼', start: tokS, end: tokE, color: '#22c55e',
                 desc: t("dash_asian") },
-              { name: 'Londres',            emoji: '🎡', start: lonS, end: lonE, color: '#3b82f6',
+              { name: t("dash_london"),      emoji: '🎡', start: lonS, end: lonE, color: '#3b82f6',
                 desc: londonOff === 1 ? `${t("dash_european")} • BST` : `${t("dash_european")} • GMT` },
               { name: t("dash_new_york"),   emoji: '🗽', start: nyS,  end: nyE,  color: '#ef4444',
                 desc: nyOff === -4   ? `${t("dash_american")} • EDT` : `${t("dash_american")} • EST` },
@@ -4799,9 +4788,9 @@ export default function Dashboard() {
             };
             const fmt = (startH: number) => {
               const m = minsTo(startH);
-              if (m < 60) return `em ${m}min`;
+              if (m < 60) return `${t("dash_in")} ${m}min`;
               const hh = Math.floor(m / 60), mm = m % 60;
-              return mm > 0 ? `em ${hh}h${pad(mm)}` : `em ${hh}h`;
+              return mm > 0 ? `${t("dash_in")} ${hh}h${pad(mm)}` : `${t("dash_in")} ${hh}h`;
             };
             type Candidate = { key: string; startH: number; open: boolean };
             const candidates: Candidate[] = [
@@ -4816,11 +4805,11 @@ export default function Dashboard() {
             return (
               <div className="panel market-clock-panel">
                 <div className="panel-header">
-                  <h4>🕒 Horário de mercado</h4>
+                  <h4>{t("dash_market_clock")}</h4>
                   <span style={{ fontVariantNumeric: 'tabular-nums', fontSize: '15px', fontWeight: 700, opacity: 0.9 }}>
                     {timeStr} BRT  
                     <span style={{ fontSize: '12px', fontWeight: 600, color: forexOpen ? 'var(--accent)' : '#94a3b8' }}>
-                      {forexOpen ? '● Forex aberto' : '● Forex fechado'}
+                      {forexOpen ? t("dash_forex_open") : t("dash_forex_closed")}
                     </span>
                   </span>
                 </div>
@@ -4835,7 +4824,7 @@ export default function Dashboard() {
                           <span className="ms-flag">{s.emoji}</span>
                           <span className="ms-name">{s.name}</span>
                           <span className="ms-badge" style={{ background: open ? s.color + '33' : isNext ? 'rgba(251,191,36,0.15)' : undefined, color: open ? s.color : isNext ? '#fbbf24' : undefined }}>
-                            {open ? 'aberto' : isNext ? 'próximo' : 'fechado'}
+                            {open ? t("dash_sess_open") : isNext ? t("dash_sess_next") : t("dash_sess_closed")}
                           </span>
                         </div>
                         <div className="ms-hours">{s.start}h → {s.end}h</div>
@@ -4847,20 +4836,20 @@ export default function Dashboard() {
                   <div className={`market-session overlap ${overlapOpen ? 'open' : 'closed'}${nextKey === 'overlap' ? ' next' : ''}`}>
                     <div className="ms-header">
                       <span className="ms-flag">🔥</span>
-                      <span className="ms-name">Londres + NY</span>
+                      <span className="ms-name">{t("dash_london_ny")}</span>
                       <span className="ms-badge" style={{ background: overlapOpen ? '#f59e0b33' : 'rgba(148,163,184,0.1)', color: overlapOpen ? '#f59e0b' : '#94a3b8' }}>
-                        {overlapOpen ? 'AGORA' : fmt(ovS)}
+                        {overlapOpen ? t("dash_now") : fmt(ovS)}
                       </span>
                     </div>
                     <div className="ms-hours">{ovS}h → {ovE}h</div>
-                    <div className="ms-desc">Melhor horário • +50% do volume</div>
+                    <div className="ms-desc">{t("dash_peak_hours")}</div>
                   </div>
                 </div>
               </div>
             );
           })()}
 
-          {error ? <div className="panel">Erro: {error}</div> : null}
+          {error ? <div className="panel">{t("common_error")} {error}</div> : null}
 
 
 
@@ -4870,7 +4859,7 @@ export default function Dashboard() {
 
             <div
               className="card small"
-              title="Quantidade total de operações (ganhadoras + perdedoras) no período filtrado."
+              title={t("tip_total")}
             >
 
 
@@ -4889,7 +4878,7 @@ export default function Dashboard() {
 
             <div
               className="card small"
-              title="Número de operações com resultado positivo."
+              title={t("tip_winners")}
             >
 
 
@@ -4908,7 +4897,7 @@ export default function Dashboard() {
 
             <div
               className="card small"
-              title="Número de operações com resultado negativo."
+              title={t("tip_losers")}
             >
 
 
@@ -4927,7 +4916,7 @@ export default function Dashboard() {
 
             <div
               className="card small"
-              title="Fator de lucro: ganho bruto dividido pelo prejuízo bruto (|loss|). >1 indica sistema lucrativo."
+              title={t("tip_pf")}
             >
 
 
@@ -4952,7 +4941,7 @@ export default function Dashboard() {
 
             <div
               className="card small"
-              title="Ganho médio das operações vencedoras (já em BRL/USD conforme seleção)."
+              title={t("tip_avgwin")}
             >
 
 
@@ -4979,7 +4968,7 @@ export default function Dashboard() {
 
             <div
               className="card small"
-              title="Perda média das operações perdedoras."
+              title={t("tip_avgloss")}
             >
 
 
@@ -5006,7 +4995,7 @@ export default function Dashboard() {
 
             <div
               className="card small"
-              title="Maior lucro obtido em uma única operação."
+              title={t("tip_maxwin")}
             >
 
 
@@ -5033,7 +5022,7 @@ export default function Dashboard() {
 
             <div
               className="card small"
-              title="Maior prejuízo em uma única operação."
+              title={t("tip_maxloss")}
             >
 
 
@@ -5060,12 +5049,12 @@ export default function Dashboard() {
 
             <div
               className="card small"
-              title="Payoff: ganho médio dividido pela perda média. >1 significa ganhos médios maiores que perdas médias."
+              title={t("tip_payoff")}
             >
 
 
 
-              <div className="card-title">Payoff</div>
+              <div className="card-title">{t("dash_stat_payoff")}</div>
 
 
 
@@ -5085,7 +5074,7 @@ export default function Dashboard() {
 
             <div
               className="card small"
-              title="Maior sequência de vitórias consecutivas."
+              title={t("tip_wstreak")}
             >
 
 
@@ -5104,7 +5093,7 @@ export default function Dashboard() {
 
             <div
               className="card small"
-              title="Maior sequência de perdas consecutivas."
+              title={t("tip_lstreak")}
             >
 
 
@@ -5123,7 +5112,7 @@ export default function Dashboard() {
 
             <div
               className="card small"
-              title="Máximo drawdown: maior queda acumulada desde um pico de capital."
+              title={t("tip_drawdown")}
             >
 
 
@@ -5152,7 +5141,7 @@ export default function Dashboard() {
 
             <div
               className="card small"
-              title="Tempo medio entre abertura e fechamento de cada operacao."
+              title={t("tip_duration")}
             >
               <div className="card-title">{t("dash_stat_duration")}</div>
               <div className="card-value">
@@ -5164,7 +5153,7 @@ export default function Dashboard() {
 
             <div
               className="card small"
-              title="Percentual de dias operados com resultado positivo. Acima de 60% indica boa consistencia."
+              title={t("tip_profdays")}
             >
               <div className="card-title">{t("dash_stat_profdays")}</div>
               <div className="card-value" style={{
@@ -5176,7 +5165,7 @@ export default function Dashboard() {
 
             <div
               className="card small"
-              title="Taxa de acerto minima para a estrategia ser lucrativa dado o payoff atual. Se sua taxa real for menor, voce perde no longo prazo."
+              title={t("tip_breakeven")}
             >
               <div className="card-title">{t("dash_stat_breakeven")}</div>
               <div className="card-value" style={{
@@ -6459,11 +6448,11 @@ export default function Dashboard() {
 
 
 
-                <h4 className="heatmap-title">Mapa de calor: dia x horário</h4>
+                <h4 className="heatmap-title">{t("dash_heatmap_title")}</h4>
 
 
 
-                <span>Identifique os horários mais positivos e negativos.</span>
+                <span>{t("dash_hour_lbl")}</span>
 
 
 
@@ -6495,7 +6484,7 @@ export default function Dashboard() {
                   </span>
                 </div>
                 <div className="heatmap-legend-note center-note">
-                  Cor = {heatmapMetric === "profit" ? "lucro médio" : "win rate"}; número = trades; tooltip mostra lucro, trades e win rate.
+                  {heatmapMetric === "profit" ? t("dash_heatmap_note_profit") : t("dash_heatmap_note_wr")}
                 </div>
               </div>
 
@@ -6506,7 +6495,7 @@ export default function Dashboard() {
                     className={`chip tiny ${heatmapMetric === "profit" ? "active" : ""}`}
                     onClick={() => setHeatmapMetric("profit")}
                   >
-                    Lucro
+                    {t("dash_profit_btn")}
                   </button>
                   <button
                     type="button"
@@ -6518,7 +6507,7 @@ export default function Dashboard() {
                 </div>
                 <div className="toggle-row">
                   <label className="mini-label slider-label">
-                    Mínimo de trades
+                    {t("dash_min_trades")}
                     <div className="slider-row">
                       <input
                         type="range"
@@ -6545,7 +6534,7 @@ export default function Dashboard() {
                   <span key={`h-${hour}`}>{`${hour}h`}</span>
                 ))}
 
-                <span className="heatmap-avg-label">Média</span>
+                <span className="heatmap-avg-label">{t("dash_heatmap_avg")}</span>
 
               </div>
 

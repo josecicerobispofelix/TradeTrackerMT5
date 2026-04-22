@@ -348,6 +348,43 @@ const translations = {
   common_loading:      { pt: "Carregando...",            en: "Loading...",          es: "Cargando..."          },
   common_total:        { pt: "Total (USD):",             en: "Total (USD):",        es: "Total (USD):"         },
   common_total_brl:    { pt: "Total (BRL):",             en: "Total (BRL):",        es: "Total (BRL):"         },
+
+  // ── Dashboard extra (market clock, heatmap, hero) ─────────────────────────
+  dash_hero_sub:        { pt: "Analise seus resultados do MetaTrader 5 com filtros completos, indicadores-chave e gráficos animados.", en: "Analyze your MetaTrader 5 results with full filters, key indicators and animated charts.", es: "Analiza tus resultados de MetaTrader 5 con filtros completos, indicadores clave y gráficos animados." },
+  dash_filtered:        { pt: "Trades filtrados:", en: "Filtered trades:", es: "Operaciones filtradas:" },
+  dash_london:          { pt: "Londres", en: "London", es: "Londres" },
+  dash_market_clock:    { pt: "🕒 Horário de mercado", en: "🕒 Market hours", es: "🕒 Horario de mercado" },
+  dash_forex_open:      { pt: "● Forex aberto", en: "● Forex open", es: "● Forex abierto" },
+  dash_forex_closed:    { pt: "● Forex fechado", en: "● Forex closed", es: "● Forex cerrado" },
+  dash_sess_open:       { pt: "aberto", en: "open", es: "abierto" },
+  dash_sess_next:       { pt: "próximo", en: "next", es: "próximo" },
+  dash_sess_closed:     { pt: "fechado", en: "closed", es: "cerrado" },
+  dash_london_ny:       { pt: "Londres + NY", en: "London + NY", es: "Londres + NY" },
+  dash_now:             { pt: "AGORA", en: "NOW", es: "AHORA" },
+  dash_peak_hours:      { pt: "Melhor horário • +50% do volume", en: "Peak hours • +50% of volume", es: "Mejor horario • +50% del volumen" },
+  dash_in:              { pt: "em", en: "in", es: "en" },
+  dash_heatmap_title:   { pt: "Mapa de calor: dia x horário", en: "Heat map: day × hour", es: "Mapa de calor: día x horario" },
+  dash_heatmap_note_profit: { pt: "Cor = lucro médio; número = trades; tooltip mostra lucro, trades e win rate.", en: "Color = avg profit; number = trades; tooltip shows profit, trades and win rate.", es: "Color = ganancia media; número = operaciones; tooltip muestra ganancia, operaciones y win rate." },
+  dash_heatmap_note_wr: { pt: "Cor = win rate; número = trades; tooltip mostra lucro, trades e win rate.", en: "Color = win rate; number = trades; tooltip shows profit, trades and win rate.", es: "Color = win rate; número = operaciones; tooltip muestra ganancia, operaciones y win rate." },
+  dash_profit_btn:      { pt: "Lucro", en: "Profit", es: "Ganancia" },
+  dash_min_trades:      { pt: "Mínimo de trades", en: "Min. trades", es: "Mín. operaciones" },
+
+  // ── Stat card tooltips ────────────────────────────────────────────────────
+  tip_total:    { pt: "Quantidade total de operações (ganhadoras + perdedoras) no período filtrado.", en: "Total number of trades (winners + losers) in the filtered period.", es: "Número total de operaciones en el período filtrado." },
+  tip_winners:  { pt: "Número de operações com resultado positivo.", en: "Number of trades with a positive result.", es: "Número de operaciones con resultado positivo." },
+  tip_losers:   { pt: "Número de operações com resultado negativo.", en: "Number of trades with a negative result.", es: "Número de operaciones con resultado negativo." },
+  tip_pf:       { pt: "Fator de lucro: ganho bruto dividido pelo prejuízo bruto. >1 indica sistema lucrativo.", en: "Profit factor: gross gain divided by gross loss. >1 indicates a profitable system.", es: "Factor de ganancia: ganancia bruta dividida por pérdida bruta. >1 indica sistema rentable." },
+  tip_avgwin:   { pt: "Ganho médio das operações vencedoras.", en: "Average gain of winning trades.", es: "Ganancia media de las operaciones ganadoras." },
+  tip_avgloss:  { pt: "Perda média das operações perdedoras.", en: "Average loss of losing trades.", es: "Pérdida media de las operaciones perdedoras." },
+  tip_maxwin:   { pt: "Maior lucro obtido em uma única operação.", en: "Highest profit in a single trade.", es: "Mayor ganancia en una sola operación." },
+  tip_maxloss:  { pt: "Maior prejuízo em uma única operação.", en: "Largest loss in a single trade.", es: "Mayor pérdida en una sola operación." },
+  tip_payoff:   { pt: "Payoff: ganho médio dividido pela perda média. >1 significa ganhos maiores que perdas.", en: "Payoff: average win divided by average loss. >1 means wins exceed losses on average.", es: "Payoff: ganancia media dividida por pérdida media. >1 significa ganancias mayores que pérdidas." },
+  tip_wstreak:  { pt: "Maior sequência de vitórias consecutivas.", en: "Longest consecutive winning streak.", es: "Racha ganadora consecutiva más larga." },
+  tip_lstreak:  { pt: "Maior sequência de perdas consecutivas.", en: "Longest consecutive losing streak.", es: "Racha perdedora consecutiva más larga." },
+  tip_drawdown: { pt: "Máximo drawdown: maior queda acumulada desde um pico de capital.", en: "Maximum drawdown: largest cumulative decline from a capital peak.", es: "Máximo drawdown: mayor caída acumulada desde un pico de capital." },
+  tip_duration: { pt: "Tempo médio entre abertura e fechamento de cada operação.", en: "Average time between opening and closing each trade.", es: "Tiempo medio entre apertura y cierre de cada operación." },
+  tip_profdays: { pt: "Percentual de dias operados com resultado positivo. Acima de 60% indica boa consistência.", en: "Percentage of trading days with a positive result. Above 60% indicates good consistency.", es: "Porcentaje de días con resultado positivo. Por encima del 60% indica buena consistencia." },
+  tip_breakeven:{ pt: "Taxa de acerto mínima para a estratégia ser lucrativa dado o payoff atual.", en: "Minimum win rate for the strategy to be profitable given the current payoff.", es: "Tasa de acierto mínima para que la estrategia sea rentable dado el payoff actual." },
 } as const;
 
 export type TKey = keyof typeof translations;
