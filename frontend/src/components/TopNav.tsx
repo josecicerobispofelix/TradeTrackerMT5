@@ -11,13 +11,13 @@ type TopNavProps = {
 };
 
 const themeOptions = [
-  { id: "neon",  label: "🔵 Neon Blue" },
-  { id: "dark",  label: "⚫ Dark"       },
-  { id: "ocean", label: "🌊 Ocean"      },
-  { id: "rose",  label: "🌸 Rose Gold"  },
-  { id: "amber", label: "🟡 Amber"      },
-  { id: "light", label: "⚪ Branco"     },
-];
+  { id: "neon",  labelKey: "theme_neon"  },
+  { id: "dark",  labelKey: "theme_dark"  },
+  { id: "ocean", labelKey: "theme_ocean" },
+  { id: "rose",  labelKey: "theme_rose"  },
+  { id: "amber", labelKey: "theme_amber" },
+  { id: "light", labelKey: "theme_white" },
+] as const;
 
 const langOptions = Object.entries(LANG_LABEL) as [Lang, string][];
 
@@ -63,7 +63,7 @@ export default function TopNav({ onLogout, showNav = true, theme = "neon", onThe
                       className={`settings-option ${theme === option.id ? "active" : ""}`}
                       onClick={() => handleTheme(option.id)}
                     >
-                      {option.label}
+                      {t(option.labelKey)}
                     </button>
                   ))}
                   <div className="settings-title" style={{ marginTop: "0.75rem" }}>{t("nav_language")}</div>

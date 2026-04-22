@@ -2241,7 +2241,7 @@ export default function Dashboard() {
 
 
 
-        setProfileStatus("Perfil fiscal ainda não cadastrado.");
+        setProfileStatus(t("dash_profile_new"));
 
 
 
@@ -2421,7 +2421,7 @@ export default function Dashboard() {
 
 
 
-      const statusMessage = (result.message || "Cálculo concluído.").trim();
+      const statusMessage = (result.message || t("dash_calc_done")).trim();
 
 
 
@@ -2961,7 +2961,7 @@ export default function Dashboard() {
 
 
 
-      setCepStatus("Informe 8 dígitos do CEP.");
+      setCepStatus(t("dash_cep_digits"));
 
 
 
@@ -3049,7 +3049,7 @@ export default function Dashboard() {
 
 
 
-      setCepStatus("Endereço preenchido pelo CEP.");
+      setCepStatus(t("dash_cep_filled"));
 
 
 
@@ -3101,7 +3101,7 @@ export default function Dashboard() {
 
 
 
-      setProfileStatus("Perfil fiscal salvo.");
+      setProfileStatus(t("dash_profile_saved"));
 
 
 
@@ -3245,7 +3245,7 @@ export default function Dashboard() {
 
 
 
-        setFxStatus("Nenhuma taxa salva para esta data.");
+        setFxStatus(t("dash_fx_none"));
 
 
 
@@ -3457,7 +3457,7 @@ export default function Dashboard() {
 
 
 
-        setFxStatus("Informe uma taxa válida.");
+        setFxStatus(t("dash_fx_invalid"));
 
 
 
@@ -3489,7 +3489,7 @@ export default function Dashboard() {
 
 
 
-      setFxStatus("Taxa salva.");
+      setFxStatus(t("dash_fx_saved"));
 
 
 
@@ -3549,7 +3549,7 @@ export default function Dashboard() {
 
 
 
-      setFxStatus("Cotação atualizada automaticamente.");
+      setFxStatus(t("dash_fx_auto"));
 
 
 
@@ -4780,14 +4780,14 @@ export default function Dashboard() {
               !(dow === 5 && h >= nyE);
 
             const sessions = [
-              { name: 'Sydney',    emoji: '🦘', start: sydS, end: sydE, color: '#22c55e',
-                desc: 'Asiática' },
-              { name: 'Tóquio',    emoji: '🗼', start: tokS, end: tokE, color: '#22c55e',
-                desc: 'Asiática' },
-              { name: 'Londres',   emoji: '🎡', start: lonS, end: lonE, color: '#3b82f6',
-                desc: londonOff === 1 ? 'Europeia • BST' : 'Europeia • GMT' },
-              { name: 'Nova York', emoji: '🗽', start: nyS,  end: nyE,  color: '#ef4444',
-                desc: nyOff === -4   ? 'Americana • EDT' : 'Americana • EST' },
+              { name: 'Sydney',             emoji: '🦘', start: sydS, end: sydE, color: '#22c55e',
+                desc: t("dash_asian") },
+              { name: t("dash_tokyo"),      emoji: '🗼', start: tokS, end: tokE, color: '#22c55e',
+                desc: t("dash_asian") },
+              { name: 'Londres',            emoji: '🎡', start: lonS, end: lonE, color: '#3b82f6',
+                desc: londonOff === 1 ? `${t("dash_european")} • BST` : `${t("dash_european")} • GMT` },
+              { name: t("dash_new_york"),   emoji: '🗽', start: nyS,  end: nyE,  color: '#ef4444',
+                desc: nyOff === -4   ? `${t("dash_american")} • EDT` : `${t("dash_american")} • EST` },
             ];
 
             const overlapOpen = forexOpen && ovS < ovE && isOpenRange(ovS, ovE);

@@ -1,4 +1,5 @@
-﻿import { useRef, useState } from "react";
+import { useRef, useState } from "react";
+import { useLang } from "../LangContext";
 
 type DropzoneProps = {
   onFile: (file: File) => void;
@@ -6,6 +7,7 @@ type DropzoneProps = {
 };
 
 export default function Dropzone({ onFile, isLoading }: DropzoneProps) {
+  const { t } = useLang();
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -35,15 +37,15 @@ export default function Dropzone({ onFile, isLoading }: DropzoneProps) {
         hidden
         onChange={(event) => handleFiles(event.target.files)}
       />
-      <strong>Arraste o relatório MT5 (.xlsx) aqui</strong>
-      <span className="helper">ou clique para selecionar um arquivo</span>
+      <strong>{t("drop_drag")}</strong>
+      <span className="helper">{t("drop_or")}</span>
       <button
         type="button"
         className="secondary"
         disabled={isLoading}
         onClick={() => inputRef.current?.click()}
       >
-        Selecionar arquivo
+        {t("drop_select")}
       </button>
     </div>
   );

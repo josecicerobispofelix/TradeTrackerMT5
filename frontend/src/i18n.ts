@@ -287,6 +287,62 @@ const translations = {
   robot_col_notes:     { pt: "Notas",                    en: "Notes",               es: "Notas"                },
   robot_delete:        { pt: "Excluir",                  en: "Delete",              es: "Eliminar"             },
 
+  // ── Dropzone ──────────────────────────────────────────────────────────────
+  drop_drag:           { pt: "Arraste o relatório MT5 (.xlsx) aqui", en: "Drag the MT5 report (.xlsx) here", es: "Arrastra el reporte MT5 (.xlsx) aquí" },
+  drop_or:             { pt: "ou clique para selecionar um arquivo", en: "or click to select a file", es: "o haz clic para seleccionar un archivo" },
+  drop_select:         { pt: "Selecionar arquivo",       en: "Select file",         es: "Seleccionar archivo"  },
+
+  // ── TradeTable ────────────────────────────────────────────────────────────
+  tt_trades:           { pt: "Trades",                   en: "Trades",              es: "Operaciones"          },
+  tt_sort_hint:        { pt: "Clique no título para ordenar", en: "Click column to sort", es: "Clic en columna para ordenar" },
+  tt_exporting:        { pt: "Exportando...",            en: "Exporting...",        es: "Exportando..."        },
+  tt_export_csv:       { pt: "Exportar CSV",             en: "Export CSV",          es: "Exportar CSV"         },
+  tt_close:            { pt: "Fechamento",               en: "Close time",          es: "Cierre"               },
+  tt_asset:            { pt: "Ativo",                    en: "Asset",               es: "Activo"               },
+  tt_type:             { pt: "Tipo",                     en: "Type",                es: "Tipo"                 },
+  tt_open_price:       { pt: "Preço Ab.",                en: "Open",                es: "Apertura"             },
+  tt_close_price:      { pt: "Preço Fch.",               en: "Close",               es: "Cierre"               },
+  tt_profit_usd:       { pt: "Lucro (USD)",              en: "Profit (USD)",        es: "Ganancia (USD)"       },
+  tt_commission:       { pt: "Comissão",                 en: "Commission",          es: "Comisión"             },
+  tt_duration:         { pt: "Duração",                  en: "Duration",            es: "Duración"             },
+  tt_net_usd:          { pt: "Líq. (USD)",               en: "Net (USD)",           es: "Neto (USD)"           },
+  tt_net_brl:          { pt: "Líq. (BRL)",               en: "Net (BRL)",           es: "Neto (BRL)"           },
+  tt_note:             { pt: "Nota",                     en: "Note",                es: "Nota"                 },
+  tt_note_ph:          { pt: "Nota...",                  en: "Note...",             es: "Nota..."              },
+  tt_note_saved:       { pt: "Clique para editar nota",  en: "Click to edit note",  es: "Clic para editar nota" },
+  tt_note_unsaved:     { pt: "Não salvo",                en: "Unsaved",             es: "Sin guardar"          },
+  tt_of:               { pt: "de",                       en: "of",                  es: "de"                   },
+  tt_page:             { pt: "Pág.",                     en: "Page",                es: "Pág."                 },
+
+  // ── Auth errors ───────────────────────────────────────────────────────────
+  auth_err_no_pass:    { pt: "Preencha a senha.",        en: "Please enter your password.", es: "Ingresa tu contraseña." },
+  auth_err_min_pass:   { pt: "A senha deve ter no mínimo 6 caracteres.", en: "Password must be at least 6 characters.", es: "La contraseña debe tener al menos 6 caracteres." },
+  auth_err_no_match:   { pt: "As senhas não conferem",  en: "Passwords do not match", es: "Las contraseñas no coinciden" },
+
+  // ── TopNav themes ─────────────────────────────────────────────────────────
+  theme_neon:          { pt: "🔵 Neon Blue",             en: "🔵 Neon Blue",         es: "🔵 Neon Blue"          },
+  theme_dark:          { pt: "⚫ Dark",                  en: "⚫ Dark",               es: "⚫ Oscuro"             },
+  theme_ocean:         { pt: "🌊 Ocean",                 en: "🌊 Ocean",              es: "🌊 Océano"             },
+  theme_rose:          { pt: "🌸 Rose Gold",             en: "🌸 Rose Gold",          es: "🌸 Oro Rosa"           },
+  theme_amber:         { pt: "🟡 Amber",                 en: "🟡 Amber",              es: "🟡 Ámbar"             },
+  theme_white:         { pt: "⚪ Branco",                en: "⚪ White",              es: "⚪ Blanco"             },
+
+  // ── Dashboard extra ───────────────────────────────────────────────────────
+  dash_asian:          { pt: "Asiática",                 en: "Asian",               es: "Asiática"             },
+  dash_european:       { pt: "Europeia",                 en: "European",            es: "Europea"              },
+  dash_american:       { pt: "Americana",                en: "American",            es: "Americana"            },
+  dash_tokyo:          { pt: "Tóquio",                   en: "Tokyo",               es: "Tokio"                },
+  dash_new_york:       { pt: "Nova York",                en: "New York",            es: "Nueva York"           },
+  dash_calc_done:      { pt: "Cálculo concluído.",       en: "Calculation complete.", es: "Cálculo completado." },
+  dash_fx_saved:       { pt: "Taxa salva.",              en: "Rate saved.",         es: "Tasa guardada."       },
+  dash_fx_invalid:     { pt: "Informe uma taxa válida.", en: "Enter a valid rate.", es: "Ingresa una tasa válida." },
+  dash_fx_auto:        { pt: "Cotação atualizada automaticamente.", en: "Rate updated automatically.", es: "Tasa actualizada automáticamente." },
+  dash_fx_none:        { pt: "Nenhuma taxa salva para esta data.", en: "No rate saved for this date.", es: "No hay tasa guardada para esta fecha." },
+  dash_profile_saved:  { pt: "Perfil fiscal salvo.",    en: "Tax profile saved.",  es: "Perfil fiscal guardado." },
+  dash_profile_new:    { pt: "Perfil fiscal ainda não cadastrado.", en: "Tax profile not yet set up.", es: "Perfil fiscal aún no registrado." },
+  dash_cep_digits:     { pt: "Informe 8 dígitos do CEP.", en: "Enter 8 ZIP code digits.", es: "Ingresa 8 dígitos del código postal." },
+  dash_cep_filled:     { pt: "Endereço preenchido pelo CEP.", en: "Address filled from ZIP.", es: "Dirección completada por código postal." },
+
   // ── Common ────────────────────────────────────────────────────────────────
   common_error:        { pt: "Erro:",                    en: "Error:",              es: "Error:"               },
   common_loading:      { pt: "Carregando...",            en: "Loading...",          es: "Cargando..."          },

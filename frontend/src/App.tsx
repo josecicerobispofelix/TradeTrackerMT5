@@ -233,7 +233,7 @@ function AppInner() {
     setAuthError(null);
     setAuthMessage(null);
     if (!authPassword) {
-      setAuthError("Preencha a senha.");
+      setAuthError(t("auth_err_no_pass"));
       return;
     }
     try {
@@ -248,11 +248,11 @@ function AppInner() {
     setAuthError(null);
     setAuthMessage(null);
     if (authPassword.length < MIN_PASSWORD_LEN) {
-      setAuthError("A senha deve ter no mínimo 6 caracteres.");
+      setAuthError(t("auth_err_min_pass"));
       return;
     }
     if (authPassword !== authPassword2) {
-      setAuthError("As senhas não conferem");
+      setAuthError(t("auth_err_no_match"));
       return;
     }
     try {
@@ -377,8 +377,8 @@ function AppInner() {
                       type="button"
                       className="toggle-eye"
                       onClick={() => setShowPassword2((v) => !v)}
-                      aria-label={showPassword2 ? "Ocultar senha" : "Mostrar senha"}
-                      title={showPassword2 ? "Ocultar senha" : "Mostrar senha"}
+                      aria-label={showPassword2 ? t("auth_hide_pass") : t("auth_show_pass")}
+                      title={showPassword2 ? t("auth_hide_pass") : t("auth_show_pass")}
                     >
                     </button>
                   </div>
