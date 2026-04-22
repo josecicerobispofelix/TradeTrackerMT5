@@ -579,7 +579,18 @@ export async function exportRobotTestsPdf(): Promise<Blob> {
     method: "POST",
     credentials: "include",
   });
-  if (!resp.ok) throw new Error("Erro ao gerar PDF");
+  if (!resp.ok) {
+    const text = await resp.text();
+    let message = "Erro ao gerar PDF";
+    try { const d = JSON.parse(text); if (d?.detail) message = d.detail; } catch { if (text) message = text; }
+    throw new Error(message);
+  }
   return resp.blob();
+}
+
+export async function saveRobotTestsPdfFile(): Promise<{ path: string; filename: string }> {
+  return apiFetch<{ path: string; filename: string }>("/api/robot-tests/pdf/save", {
+    method: "POST",
+  });
 }
 

@@ -5,7 +5,8 @@ import {
 } from "recharts";
 import {
   RobotTestIn, RobotTestOut,
-  listRobotTests, createRobotTest, deleteRobotTest, exportRobotTestsPdf,
+  listRobotTests, createRobotTest, deleteRobotTest,
+  exportRobotTestsPdf, saveRobotTestsPdfFile,
 } from "../api";
 import { useLang } from "../LangContext";
 
@@ -80,14 +81,54 @@ export default function RobotTests() {
     catch (e) { setError((e as Error).message); }
   };
 
+  const [pdfStatus, setPdfStatus] = useState<string | null>(null);
+  const [pdfLoading, setPdfLoading] = useState(false);
+
   const handlePdf = async () => {
+    setPdfLoading(true);
+    setPdfStatus(null);
+    setError(null);
+    const filename = `testes_robo_${new Date().toISOString().slice(0, 10)}.pdf`;
+
     try {
+      // 1) pywebview com diálogo nativo de salvar
+      const api: any = (window as any).pywebview?.api;
+      if (api?.save_pdf_prompt) {
+        const blob = await exportRobotTestsPdf();
+        const buffer = await blob.arrayBuffer();
+        const bytes = new Uint8Array(buffer);
+        let binary = "";
+        for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+        const base64 = window.btoa(binary);
+        const response = await api.save_pdf_prompt(base64, filename, "");
+        if (response?.success && response.path) {
+          setPdfStatus(`✓ PDF salvo em: ${response.path}`);
+        } else if (response?.cancelled) {
+          setPdfStatus(null);
+        }
+        return;
+      }
+
+      // 2) app desktop sem diálogo — salva em Downloads via backend
+      if (import.meta.env.PROD) {
+        const saved = await saveRobotTestsPdfFile();
+        setPdfStatus(`✓ PDF salvo em: ${saved.path}`);
+        return;
+      }
+
+      // 3) Navegador — download direto
       const blob = await exportRobotTestsPdf();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
-      a.href = url; a.download = `testes_robo_${new Date().toISOString().slice(0, 10)}.pdf`;
-      a.click(); URL.revokeObjectURL(url);
-    } catch (e) { setError((e as Error).message); }
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setPdfLoading(false);
+    }
   };
 
   const totals = tests.reduce(
@@ -256,7 +297,11 @@ export default function RobotTests() {
             <span>{t("robot_history")}</span>
           </div>
           <div style={{ display: "flex", gap: "0.5rem" }}>
-            {hasData && <button className="btn-secondary" onClick={handlePdf}>{t("robot_export_pdf")}</button>}
+            {hasData && (
+              <button className="btn-secondary" onClick={handlePdf} disabled={pdfLoading}>
+                {pdfLoading ? "⏳ PDF…" : t("robot_export_pdf")}
+              </button>
+            )}
             <button className="btn-primary" onClick={() => setShowForm(v => !v)}>
               {showForm ? t("robot_cancel") : t("robot_new")}
             </button>
@@ -264,6 +309,7 @@ export default function RobotTests() {
         </div>
 
         {error && <div className="helper" style={{ color: "#f43f5e" }}>{error}</div>}
+        {pdfStatus && <div className="helper" style={{ color: "#22c55e", marginTop: 4 }}>{pdfStatus}</div>}
 
         {showForm && (
           <form onSubmit={handleSubmit} className="robot-form">

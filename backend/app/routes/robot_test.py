@@ -1,5 +1,6 @@
 import datetime as dt
 from io import BytesIO
+from pathlib import Path
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -223,14 +224,28 @@ async def robot_tests_pdf(
     session: AsyncSession = Depends(get_session),
     user: User = Depends(get_current_user),
 ):
+    tests = await _fetch_tests_for_user(session, user.id)
+    if not tests:
+        raise HTTPException(status_code=400, detail="Nenhum teste registrado")
+
+    pdf_bytes = _build_robot_pdf(tests)
+    filename = f"testes_robo_{dt.datetime.now().strftime('%Y%m%d')}.pdf"
+    return StreamingResponse(
+        BytesIO(pdf_bytes),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+async def _fetch_tests_for_user(session: AsyncSession, user_id: int) -> List[RobotTestOut]:
     rows = await session.scalars(
         select(RobotTest)
-        .where(RobotTest.user_id == user.id)
+        .where(RobotTest.user_id == user_id)
         .order_by(RobotTest.test_date.desc())
     )
-    tests = []
+    result = []
     for r in rows:
-        tests.append(RobotTestOut(
+        result.append(RobotTestOut(
             id=r.id,
             robot_name=r.robot_name,
             test_date=r.test_date,
@@ -246,14 +261,23 @@ async def robot_tests_pdf(
             notes=r.notes,
             created_at=r.created_at.isoformat() if r.created_at else "",
         ))
+    return result
 
+
+@router.post("/robot-tests/pdf/save")
+async def robot_tests_pdf_save(
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(get_current_user),
+):
+    """Salva o PDF de testes de robô direto em Downloads (para app desktop)."""
+    tests = await _fetch_tests_for_user(session, user.id)
     if not tests:
         raise HTTPException(status_code=400, detail="Nenhum teste registrado")
 
     pdf_bytes = _build_robot_pdf(tests)
     filename = f"testes_robo_{dt.datetime.now().strftime('%Y%m%d')}.pdf"
-    return StreamingResponse(
-        BytesIO(pdf_bytes),
-        media_type="application/pdf",
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
-    )
+    target_dir = Path.home() / "Downloads"
+    target_dir.mkdir(parents=True, exist_ok=True)
+    target_path = target_dir / filename
+    target_path.write_bytes(pdf_bytes)
+    return {"path": str(target_path), "filename": filename}
