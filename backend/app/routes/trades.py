@@ -9,6 +9,17 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy import asc, desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+try:
+    from reportlab.lib.pagesizes import A4, landscape
+    from reportlab.lib import colors
+    from reportlab.lib.units import cm
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.enums import TA_CENTER, TA_RIGHT
+    _RL_OK = True
+except Exception:
+    _RL_OK = False
+
 from ..auth import get_current_user
 from ..db import get_session
 from ..models import FXRate, Trade, User, Import
@@ -329,6 +340,195 @@ async def export_trades_csv_save(
     target_dir.mkdir(parents=True, exist_ok=True)
     target_path = target_dir / filename
     target_path.write_text(output.getvalue(), encoding="utf-8-sig")
+    return {"path": str(target_path), "filename": filename}
+
+
+def _build_trades_pdf(
+    trades: list,
+    rate_map: Dict[dt.date, float],
+    latest_rate: Optional[float],
+    from_: Optional[dt.date] = None,
+    to: Optional[dt.date] = None,
+    symbol: Optional[str] = None,
+    account: Optional[str] = None,
+) -> bytes:
+    if not _RL_OK:
+        raise HTTPException(status_code=500, detail="PDF indisponível (reportlab não instalado)")
+
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=landscape(A4),
+        rightMargin=1 * cm, leftMargin=1 * cm,
+        topMargin=1.5 * cm, bottomMargin=1.5 * cm,
+    )
+    styles = getSampleStyleSheet()
+    story = []
+
+    # ── Cabeçalho ──────────────────────────────────────────────────────────
+    title_style = ParagraphStyle("title", parent=styles["Heading1"], fontSize=14, spaceAfter=4)
+    sub_style = ParagraphStyle("sub", parent=styles["Normal"], fontSize=8, textColor=colors.HexColor("#64748b"), spaceAfter=2)
+
+    story.append(Paragraph("Relatório de Trades – TradersTrackerMT5", title_style))
+    generated = f"Gerado em: {dt.datetime.now().strftime('%d/%m/%Y %H:%M')}"
+    parts = []
+    if from_:
+        parts.append(f"De: {from_.strftime('%d/%m/%Y')}")
+    if to:
+        parts.append(f"Até: {to.strftime('%d/%m/%Y')}")
+    if symbol:
+        parts.append(f"Ativo: {symbol}")
+    if account:
+        parts.append(f"Conta: {account}")
+    story.append(Paragraph(generated + ("   |   " + "   |   ".join(parts) if parts else ""), sub_style))
+
+    # ── Resumo ─────────────────────────────────────────────────────────────
+    total_net_usd = 0.0
+    total_net_brl = 0.0
+    has_brl = False
+    winners = 0
+
+    rows_data = []
+    for t in trades:
+        net = float(t.profit) + float(t.commission) + float(t.swap)
+        total_net_usd += net
+        if net >= 0:
+            winners += 1
+        currency = (t.currency or "USD").upper()
+        if currency == "BRL":
+            fx = 1.0
+            net_brl: Optional[float] = net
+            has_brl = True
+        else:
+            fx = rate_map.get(t.close_date) or latest_rate
+            net_brl = net * fx if fx else None
+            if net_brl is not None:
+                has_brl = True
+        if net_brl is not None:
+            total_net_brl += net_brl
+        rows_data.append((t, net, net_brl))
+
+    wr = (winners / len(trades) * 100) if trades else 0.0
+    net_color = "#16a34a" if total_net_usd >= 0 else "#dc2626"
+    summary_style = ParagraphStyle("sum", parent=styles["Normal"], fontSize=8, spaceAfter=6)
+    brl_str = f"   |   Líquido BRL: R$ {total_net_brl:,.2f}" if has_brl else ""
+    story.append(Paragraph(
+        f"Total de operações: {len(trades)}   |   Taxa de acerto: {wr:.1f}%   |   "
+        f"Líquido USD: <font color='{net_color}'>${total_net_usd:,.2f}</font>{brl_str}",
+        summary_style,
+    ))
+    story.append(Spacer(1, 0.2 * cm))
+
+    # ── Tabela ─────────────────────────────────────────────────────────────
+    header = ["Fechamento", "Ativo", "Tipo", "Volume", "Abertura", "Fechamento", "Lucro", "Comissão", "Swap", "Líq. USD", "Líq. BRL", "Nota"]
+    col_widths = [3.8*cm, 1.8*cm, 1.5*cm, 1.6*cm, 2.4*cm, 2.4*cm, 2.0*cm, 2.0*cm, 1.6*cm, 2.2*cm, 2.2*cm, 3.5*cm]
+
+    table_data = [header]
+    row_colors = []  # (row_index, color)
+
+    for idx, (t, net, net_brl) in enumerate(rows_data):
+        bg = colors.HexColor("#f0fdf4") if net >= 0 else colors.HexColor("#fff1f2")
+        row_colors.append((idx + 1, bg))
+        table_data.append([
+            t.close_time.strftime("%d/%m/%Y %H:%M"),
+            t.symbol,
+            t.side.upper(),
+            f"{float(t.volume):.2f}",
+            f"{float(t.open_price):.5f}",
+            f"{float(t.close_price):.5f}",
+            f"{float(t.profit):+.2f}",
+            f"{float(t.commission):+.2f}",
+            f"{float(t.swap):+.2f}",
+            f"{net:+.2f}",
+            f"{net_brl:+.2f}" if net_brl is not None else "-",
+            (t.note or "")[:30],
+        ])
+
+    tbl = Table(table_data, colWidths=col_widths, repeatRows=1)
+    style_cmds = [
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1a3a5c")),
+        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTSIZE", (0, 0), (-1, -1), 7),
+        ("ALIGN", (3, 0), (-1, -1), "RIGHT"),
+        ("ALIGN", (0, 0), (2, -1), "LEFT"),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f8fafc")]),
+        ("GRID", (0, 0), (-1, -1), 0.3, colors.HexColor("#cbd5e1")),
+        ("TOPPADDING", (0, 0), (-1, -1), 3),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+        ("LEFTPADDING", (0, 0), (-1, -1), 4),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+    ]
+    # Color profit/loss rows
+    for row_idx, bg in row_colors:
+        style_cmds.append(("BACKGROUND", (0, row_idx), (-1, row_idx), bg))
+    # Color net USD column values
+    for idx, (_, net, _) in enumerate(rows_data):
+        tc = colors.HexColor("#16a34a") if net >= 0 else colors.HexColor("#dc2626")
+        style_cmds.append(("TEXTCOLOR", (9, idx + 1), (9, idx + 1), tc))
+
+    tbl.setStyle(TableStyle(style_cmds))
+    story.append(tbl)
+
+    doc.build(story)
+    buffer.seek(0)
+    return buffer.getvalue()
+
+
+@router.get("/trades/export/pdf")
+async def export_trades_pdf(
+    from_: Optional[dt.date] = Query(None, alias="from"),
+    to: Optional[dt.date] = Query(None),
+    symbol: Optional[str] = Query(None),
+    account: Optional[str] = Query(None),
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(get_current_user),
+):
+    stmt = _apply_filters(select(Trade), user.id, from_, to, symbol, account)
+    stmt = stmt.order_by(desc(Trade.close_time))
+    trades = (await session.execute(stmt)).scalars().all()
+    if not trades:
+        raise HTTPException(status_code=400, detail="Nenhuma operação encontrada.")
+
+    rates = (await session.execute(select(FXRate))).scalars().all()
+    rate_map = _build_rate_map(rates)
+    latest_rate = float(max(rates, key=lambda r: r.date).usd_brl_rate) if rates else None
+
+    pdf_bytes = _build_trades_pdf(trades, rate_map, latest_rate, from_, to, symbol, account)
+    filename = f"trades_{dt.date.today().isoformat()}.pdf"
+    return StreamingResponse(
+        io.BytesIO(pdf_bytes),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@router.get("/trades/export/pdf/save")
+async def export_trades_pdf_save(
+    from_: Optional[dt.date] = Query(None, alias="from"),
+    to: Optional[dt.date] = Query(None),
+    symbol: Optional[str] = Query(None),
+    account: Optional[str] = Query(None),
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(get_current_user),
+):
+    """Salva o PDF de trades direto em Downloads (para app desktop)."""
+    stmt = _apply_filters(select(Trade), user.id, from_, to, symbol, account)
+    stmt = stmt.order_by(desc(Trade.close_time))
+    trades = (await session.execute(stmt)).scalars().all()
+    if not trades:
+        raise HTTPException(status_code=400, detail="Nenhuma operação encontrada.")
+
+    rates = (await session.execute(select(FXRate))).scalars().all()
+    rate_map = _build_rate_map(rates)
+    latest_rate = float(max(rates, key=lambda r: r.date).usd_brl_rate) if rates else None
+
+    pdf_bytes = _build_trades_pdf(trades, rate_map, latest_rate, from_, to, symbol, account)
+    filename = f"trades_{dt.date.today().isoformat()}.pdf"
+    target_dir = Path.home() / "Downloads"
+    target_dir.mkdir(parents=True, exist_ok=True)
+    target_path = target_dir / filename
+    target_path.write_bytes(pdf_bytes)
     return {"path": str(target_path), "filename": filename}
 
 

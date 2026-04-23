@@ -352,6 +352,40 @@ export async function saveTradesCsvFile(params: {
   );
 }
 
+export async function exportTradesPdf(params: {
+  from?: string;
+  to?: string;
+  symbol?: string;
+  account?: string;
+}): Promise<Blob> {
+  const search = new URLSearchParams();
+  if (params.from) search.append("from", params.from);
+  if (params.to) search.append("to", params.to);
+  if (params.symbol) search.append("symbol", params.symbol);
+  if (params.account) search.append("account", params.account);
+  const response = await fetch(`${API_URL}/api/trades/export/pdf?${search.toString()}`, {
+    credentials: "include"
+  });
+  if (!response.ok) throw new Error("Erro ao exportar PDF");
+  return response.blob();
+}
+
+export async function saveTradesPdfFile(params: {
+  from?: string;
+  to?: string;
+  symbol?: string;
+  account?: string;
+}): Promise<{ path: string; filename: string }> {
+  const search = new URLSearchParams();
+  if (params.from) search.append("from", params.from);
+  if (params.to) search.append("to", params.to);
+  if (params.symbol) search.append("symbol", params.symbol);
+  if (params.account) search.append("account", params.account);
+  return apiFetch<{ path: string; filename: string }>(
+    `/api/trades/export/pdf/save?${search.toString()}`
+  );
+}
+
 export async function fetchTradeMeta(params?: {
   from?: string;
   to?: string;

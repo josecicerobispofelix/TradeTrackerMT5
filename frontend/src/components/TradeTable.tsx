@@ -16,7 +16,7 @@ type TradeTableProps = {
   sortDir: "asc" | "desc";
   onSort: (key: SortKey) => void;
   onPageChange: (page: number) => void;
-  onExportCsv?: () => Promise<void>;
+  onExportPdf?: () => Promise<void>;
   exporting?: boolean;
 };
 
@@ -86,7 +86,7 @@ export default function TradeTable({
   sortDir,
   onSort,
   onPageChange,
-  onExportCsv,
+  onExportPdf,
   exporting,
 }: TradeTableProps) {
   const { t } = useLang();
@@ -106,9 +106,9 @@ export default function TradeTable({
         <h4>{t("tt_trades")} ({total.toLocaleString("pt-BR")})</h4>
         <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
           <span style={{ fontSize: "13px", opacity: 0.7 }}>{t("tt_sort_hint")}</span>
-          {onExportCsv && (
-            <button className="btn-secondary" onClick={onExportCsv} disabled={exporting}>
-              {exporting ? t("tt_exporting") : t("tt_export_csv")}
+          {onExportPdf && (
+            <button className="btn-secondary" onClick={onExportPdf} disabled={exporting}>
+              {exporting ? t("tt_exporting") : t("tt_export_pdf")}
             </button>
           )}
         </div>

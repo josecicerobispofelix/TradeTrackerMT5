@@ -13,8 +13,8 @@ import {
   YAxis,
 } from "recharts";
 import {
-  exportTradesCsv,
-  saveTradesCsvFile,
+  exportTradesPdf,
+  saveTradesPdfFile,
   fetchTradeMeta,
   fetchTrades,
   fetchTradeTotals,
@@ -60,7 +60,7 @@ export default function History() {
   const [metaLoading, setMetaLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
-  const [csvStatus, setCsvStatus] = useState<string | null>(null);
+  const [pdfStatus, setPdfStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // Sync state → URL
@@ -152,21 +152,21 @@ export default function History() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const handleExportCsv = async () => {
+  const handleExportPdf = async () => {
     setExporting(true);
-    setCsvStatus(null);
+    setPdfStatus(null);
     setError(null);
     try {
       if (import.meta.env.PROD) {
-        const saved = await saveTradesCsvFile({
+        const saved = await saveTradesPdfFile({
           from: from || undefined,
           to: to || undefined,
           symbol: symbol || undefined,
           account: account || undefined,
         });
-        setCsvStatus(`✓ CSV salvo em: ${saved.path}`);
+        setPdfStatus(`✓ PDF salvo em: ${saved.path}`);
       } else {
-        const blob = await exportTradesCsv({
+        const blob = await exportTradesPdf({
           from: from || undefined,
           to: to || undefined,
           symbol: symbol || undefined,
@@ -175,7 +175,7 @@ export default function History() {
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = `trades_${new Date().toISOString().slice(0, 10)}.csv`;
+        a.download = `trades_${new Date().toISOString().slice(0, 10)}.pdf`;
         a.click();
         URL.revokeObjectURL(url);
       }
@@ -239,7 +239,7 @@ export default function History() {
 
       {loading ? <div className="panel">{t("history_loading")}</div> : null}
       {error ? <div className="panel">{t("common_error")} {error}</div> : null}
-      {csvStatus ? <div className="panel" style={{ color: "#22c55e", fontSize: 13 }}>{csvStatus}</div> : null}
+      {pdfStatus ? <div className="panel" style={{ color: "#22c55e", fontSize: 13 }}>{pdfStatus}</div> : null}
 
       {!loading && chartData.length > 1 ? (
         <div className="panel">
@@ -297,7 +297,7 @@ export default function History() {
             sortDir={sortDir}
             onSort={handleSort}
             onPageChange={handlePageChange}
-            onExportCsv={handleExportCsv}
+            onExportPdf={handleExportPdf}
             exporting={exporting}
           />
           {totals ? (

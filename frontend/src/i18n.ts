@@ -299,6 +299,7 @@ const translations = {
   tt_sort_hint:        { pt: "Clique no título para ordenar", en: "Click column to sort", es: "Clic en columna para ordenar" },
   tt_exporting:        { pt: "Exportando...",            en: "Exporting...",        es: "Exportando..."        },
   tt_export_csv:       { pt: "Exportar CSV",             en: "Export CSV",          es: "Exportar CSV"         },
+  tt_export_pdf:       { pt: "Exportar PDF",             en: "Export PDF",          es: "Exportar PDF"         },
   tt_close:            { pt: "Fechamento",               en: "Close time",          es: "Cierre"               },
   tt_asset:            { pt: "Ativo",                    en: "Asset",               es: "Activo"               },
   tt_type:             { pt: "Tipo",                     en: "Type",                es: "Tipo"                 },
