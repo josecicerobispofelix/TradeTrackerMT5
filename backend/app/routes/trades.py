@@ -1,6 +1,7 @@
 import csv
 import datetime as dt
 import io
+from pathlib import Path
 from typing import Dict, List, Literal, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -274,6 +275,61 @@ async def export_trades_csv(
         media_type="text/csv; charset=utf-8",
         headers={"Content-Disposition": f"attachment; filename={filename}"},
     )
+
+
+@router.get("/trades/export/save")
+async def export_trades_csv_save(
+    from_: Optional[dt.date] = Query(None, alias="from"),
+    to: Optional[dt.date] = Query(None),
+    symbol: Optional[str] = Query(None),
+    account: Optional[str] = Query(None),
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(get_current_user),
+):
+    """Salva o CSV de trades direto em Downloads (para app desktop)."""
+    stmt = _apply_filters(select(Trade), user.id, from_, to, symbol, account)
+    stmt = stmt.order_by(desc(Trade.close_time))
+    trades = (await session.execute(stmt)).scalars().all()
+
+    rates = (await session.execute(select(FXRate))).scalars().all()
+    rate_map = _build_rate_map(rates)
+    latest_rate = float(max(rates, key=lambda r: r.date).usd_brl_rate) if rates else None
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        "Fechamento", "Abertura", "Ativo", "Tipo", "Volume",
+        "Preco Abertura", "Preco Fechamento",
+        "Lucro (USD)", "Comissao", "Swap",
+        "Liquido (USD)", "Liquido (BRL)", "Taxa FX", "Moeda", "Deal ID", "Conta", "Nota"
+    ])
+    for trade in trades:
+        net_profit = float(trade.profit) + float(trade.commission) + float(trade.swap)
+        currency = (trade.currency or "USD").upper()
+        if currency == "BRL":
+            fx_rate: Optional[float] = 1.0
+            net_profit_brl: Optional[float] = net_profit
+        else:
+            fx_rate = rate_map.get(trade.close_date) or latest_rate
+            net_profit_brl = net_profit * fx_rate if fx_rate else None
+        writer.writerow([
+            trade.close_time.strftime("%Y-%m-%d %H:%M:%S"),
+            trade.open_time.strftime("%Y-%m-%d %H:%M:%S"),
+            trade.symbol, trade.side,
+            float(trade.volume), float(trade.open_price), float(trade.close_price),
+            float(trade.profit), float(trade.commission), float(trade.swap),
+            net_profit,
+            net_profit_brl if net_profit_brl is not None else "",
+            fx_rate if fx_rate is not None else "",
+            trade.currency or "", trade.deal_id or "", trade.account, trade.note or "",
+        ])
+
+    filename = f"trades_{dt.date.today().isoformat()}.csv"
+    target_dir = Path.home() / "Downloads"
+    target_dir.mkdir(parents=True, exist_ok=True)
+    target_path = target_dir / filename
+    target_path.write_text(output.getvalue(), encoding="utf-8-sig")
+    return {"path": str(target_path), "filename": filename}
 
 
 @router.patch("/trades/{trade_id}/note")

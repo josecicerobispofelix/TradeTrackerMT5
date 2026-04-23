@@ -14,6 +14,7 @@ import {
 } from "recharts";
 import {
   exportTradesCsv,
+  saveTradesCsvFile,
   fetchTradeMeta,
   fetchTrades,
   fetchTradeTotals,
@@ -59,6 +60,7 @@ export default function History() {
   const [metaLoading, setMetaLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [csvStatus, setCsvStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // Sync state → URL
@@ -152,19 +154,31 @@ export default function History() {
 
   const handleExportCsv = async () => {
     setExporting(true);
+    setCsvStatus(null);
+    setError(null);
     try {
-      const blob = await exportTradesCsv({
-        from: from || undefined,
-        to: to || undefined,
-        symbol: symbol || undefined,
-        account: account || undefined,
-      });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `trades_${new Date().toISOString().slice(0, 10)}.csv`;
-      a.click();
-      URL.revokeObjectURL(url);
+      if (import.meta.env.PROD) {
+        const saved = await saveTradesCsvFile({
+          from: from || undefined,
+          to: to || undefined,
+          symbol: symbol || undefined,
+          account: account || undefined,
+        });
+        setCsvStatus(`✓ CSV salvo em: ${saved.path}`);
+      } else {
+        const blob = await exportTradesCsv({
+          from: from || undefined,
+          to: to || undefined,
+          symbol: symbol || undefined,
+          account: account || undefined,
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `trades_${new Date().toISOString().slice(0, 10)}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -225,6 +239,7 @@ export default function History() {
 
       {loading ? <div className="panel">{t("history_loading")}</div> : null}
       {error ? <div className="panel">{t("common_error")} {error}</div> : null}
+      {csvStatus ? <div className="panel" style={{ color: "#22c55e", fontSize: 13 }}>{csvStatus}</div> : null}
 
       {!loading && chartData.length > 1 ? (
         <div className="panel">

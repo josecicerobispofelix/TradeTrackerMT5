@@ -336,6 +336,22 @@ export async function exportTradesCsv(params: {
   return response.blob();
 }
 
+export async function saveTradesCsvFile(params: {
+  from?: string;
+  to?: string;
+  symbol?: string;
+  account?: string;
+}): Promise<{ path: string; filename: string }> {
+  const search = new URLSearchParams();
+  if (params.from) search.append("from", params.from);
+  if (params.to) search.append("to", params.to);
+  if (params.symbol) search.append("symbol", params.symbol);
+  if (params.account) search.append("account", params.account);
+  return apiFetch<{ path: string; filename: string }>(
+    `/api/trades/export/save?${search.toString()}`
+  );
+}
+
 export async function fetchTradeMeta(params?: {
   from?: string;
   to?: string;
