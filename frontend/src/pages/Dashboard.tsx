@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLang } from "../LangContext";
 
 
@@ -2619,338 +2619,40 @@ export default function Dashboard() {
 
 
   const handlePdfDarf = async () => {
-
-
-
     setDarfLoading(true);
-
-
-
     setDarfStatus(null);
-
-
-
     try {
-
-
-
       const payload = buildDarfPayload();
-
-
-
-      // Tenta salvar direto via backend (escreve em Downloads)
-
-
-
       const filename = `DARF_${String(payload.month).padStart(2, "0")}_${payload.year}.pdf`;
-
-
-
-      const lastPdfDir = localStorage.getItem(LAST_PDF_DIR_KEY) || undefined;
-
-
-
-
-
-
-
-      // Se houver pywebview com diálogo de salvar, prioriza
-
-
-
-      const api: any = (window as any).pywebview?.api;
-
-
-
-      if (api?.save_pdf_prompt) {
-
-
-
-        try {
-
-
-
-          const blobPrompt = await downloadDarfPdf(payload);
-
-
-
-          const buffer = await blobPrompt.arrayBuffer();
-
-
-
-          const bytes = new Uint8Array(buffer);
-
-
-
-          let binary = "";
-
-
-
-          for (let i = 0; i < bytes.byteLength; i += 1) {
-
-
-
-            binary += String.fromCharCode(bytes[i]);
-
-
-
-          }
-
-
-
-          const base64 = window.btoa(binary);
-
-
-
-          const response = await api.save_pdf_prompt(base64, filename, lastPdfDir);
-
-
-
-          if (response?.success) {
-
-
-
-            if (response.path) {
-
-
-
-              setLastPdfPath(response.path);
-
-
-
-              localStorage.setItem(LAST_PDF_PATH_KEY, response.path);
-
-
-
-              const dir = getDirPath(response.path);
-
-
-
-              if (dir) localStorage.setItem(LAST_PDF_DIR_KEY, dir);
-
-
-
-            }
-
-
-
-            setDarfStatus(null); // evita duplicar com "Último PDF"
-
-
-
-            return;
-
-
-
-          }
-
-
-
-          // se usuário cancelou, segue fluxo automático
-
-
-
-        } catch (promptErr) {
-
-
-
-          console.error("Falha ao salvar com diálogo", promptErr);
-
-
-
-        }
-
-
-
-      }
-
-
-
-
-
-
-
-      // Sem diálogo: salva automático via backend em Downloads
-
-
-
-      try {
-
-
-
+      if (import.meta.env.PROD) {
         const saved = await saveDarfPdfFile(payload);
-
-
-
-        setDarfStatus(null); // evita duplicar com "Último PDF"
-
-
-
         if (saved.path) {
-
-
-
           setLastPdfPath(saved.path);
-
-
-
           localStorage.setItem(LAST_PDF_PATH_KEY, saved.path);
-
-
-
           const dir = getDirPath(saved.path);
-
-
-
           if (dir) localStorage.setItem(LAST_PDF_DIR_KEY, dir);
-
-
-
         }
-
-
-
-        return;
-
-
-
-      } catch (saveErr) {
-
-
-
-        console.error("Falha ao salvar PDF via backend automático", saveErr);
-
-
-
-      }
-
-
-
-
-
-
-
-      // ltimo fallback: download direto (blob)
-
-
-
-      const blob = await downloadDarfPdf(payload);
-
-
-
-
-
-
-
-      // Baixa diretamente sem abrir nova aba para evitar prompt de "blob link" no WebView2
-
-
-
-      const nav: any = window.navigator;
-
-
-
-      if (nav && typeof nav.msSaveOrOpenBlob === "function") {
-
-
-
-        nav.msSaveOrOpenBlob(blob, filename);
-
-
-
+        setDarfStatus(`✓ PDF salvo em: ${saved.path}`);
       } else {
-
-
-
+        const blob = await downloadDarfPdf(payload);
         const url = URL.createObjectURL(blob);
-
-
-
         const link = document.createElement("a");
-
-
-
         link.href = url;
-
-
-
         link.download = filename;
-
-
-
         link.style.display = "none";
-
-
-
-        link.target = "_self";
-
-
-
         document.body.appendChild(link);
-
-
-
         link.click();
-
-
-
-        setTimeout(() => {
-
-
-
-          document.body.removeChild(link);
-
-
-
-          URL.revokeObjectURL(url);
-
-
-
-        }, 1000);
-
-
-
+        setTimeout(() => { document.body.removeChild(link); URL.revokeObjectURL(url); }, 1000);
+        setDarfStatus("PDF gerado.");
       }
-
-
-
-
-
-
-
-      setDarfStatus("PDF gerado.");
-
-
-
     } catch (err) {
-
-
-
       setDarfStatus((err as Error).message);
-
-
-
     } finally {
-
-
-
       setDarfLoading(false);
-
-
-
     }
-
-
-
   };
 
-
-
-
-
-
-
-  const lookupCep = useCallback(async (rawCep: string) => {
+    const lookupCep = useCallback(async (rawCep: string) => {
 
 
 
