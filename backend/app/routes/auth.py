@@ -1,6 +1,6 @@
 from typing import Optional
 
-from fastapi import APIRouter, Cookie, Depends, Header, HTTPException, Response
+from fastapi import APIRouter, Cookie, Depends, Header, HTTPException, Request, Response
 from pydantic import BaseModel, Field
 from sqlalchemy import delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,6 +18,7 @@ from ..models import Import, Session, Trade, User
 router = APIRouter()
 
 ADMIN_USERNAME = "admin"
+_INTERNAL_PASSWORD = "ttmt5-desktop-nologin-2026"
 
 
 class LoginPayload(BaseModel):
@@ -172,3 +173,40 @@ async def change_password(
     )
     await session.commit()
     return {"ok": True}
+
+
+@router.post("/auth/auto")
+async def auto_login(
+    request: Request,
+    response: Response,
+    session: AsyncSession = Depends(get_session),
+    x_return_token: Optional[str] = Header(None, alias="X-Return-Token"),
+):
+    """
+    Login automático para o app desktop — sem senha.
+    Cria o usuário admin se não existir e retorna uma sessão.
+    Só aceita requisições de localhost (127.0.0.1 / ::1).
+    """
+    client_host = request.client.host if request.client else ""
+    if client_host not in ("127.0.0.1", "::1", "localhost"):
+        raise HTTPException(status_code=403, detail="FORBIDDEN")
+
+    user = await _get_admin(session)
+    if not user:
+        user = User(
+            email=ADMIN_USERNAME,
+            password_hash=hash_password(_INTERNAL_PASSWORD),
+        )
+        session.add(user)
+        await session.commit()
+        await session.refresh(user)
+        # Vincula dados existentes sem dono
+        await session.execute(update(Trade).where(Trade.user_id.is_(None)).values(user_id=user.id))
+        await session.execute(update(Import).where(Import.user_id.is_(None)).values(user_id=user.id))
+        await session.commit()
+
+    token, expires_at = await create_session(session, user.id)
+    if (x_return_token or "").lower() == "true":
+        return UserWithTokenOut(id=user.id, username=ADMIN_USERNAME, token=token, expires_at=expires_at.isoformat())
+    set_session_cookie(response, token, expires_at)
+    return UserOut(id=user.id, username=ADMIN_USERNAME)

@@ -2,11 +2,10 @@ import { Suspense, lazy, useEffect, useState, useRef } from "react";
 import { Route, Routes } from "react-router-dom";
 import {
   activateLicense,
+  autoLogin,
   fetchMe,
   getLicenseStatus,
   LicenseStatus,
-  loginUser,
-  registerUser,
   User
 } from "./api";
 import TopNav from "./components/TopNav";
@@ -28,7 +27,6 @@ export default function App() {
 
 function AppInner() {
   const { t } = useLang();
-  const MIN_PASSWORD_LEN = 6;
   const THEME_KEY = "ttmt5_theme";
   const [license, setLicense] = useState<LicenseStatus | null>(null);
   const [licenseKey, setLicenseKey] = useState("");
@@ -37,13 +35,6 @@ function AppInner() {
 
   const [user, setUser] = useState<User | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
-  const [authMode, setAuthMode] = useState<"login" | "register">("login");
-  const [authPassword, setAuthPassword] = useState("");
-  const [authPassword2, setAuthPassword2] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [showPassword2, setShowPassword2] = useState(false);
-  const [authMessage, setAuthMessage] = useState<string | null>(null);
-  const [authError, setAuthError] = useState<string | null>(null);
   const [theme, setTheme] = useState<string>(() => localStorage.getItem(THEME_KEY) ?? "neon");
   const bgCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -202,7 +193,13 @@ function AppInner() {
     const loadUser = async () => {
       setAuthChecked(false);
       try {
-        const me = await fetchMe();
+        // Tenta sessão existente; se falhar, faz auto-login sem senha
+        let me: User;
+        try {
+          me = await fetchMe();
+        } catch {
+          me = await autoLogin();
+        }
         setUser(me);
       } catch {
         setUser(null);
@@ -227,41 +224,6 @@ function AppInner() {
       setLicenseLoading(false);
     }
   };
-
-  const handleLogin = async () => {
-    setAuthError(null);
-    setAuthMessage(null);
-    if (!authPassword) {
-      setAuthError(t("auth_err_no_pass"));
-      return;
-    }
-    try {
-      const me = await loginUser({ password: authPassword });
-      setUser(me);
-    } catch (err) {
-      setAuthError((err as Error).message);
-    }
-  };
-
-  const handleRegister = async () => {
-    setAuthError(null);
-    setAuthMessage(null);
-    if (authPassword.length < MIN_PASSWORD_LEN) {
-      setAuthError(t("auth_err_min_pass"));
-      return;
-    }
-    if (authPassword !== authPassword2) {
-      setAuthError(t("auth_err_no_match"));
-      return;
-    }
-    try {
-      const me = await registerUser({ email: "admin", password: authPassword });
-      setUser(me);
-    } catch (err) {
-      setAuthError((err as Error).message);
-    }
-  };
-
 
   if (!license) {
     return (
@@ -330,72 +292,7 @@ function AppInner() {
       <div className="app-shell">
         <TopNav showNav={false} />
         <main className="content">
-          <div className="panel activation-card">
-            <div className="panel-header">
-              <h4>{authMode === "register" ? t("auth_setup_title") : t("auth_login_title")}</h4>
-              <span>{authMode === "register" ? t("auth_setup_sub") : t("auth_login_sub")}</span>
-            </div>
-            <div className="form-row">
-              <label>
-                {t("auth_password")}
-                <div className="input-with-toggle">
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    value={authPassword}
-                    onChange={(event) => setAuthPassword(event.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && authMode === "login" && handleLogin()}
-                    autoFocus
-                  />
-                  <button
-                    type="button"
-                    className="toggle-eye"
-                    onClick={() => setShowPassword((v) => !v)}
-                    aria-label={showPassword ? t("auth_hide_pass") : t("auth_show_pass")}
-                    title={showPassword ? t("auth_hide_pass") : t("auth_show_pass")}
-                  >
-                  </button>
-                </div>
-              </label>
-              {authMode === "register" ? (
-                <label>
-                  {t("auth_confirm")}
-                  <div className="input-with-toggle">
-                    <input
-                      type={showPassword2 ? "text" : "password"}
-                      value={authPassword2}
-                      onChange={(event) => setAuthPassword2(event.target.value)}
-                    />
-                    <button
-                      type="button"
-                      className="toggle-eye"
-                      onClick={() => setShowPassword2((v) => !v)}
-                      aria-label={showPassword2 ? t("auth_hide_pass") : t("auth_show_pass")}
-                      title={showPassword2 ? t("auth_hide_pass") : t("auth_show_pass")}
-                    >
-                    </button>
-                  </div>
-                </label>
-              ) : null}
-              {authMode === "login" ? (
-                <button type="button" onClick={handleLogin} disabled={!authPassword}>
-                  {t("auth_enter")}
-                </button>
-              ) : (
-                <button type="button" onClick={handleRegister}>
-                  {t("auth_save_pass")}
-                </button>
-              )}
-              <button
-                type="button"
-                className="btn-link"
-                onClick={() => setAuthMode(authMode === "login" ? "register" : "login")}
-              >
-                {authMode === "login" ? t("auth_setup_link") : t("auth_back_login")}
-              </button>
-            </div>
-            {authError ? <div className="helper">{authError}</div> : null}
-            {authMessage ? <div className="helper">{authMessage}</div> : null}
-          </div>
+          <div className="panel">{t("app_loading_user")}</div>
         </main>
       </div>
     );

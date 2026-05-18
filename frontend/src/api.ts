@@ -559,6 +559,10 @@ export async function fetchMe(): Promise<User> {
   return apiFetch<User>("/api/auth/me");
 }
 
+export async function autoLogin(): Promise<User> {
+  return apiFetch<User>("/api/auth/auto", { method: "POST" });
+}
+
 export type RobotTestIn = {
   robot_name: string;
   test_date: string;
