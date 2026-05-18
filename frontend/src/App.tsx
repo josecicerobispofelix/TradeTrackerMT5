@@ -7,7 +7,6 @@ import {
   LicenseStatus,
   loginUser,
   registerUser,
-  logoutUser,
   User
 } from "./api";
 import TopNav from "./components/TopNav";
@@ -263,13 +262,6 @@ function AppInner() {
     }
   };
 
-  const handleLogout = async () => {
-    await logoutUser();
-    setUser(null);
-    setAuthMode("login");
-    setAuthPassword("");
-    setAuthPassword2("");
-  };
 
   if (!license) {
     return (
@@ -412,7 +404,7 @@ function AppInner() {
   return (
     <div className="app-shell">
       <canvas ref={bgCanvasRef} className="bg-chart" aria-hidden />
-      <TopNav onLogout={handleLogout} showNav theme={theme} onThemeChange={setTheme} />
+      <TopNav showNav theme={theme} onThemeChange={setTheme} />
       <main className="content">
         <Suspense fallback={<div className="panel">{t("app_loading")}</div>}>
           <Routes>

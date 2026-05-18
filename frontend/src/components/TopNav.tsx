@@ -4,7 +4,6 @@ import { useLang } from "../LangContext";
 import { LANG_LABEL, Lang } from "../i18n";
 
 type TopNavProps = {
-  onLogout?: () => void;
   showNav?: boolean;
   theme?: string;
   onThemeChange?: (theme: string) => void;
@@ -21,7 +20,7 @@ const themeOptions = [
 
 const langOptions = Object.entries(LANG_LABEL) as [Lang, string][];
 
-export default function TopNav({ onLogout, showNav = true, theme = "neon", onThemeChange }: TopNavProps) {
+export default function TopNav({ showNav = true, theme = "neon", onThemeChange }: TopNavProps) {
   const [openSettings, setOpenSettings] = useState(false);
   const { lang, setLang, t } = useLang();
 
@@ -80,11 +79,6 @@ export default function TopNav({ onLogout, showNav = true, theme = "neon", onThe
                 </div>
               ) : null}
             </div>
-            {onLogout ? (
-              <button type="button" className="logout-btn" onClick={onLogout}>
-                {t("nav_logout")}
-              </button>
-            ) : null}
           </nav>
         ) : null}
       </div>
