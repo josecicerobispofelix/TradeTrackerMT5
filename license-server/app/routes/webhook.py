@@ -1,10 +1,11 @@
 """
-Webhook Hotmart — gera chave automaticamente após compra aprovada
-e envia por e-mail ao cliente.
+Webhook Hotmart — gera chave automaticamente após compra aprovada,
+revoga automaticamente após reembolso/chargeback.
 
 Configure no painel Hotmart:
   URL: https://<seu-servidor>/webhook/hotmart?hottok=<HOTMART_HOTTOK>
-  Eventos: PURCHASE_APPROVED, PURCHASE_COMPLETE
+  Eventos: PURCHASE_APPROVED, PURCHASE_COMPLETE,
+           PURCHASE_REFUNDED, PURCHASE_CHARGEBACK, PURCHASE_CANCELLED
 
 Variáveis de ambiente:
   HOTMART_HOTTOK  — token secreto definido por você no painel Hotmart
@@ -19,7 +20,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session
 
 from ..database import get_db
-from ..email_sender import send_license_key
+from ..email_sender import send_license_key, send_revocation_notice
 from ..models import License
 from ..utils import generate_key
 
@@ -31,6 +32,9 @@ HOTMART_HOTTOK = os.getenv("HOTMART_HOTTOK", "")
 
 # Eventos que disparam geração de chave
 APPROVED_EVENTS = {"PURCHASE_APPROVED", "PURCHASE_COMPLETE"}
+
+# Eventos que revogam a chave
+REVOKE_EVENTS = {"PURCHASE_REFUNDED", "PURCHASE_CHARGEBACK", "PURCHASE_CANCELLED"}
 
 
 def _extract_buyer(data: dict) -> tuple[str, str]:
@@ -53,8 +57,9 @@ async def hotmart_webhook(
     db: Session = Depends(get_db),
 ):
     """
-    Recebe eventos da Hotmart. Gera e envia a chave de licença
-    automaticamente quando uma compra é aprovada.
+    Recebe eventos da Hotmart.
+    - Compra aprovada  → gera e envia chave por e-mail.
+    - Reembolso/chargeback → revoga a chave automaticamente.
     """
     # ── 1. Validar token ──────────────────────────────────────────────────────
     if HOTMART_HOTTOK and hottok != HOTMART_HOTTOK:
@@ -72,11 +77,59 @@ async def hotmart_webhook(
 
     logger.info("Webhook Hotmart recebido: event=%s", event)
 
-    # ── 3. Ignorar eventos que não geram chave ────────────────────────────────
+    # ── 3. REEMBOLSO / CHARGEBACK → revogar chave ─────────────────────────────
+    if event in REVOKE_EVENTS:
+        transaction_id = _extract_transaction(data)
+        email, name = _extract_buyer(data)
+
+        revoked_keys = []
+
+        # Revoga por transaction_id (mais preciso)
+        if transaction_id:
+            licenses = db.query(License).filter(
+                License.transaction_id == transaction_id,
+                License.status != "revoked",
+            ).all()
+            for lic in licenses:
+                lic.status = "revoked"
+                revoked_keys.append(lic.key)
+
+        # Fallback: revoga por e-mail se não achou por transaction_id
+        if not revoked_keys and email:
+            licenses = db.query(License).filter(
+                License.email == email,
+                License.status != "revoked",
+            ).all()
+            for lic in licenses:
+                lic.status = "revoked"
+                revoked_keys.append(lic.key)
+
+        if revoked_keys:
+            db.commit()
+            logger.info("Chaves revogadas por %s: %s txn=%s", event, revoked_keys, transaction_id)
+
+            # Envia e-mail informando que a licença foi cancelada
+            if email:
+                try:
+                    send_revocation_notice(
+                        to_email=email,
+                        to_name=name,
+                        keys=revoked_keys,
+                        reason=event,
+                    )
+                except Exception as exc:
+                    logger.error("Falha ao enviar e-mail de revogação para %s: %s", email, exc)
+        else:
+            logger.warning("Nenhuma chave encontrada para revogar: event=%s txn=%s email=%s",
+                           event, transaction_id, email)
+
+        return {"ok": True, "action": "keys_revoked", "keys": revoked_keys, "event": event}
+
+    # ── 4. Ignorar outros eventos ─────────────────────────────────────────────
     if event not in APPROVED_EVENTS:
         return {"ok": True, "action": "ignored", "event": event}
 
-    # ── 4. Extrair dados do comprador ─────────────────────────────────────────
+    # ── 5. Extrair dados do comprador ─────────────────────────────────────────
     email, name = _extract_buyer(data)
     if not email:
         logger.error("Webhook Hotmart: e-mail do comprador não encontrado. payload=%s", payload)
@@ -84,7 +137,16 @@ async def hotmart_webhook(
 
     transaction_id = _extract_transaction(data)
 
-    # ── 5. Gerar chave (garante unicidade) ────────────────────────────────────
+    # ── 6. Evitar chave duplicada para mesma transação ────────────────────────
+    if transaction_id:
+        existing = db.query(License).filter(
+            License.transaction_id == transaction_id
+        ).first()
+        if existing:
+            logger.info("Chave já existe para txn=%s, ignorando duplicata.", transaction_id)
+            return {"ok": True, "action": "already_exists", "key": existing.key}
+
+    # ── 7. Gerar chave (garante unicidade) ────────────────────────────────────
     key = generate_key()
     while db.query(License).filter(License.key == key).first():
         key = generate_key()
@@ -101,7 +163,7 @@ async def hotmart_webhook(
 
     logger.info("Chave gerada: key=%s email=%s txn=%s", key, email, transaction_id)
 
-    # ── 6. Enviar e-mail ──────────────────────────────────────────────────────
+    # ── 8. Enviar e-mail ──────────────────────────────────────────────────────
     try:
         send_license_key(
             to_email=email,
@@ -111,7 +173,6 @@ async def hotmart_webhook(
         )
         logger.info("E-mail enviado para %s", email)
     except Exception as exc:
-        # Chave já foi salva — não falha o webhook, apenas loga
         logger.error("Falha ao enviar e-mail para %s: %s", email, exc)
 
     return {"ok": True, "action": "key_generated", "key": key, "email": email}

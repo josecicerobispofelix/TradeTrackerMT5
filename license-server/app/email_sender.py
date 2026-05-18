@@ -139,3 +139,102 @@ def send_license_key(to_email: str, to_name: str, key: str, transaction_id: str 
         server.starttls()
         server.login(SMTP_USER, SMTP_PASSWORD)
         server.sendmail(SMTP_USER, to_email, msg.as_string())
+
+
+def send_revocation_notice(
+    to_email: str,
+    to_name: str,
+    keys: list[str],
+    reason: str,
+) -> None:
+    """Notifica o cliente que a licença foi cancelada por reembolso/chargeback."""
+    if not _is_configured():
+        raise RuntimeError("SMTP não configurado.")
+
+    reason_label = {
+        "PURCHASE_REFUNDED":   "reembolso solicitado",
+        "PURCHASE_CHARGEBACK": "chargeback",
+        "PURCHASE_CANCELLED":  "cancelamento",
+    }.get(reason, reason.lower())
+
+    subject = "Licença TradeTracker MT5 cancelada"
+
+    keys_html = "".join(
+        f"<li style='font-family:monospace;font-size:16px;color:#f87171;letter-spacing:2px;'>{k}</li>"
+        for k in keys
+    )
+
+    html = f"""
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"></head>
+<body style="margin:0;padding:0;background:#0f172a;font-family:'Segoe UI',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0">
+    <tr>
+      <td align="center" style="padding:40px 16px;">
+        <table width="560" cellpadding="0" cellspacing="0"
+               style="background:#1e293b;border-radius:12px;overflow:hidden;">
+          <tr>
+            <td style="background:#7f1d1d;padding:28px 40px;">
+              <h1 style="margin:0;color:#fff;font-size:22px;font-weight:700;">
+                TradeTracker MT5
+              </h1>
+              <p style="margin:6px 0 0;color:#fca5a5;font-size:14px;">
+                Licença cancelada — {reason_label}
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:36px 40px;">
+              <p style="color:#cbd5e1;font-size:15px;margin:0 0 20px;">
+                Olá, <strong style="color:#f1f5f9;">{to_name}</strong>.<br><br>
+                Identificamos um <strong>{reason_label}</strong> associado à sua compra.
+                As seguintes chaves de licença foram <strong style="color:#f87171;">desativadas</strong>
+                e o aplicativo não funcionará mais neste computador:
+              </p>
+              <ul style="background:#0f172a;border-radius:8px;padding:16px 24px;margin:0 0 24px;">
+                {keys_html}
+              </ul>
+              <p style="color:#94a3b8;font-size:14px;margin:0;">
+                Se achar que isso foi um engano, entre em contato com o suporte
+                respondendo este e-mail.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="background:#0f172a;padding:20px 40px;border-top:1px solid #1e293b;">
+              <p style="margin:0;color:#475569;font-size:12px;text-align:center;">
+                <strong style="color:#334155;">TecnoHuby — TradeTracker MT5</strong>
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+"""
+
+    plain = (
+        f"Olá, {to_name}.\n\n"
+        f"Identificamos um {reason_label} associado à sua compra.\n"
+        f"As seguintes chaves foram desativadas:\n\n"
+        + "\n".join(f"  {k}" for k in keys)
+        + "\n\nSe achar que foi um engano, entre em contato com o suporte.\n\n"
+        "TecnoHuby — TradeTracker MT5"
+    )
+
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = subject
+    msg["From"]    = f"{SMTP_FROM_NAME} <{SMTP_USER}>"
+    msg["To"]      = to_email
+
+    msg.attach(MIMEText(plain, "plain", "utf-8"))
+    msg.attach(MIMEText(html,  "html",  "utf-8"))
+
+    with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
+        server.ehlo()
+        server.starttls()
+        server.login(SMTP_USER, SMTP_PASSWORD)
+        server.sendmail(SMTP_USER, to_email, msg.as_string())
