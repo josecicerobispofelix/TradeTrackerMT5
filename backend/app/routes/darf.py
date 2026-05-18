@@ -30,6 +30,12 @@ except Exception:  # pragma: no cover - handled by build dependency
 
 router = APIRouter()
 
+MONTH_NAMES = [
+    "", "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+    "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
+]
+FOREX_RATE = 0.15   # ganhos de capital no exterior (corretora estrangeira, forex/CFD)
+
 
 def _month_range(year: int, month: int) -> tuple[dt.date, dt.date]:
     if month < 1 or month > 12:
@@ -49,6 +55,31 @@ def _format_currency(value: float, currency: str) -> str:
 
 def _format_number(value: float) -> str:
     return f"{value:,.4f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+
+def _last_biz_day(year: int, month: int) -> dt.date:
+    last = dt.date(year, month, calendar.monthrange(year, month)[1])
+    while last.weekday() >= 5:
+        last -= dt.timedelta(days=1)
+    return last
+
+
+async def _fx_for_month(session: AsyncSession, year: int, month: int) -> Optional[float]:
+    """Busca a cotação USD/BRL do mês. Se não houver no banco, tenta buscar online."""
+    last_day = dt.date(year, month, calendar.monthrange(year, month)[1])
+    row = await session.scalar(
+        select(FXRate).where(FXRate.date <= last_day).order_by(FXRate.date.desc())
+    )
+    if row:
+        return float(row.usd_brl_rate)
+    try:
+        value = await fetch_usd_brl_rate(last_day)
+        new_rate = FXRate(date=last_day, usd_brl_rate=value)
+        session.add(new_rate)
+        await session.commit()
+        return value
+    except Exception:
+        return None
 
 
 async def _resolve_fx_rate(
@@ -94,6 +125,7 @@ async def _compute_month_profit(
     profit_sum = float(row[1] or 0)
     swap_sum = float(row[2] or 0)
     commission_abs_sum = float(row[3] or 0)
+    # net = lucro bruto + swap - comissão (comissão já é positiva pelo abs)
     profit_usd = profit_sum + swap_sum - commission_abs_sum
     return trades_count, profit_usd
 
@@ -206,6 +238,8 @@ async def calculate_darf(
 
     trades_count, profit_usd = await _compute_month_profit(session, user.id, start, end)
     profit_brl = profit_usd if currency.upper() == "BRL" else profit_usd * fx_rate
+
+    # Imposto somente sobre lucro — prejuízo = R$ 0,00 de imposto
     tax_due = max(0.0, profit_brl * tax_rate)
     message = None
     if profit_brl <= 0:
@@ -308,116 +342,6 @@ async def generate_darf_pdf(
     return StreamingResponse(BytesIO(pdf_bytes), media_type="application/pdf", headers=headers)
 
 
-MONTH_NAMES = [
-    "", "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-    "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
-]
-FOREX_RATE = 0.15   # ganhos de capital no exterior (corretora estrangeira, forex/CFD)
-
-
-def _last_biz_day(year: int, month: int) -> dt.date:
-    last = dt.date(year, month, calendar.monthrange(year, month)[1])
-    while last.weekday() >= 5:
-        last -= dt.timedelta(days=1)
-    return last
-
-
-async def _fx_for_month(session: AsyncSession, year: int, month: int) -> Optional[float]:
-    last_day = dt.date(year, month, calendar.monthrange(year, month)[1])
-    row = await session.scalar(
-        select(FXRate).where(FXRate.date <= last_day).order_by(FXRate.date.desc())
-    )
-    return float(row.usd_brl_rate) if row else None
-
-
-@router.get("/darf/annual")
-async def darf_annual(
-    year: int = Query(..., ge=2000, le=2100),
-    session: AsyncSession = Depends(get_session),
-    user: User = Depends(get_current_user),
-):
-    """Calcula DARF mês a mês para o ano, separando day trade (20%) e swing (15%) com carryforward."""
-    stmt = select(Trade).where(
-        Trade.user_id == user.id,
-        extract("year", Trade.close_time) == year,
-    ).order_by(Trade.close_time)
-
-    trades = (await session.execute(stmt)).scalars().all()
-
-    # Agrupa por mês (forex exterior: sem distinção day/swing, 15% flat)
-    monthly: dict[int, dict] = {m: {"net": 0.0, "count": 0} for m in range(1, 13)}
-    for t in trades:
-        m = t.close_date.month
-        net = float(t.profit) + float(t.commission) + float(t.swap)
-        monthly[m]["net"] += net
-        monthly[m]["count"] += 1
-
-    carryforward = 0.0
-    months_out = []
-    total_tax = 0.0
-    today = dt.date.today()
-
-    for m in range(1, 13):
-        is_future = (year > today.year) or (year == today.year and m > today.month)
-
-        fx      = await _fx_for_month(session, year, m)
-        net_usd = monthly[m]["net"]
-        count   = monthly[m]["count"]
-
-        if is_future and count == 0:
-            months_out.append({
-                "month":        m,
-                "month_name":   MONTH_NAMES[m],
-                "fx_rate":      None,
-                "trades_count": 0,
-                "net_usd":      0.0,
-                "net_brl":      None,
-                "carryforward": 0.0,
-                "taxable_brl":  0.0,
-                "tax_brl":      0.0,
-                "total_tax_brl": 0.0,
-                "due_date":     "",
-                "has_trades":   False,
-            })
-            continue
-
-        net_brl = round(net_usd * fx, 2) if fx else None
-        base    = (net_brl or 0) + carryforward
-        taxable = max(0.0, base)
-        carryforward = round(min(0.0, base), 2)
-
-        tax = round(taxable * FOREX_RATE, 2)
-        total_tax = round(total_tax + tax, 2)
-
-        due_year  = year if m < 12 else year + 1
-        due_month = m + 1 if m < 12 else 1
-        due_date  = _last_biz_day(due_year, due_month)
-
-        months_out.append({
-            "month":           m,
-            "month_name":      MONTH_NAMES[m],
-            "fx_rate":         fx,
-            "trades_count":    count,
-            "net_usd":         round(net_usd, 2),
-            "net_brl":         net_brl,
-            "carryforward":    carryforward,
-            "taxable_brl":     round(taxable, 2),
-            "tax_brl":         tax,
-            "total_tax_brl":   tax,
-            "due_date":        due_date.strftime("%d/%m/%Y"),
-            "has_trades":      count > 0,
-        })
-
-    return {
-        "year":          year,
-        "months":        months_out,
-        "total_tax_brl": total_tax,
-        "rate":          FOREX_RATE,
-        "darf_code":     "8523",
-        "note":          "Ganhos de capital no exterior (corretora estrangeira, forex/CFD) – DARF código 8523",
-    }
-
-
 @router.post("/darf/pdf/save")
 async def save_darf_pdf(
     payload: DarfCalcRequest,
@@ -443,43 +367,17 @@ async def save_darf_pdf(
     return {"path": str(target_path), "filename": filename}
 
 
-MONTH_NAMES = [
-    "", "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-    "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
-]
-FOREX_RATE = 0.15
-
-
-def _last_biz_day(year: int, month: int) -> dt.date:
-    last = dt.date(year, month, calendar.monthrange(year, month)[1])
-    while last.weekday() >= 5:
-        last -= dt.timedelta(days=1)
-    return last
-
-
-async def _fx_for_month(session: AsyncSession, year: int, month: int) -> Optional[float]:
-    last_day = dt.date(year, month, calendar.monthrange(year, month)[1])
-    row = await session.scalar(
-        select(FXRate).where(FXRate.date <= last_day).order_by(FXRate.date.desc())
-    )
-    if row:
-        return float(row.usd_brl_rate)
-    try:
-        value = await fetch_usd_brl_rate(last_day)
-        new_rate = FXRate(date=last_day, usd_brl_rate=value)
-        session.add(new_rate)
-        await session.commit()
-        return value
-    except Exception:
-        return None
-
-
 @router.get("/darf/annual")
 async def darf_annual(
     year: int = Query(..., ge=2000, le=2100),
     session: AsyncSession = Depends(get_session),
     user: User = Depends(get_current_user),
 ):
+    """
+    Calcula DARF mês a mês para o ano com carryforward de prejuízo.
+    Imposto somente sobre lucro. Prejuízo acumulado abate lucros futuros.
+    Alíquota: 15% (ganhos de capital no exterior – DARF código 8523).
+    """
     stmt = select(Trade).where(
         Trade.user_id == user.id,
         extract("year", Trade.close_time) == year,
@@ -487,6 +385,7 @@ async def darf_annual(
 
     trades = (await session.execute(stmt)).scalars().all()
 
+    # Agrupa operações por mês: lucro = profit + swap - comissão
     monthly: dict[int, dict] = {m: {"net": 0.0, "count": 0} for m in range(1, 13)}
     for t in trades:
         m = t.close_date.month
@@ -497,17 +396,41 @@ async def darf_annual(
     carryforward = 0.0
     months_out = []
     total_tax = 0.0
+    today = dt.date.today()
 
     for m in range(1, 13):
-        fx = await _fx_for_month(session, year, m)
-        net_usd = monthly[m]["net"]
+        is_future = (year > today.year) or (year == today.year and m > today.month)
         count = monthly[m]["count"]
 
-        net_brl = round(net_usd * fx, 2) if fx else None
-        base = (net_brl or 0) + carryforward
-        taxable = max(0.0, base)
-        carryforward = round(min(0.0, base), 2)
+        # Mês futuro sem operações: exibe sem cotação e sem imposto
+        if is_future and count == 0:
+            months_out.append({
+                "month":         m,
+                "month_name":    MONTH_NAMES[m],
+                "fx_rate":       None,
+                "trades_count":  0,
+                "net_usd":       0.0,
+                "net_brl":       None,
+                "carryforward":  round(carryforward, 2),
+                "taxable_brl":   0.0,
+                "tax_brl":       0.0,
+                "total_tax_brl": 0.0,
+                "due_date":      "",
+                "has_trades":    False,
+            })
+            continue
 
+        fx = await _fx_for_month(session, year, m)
+        net_usd = monthly[m]["net"]
+
+        net_brl = round(net_usd * fx, 2) if fx else None
+
+        # Carryforward: prejuízo acumulado de meses anteriores abate o lucro atual
+        base = (net_brl or 0.0) + carryforward
+        taxable = max(0.0, base)            # tributa apenas saldo positivo
+        carryforward = round(min(0.0, base), 2)  # acumula saldo negativo para o próximo mês
+
+        # Imposto somente sobre lucro (alíquota 15%)
         tax = round(taxable * FOREX_RATE, 2)
         total_tax = round(total_tax + tax, 2)
 
@@ -516,25 +439,25 @@ async def darf_annual(
         due_date = _last_biz_day(due_year, due_month)
 
         months_out.append({
-            "month": m,
-            "month_name": MONTH_NAMES[m],
-            "fx_rate": fx,
-            "trades_count": count,
-            "net_usd": round(net_usd, 2),
-            "net_brl": net_brl,
-            "carryforward": carryforward,
-            "taxable_brl": round(taxable, 2),
-            "tax_brl": tax,
+            "month":         m,
+            "month_name":    MONTH_NAMES[m],
+            "fx_rate":       fx,
+            "trades_count":  count,
+            "net_usd":       round(net_usd, 2),
+            "net_brl":       net_brl,
+            "carryforward":  carryforward,
+            "taxable_brl":   round(taxable, 2),
+            "tax_brl":       tax,
             "total_tax_brl": tax,
-            "due_date": due_date.strftime("%d/%m/%Y"),
-            "has_trades": count > 0,
+            "due_date":      due_date.strftime("%d/%m/%Y"),
+            "has_trades":    count > 0,
         })
 
     return {
-        "year": year,
-        "months": months_out,
+        "year":          year,
+        "months":        months_out,
         "total_tax_brl": total_tax,
-        "rate": FOREX_RATE,
-        "darf_code": "8523",
-        "note": "Ganhos de capital no exterior (corretora estrangeira, forex/CFD) – DARF código 8523",
+        "rate":          FOREX_RATE,
+        "darf_code":     "8523",
+        "note":          "Ganhos de capital no exterior (corretora estrangeira, forex/CFD) – DARF código 8523",
     }

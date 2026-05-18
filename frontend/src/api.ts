@@ -1,6 +1,6 @@
 ﻿const API_URL =
   import.meta.env.VITE_API_URL ||
-  (import.meta.env.PROD ? window.location.origin : "http://localhost:8000");
+  (import.meta.env.PROD ? window.location.origin : "http://localhost:18100");
 
 export type UploadResponse = {
   file_already_imported: boolean;
@@ -624,7 +624,7 @@ export async function fetchDarfAnnual(year: number): Promise<DarfAnnual> {
 }
 
 export async function exportRobotTestsPdf(): Promise<Blob> {
-  const API_URL = (import.meta.env.PROD ? window.location.origin : "http://localhost:8000");
+  const API_URL = (import.meta.env.PROD ? window.location.origin : "http://localhost:18100");
   const resp = await fetch(`${API_URL}/api/robot-tests/pdf`, {
     method: "POST",
     credentials: "include",
