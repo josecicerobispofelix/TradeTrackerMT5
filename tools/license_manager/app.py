@@ -30,7 +30,7 @@ except ImportError:
 
 # ── Caminhos ──────────────────────────────────────────────────────────────────
 
-SERVER     = "https://cheerful-heart-production.up.railway.app"
+SERVER     = "https://tradetrackermt5.onrender.com"
 APP_DIR    = Path(os.getenv("APPDATA", "~")).expanduser() / "TradersTrackerAdmin"
 CONFIG_PATH = APP_DIR / "config.json"
 LOCAL_DB   = APP_DIR / "local_licenses.db"

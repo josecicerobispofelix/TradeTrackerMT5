@@ -1,6 +1,6 @@
 """
 Gerenciamento de licença do desktop.
-- Ativa e valida chaves contra o servidor Railway online.
+- Ativa e valida chaves contra o servidor Render online.
 - Cache local com grace period de 7 dias para uso offline.
 """
 import hashlib
@@ -16,7 +16,7 @@ import httpx
 
 LICENSE_SERVER = os.getenv(
     "LICENSE_SERVER_URL",
-    "https://cheerful-heart-production.up.railway.app",
+    "https://tradetrackermt5.onrender.com",
 )
 GRACE_DAYS = int(os.getenv("LICENSE_GRACE_DAYS", "7"))
 

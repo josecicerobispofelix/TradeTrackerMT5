@@ -1,5 +1,5 @@
 """
-Gera chave(s) de licença no servidor Railway e exibe pronta pra enviar ao cliente.
+Gera chave(s) de licença no servidor Render e exibe pronta pra enviar ao cliente.
 
 Uso:
     python tools/generate_license.py <email> [transaction_id]
@@ -28,7 +28,7 @@ if env_file.exists():
 ADMIN_TOKEN = os.getenv("ADMIN_TOKEN", "")
 SERVER = os.getenv(
     "LICENSE_SERVER_URL",
-    "https://cheerful-heart-production.up.railway.app",
+    "https://tradetrackermt5.onrender.com",
 )
 
 

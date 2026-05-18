@@ -26,7 +26,7 @@ if env_file.exists():
 ADMIN_TOKEN = os.getenv("ADMIN_TOKEN", "")
 SERVER = os.getenv(
     "LICENSE_SERVER_URL",
-    "https://cheerful-heart-production.up.railway.app",
+    "https://tradetrackermt5.onrender.com",
 )
 
 # ── Cores e estilos ──────────────────────────────────────────────────────────
