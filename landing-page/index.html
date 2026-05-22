@@ -8,6 +8,24 @@
   <meta property="og:title" content="TradersTracker - Organize Seus Trades em 5 Minutos" />
   <meta property="og:description" content="Chega de Excel bagunçado. Importe → Organize → Exporte. R$39,90 pagamento único." />
 
+  <!-- Meta Pixel Code -->
+  <script>
+  !function(f,b,e,v,n,t,s)
+  {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+  n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+  if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+  n.queue=[];t=b.createElement(e);t.async=!0;
+  t.src=v;s=b.getElementsByTagName(e)[0];
+  s.parentNode.insertBefore(t,s)}(window, document,'script',
+  'https://connect.facebook.net/en_US/fbevents.js');
+  fbq('init', '1759838465872626');
+  fbq('track', 'PageView');
+  </script>
+  <noscript><img height="1" width="1" style="display:none"
+  src="https://www.facebook.com/tr?id=1759838465872626&ev=PageView&noscript=1"
+  /></noscript>
+  <!-- End Meta Pixel Code -->
+
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet" />
@@ -1550,6 +1568,20 @@
         if (rect.top < window.innerHeight) el.classList.add('visible');
       });
     }, 100);
+
+    // Meta Pixel — rastrear cliques nos botões de compra
+    document.querySelectorAll('a[href*="hotmart.com"]').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        if (typeof fbq !== 'undefined') {
+          fbq('track', 'InitiateCheckout', {
+            value: 39.90,
+            currency: 'BRL',
+            content_name: 'TradersTracker',
+            content_type: 'product'
+          });
+        }
+      });
+    });
   </script>
 </body>
 </html>
