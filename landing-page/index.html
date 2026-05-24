@@ -1496,43 +1496,52 @@
   </a>
 
   <script>
-    // ─── COUNTDOWN REAL DE 48 HORAS ───
-    (function() {
-      // Definir deadline de 48 horas
-      const DEADLINE_KEY = 'traderstracker_deadline_v1';
-      let deadline = localStorage.getItem(DEADLINE_KEY);
-      
-      if (!deadline) {
-        // Criar novo deadline de 48h
-        const now = new Date();
-        now.setHours(now.getHours() + 48);
-        deadline = now.toISOString();
-        localStorage.setItem(DEADLINE_KEY, deadline);
-      }
-      
-      const deadlineDate = new Date(deadline);
-      
-      function updateCountdown() {
-        const now = new Date();
-        const diff = deadlineDate - now;
-        
-        if (diff <= 0) {
-          document.getElementById('countdown').textContent = 'EXPIRADO';
-          return;
-        }
-        
-        const hours = Math.floor(diff / (1000 * 60 * 60));
-        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-        
-        document.getElementById('countdown').textContent = 
-          `${hours}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s`;
-      }
-      
-      // Atualizar imediatamente e a cada segundo
-      updateCountdown();
-      setInterval(updateCountdown, 1000);
-    })();
+// ═══════════════════════════════════════════════════════
+// COUNTDOWN PERPÉTUO - Cada visitante vê seu próprio timer de 48h
+// ═══════════════════════════════════════════════════════
+(function() {
+  const DEADLINE_KEY = 'traderstracker_deadline_perpetual';
+
+  function getOrCreateDeadline() {
+    let deadline = localStorage.getItem(DEADLINE_KEY);
+
+    // Se não existe OU já expirou, cria novo deadline de 48h
+    if (!deadline || new Date(deadline) <= new Date()) {
+      const now = new Date();
+      now.setHours(now.getHours() + 48);
+      deadline = now.toISOString();
+      localStorage.setItem(DEADLINE_KEY, deadline);
+    }
+
+    return new Date(deadline);
+  }
+
+  const deadlineDate = getOrCreateDeadline();
+
+  function updateCountdown() {
+    const now = new Date();
+    const diff = deadlineDate - now;
+
+    const countdownEl = document.getElementById('countdown');
+    if (!countdownEl) return;
+
+    if (diff <= 0) {
+      // Expirou - cria novo deadline e recarrega
+      localStorage.removeItem(DEADLINE_KEY);
+      location.reload();
+      return;
+    }
+
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+    countdownEl.textContent = `${hours}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s`;
+  }
+
+  updateCountdown();
+  setInterval(updateCountdown, 1000);
+})();
 
     // ─── FAQ Accordion ───
     function toggleFaq(btn) {
