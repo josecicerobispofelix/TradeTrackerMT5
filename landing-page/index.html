@@ -1526,9 +1526,10 @@
     if (!countdownEl) return;
 
     if (diff <= 0) {
-      // Expirou - cria novo deadline e recarrega
+      // Expirou - cria novo deadline e recarrega após 3 segundos
+      countdownEl.textContent = '00h 00m 00s';
       localStorage.removeItem(DEADLINE_KEY);
-      location.reload();
+      setTimeout(function() { location.reload(); }, 3000);
       return;
     }
 
